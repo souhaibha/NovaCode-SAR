@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 @import "tailwindcss";
 @source "..";
 
@@ -70,7 +72,29 @@ body {
   width: 100% !important;
   height: 100% !important;
   background-color: #070e1c !important;
+  cursor: crosshair !important;
   z-index: 1;
+}
+
+.leaflet-grab,
+.leaflet-interactive {
+  cursor: crosshair !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: inherit !important;
+}
+
+.leaflet-popup-tip {
+  background: #151b2a !important;
 }
 
 .leaflet-container img {
