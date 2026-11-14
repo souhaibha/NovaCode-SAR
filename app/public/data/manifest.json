@@ -1,0 +1,99 @@
+{
+ "fake": true,
+ "zones": [
+  {
+   "id": "gharb",
+   "name": "Plaine du Gharb",
+   "bbox": [
+    -6.4,
+    34.1,
+    -5.9,
+    34.6
+   ],
+   "dates": [
+    "2026-08-19",
+    "2026-08-31",
+    "2026-09-12",
+    "2026-09-24",
+    "2026-10-06",
+    "2026-10-18"
+   ],
+   "pixel_area_km2": 0.0387653345774037,
+   "classes": [
+    {
+     "id": "eau",
+     "color": "#2b6cb0",
+     "label": "Eau"
+    },
+    {
+     "id": "vegetation",
+     "color": "#2f855a",
+     "label": "V\u00e9g\u00e9tation"
+    },
+    {
+     "id": "sol_nu",
+     "color": "#d9b382",
+     "label": "Sol nu"
+    },
+    {
+     "id": "bati",
+     "color": "#718096",
+     "label": "B\u00e2ti"
+    }
+   ],
+   "layers": {
+    "classification": "gharb/{date}_classification.png",
+    "mask_eau": "gharb/{date}_mask_eau.png",
+    "mask_vegetation": "gharb/{date}_mask_vegetation.png",
+    "mask_sol_nu": "gharb/{date}_mask_sol_nu.png",
+    "mask_bati": "gharb/{date}_mask_bati.png"
+   },
+   "confidence": "gharb/{date}_confidence.json",
+   "events": [
+    {
+     "id": "new_water",
+     "label": "New water",
+     "from": [
+      "sol_nu",
+      "vegetation"
+     ],
+     "to": [
+      "eau"
+     ]
+    },
+    {
+     "id": "water_lost",
+     "label": "Water lost",
+     "from": [
+      "eau"
+     ],
+     "to": [
+      "sol_nu"
+     ]
+    },
+    {
+     "id": "veg_loss",
+     "label": "Vegetation loss",
+     "from": [
+      "vegetation"
+     ],
+     "to": [
+      "sol_nu"
+     ]
+    },
+    {
+     "id": "veg_gain",
+     "label": "Vegetation gain",
+     "from": [
+      "sol_nu"
+     ],
+     "to": [
+      "vegetation"
+     ]
+    }
+   ],
+   "stats": "gharb/stats.json",
+   "aoi": "gharb/aoi.geojson"
+  }
+ ]
+}
