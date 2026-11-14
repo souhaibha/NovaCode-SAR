@@ -1,0 +1,14 @@
+{
+  "title": "Why does radar see water?",
+  "summary": "Calm water acts as a specular reflector for radar signals emitted by NISAR.",
+  "details": [
+    {
+      "heading": "HH vs HV Polarization",
+      "content": "HH polarization strongly highlights flooded areas and double-bounce scattering from inundated vegetation."
+    },
+    {
+      "heading": "Flood Dynamics",
+      "content": "Rapid increases in surface water area indicate seasonal overflow and soil saturation."
+    }
+  ]
+}

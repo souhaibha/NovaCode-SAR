@@ -11,7 +11,7 @@ import {
   Legend,
 } from 'chart.js';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
-export default function SidebarRight() {
+export default function SidebarRight({ selectedZone }) {
   const [activeTab, setActiveTab] = useState('numbers');
   const [stats, setStats] = useState(null);
   const [story, setStory] = useState(null);
@@ -47,34 +47,60 @@ useEffect(() => {
     datasets: [
       {
         label: 'Surface en Eau (km²)',
-        data: stats && stats.series ? stats.series.map((s) => s.classes ? s.classes.eau_km2 : 0) : [],
-        borderColor: '#38edf6',
-        backgroundColor: 'rgba(56, 237, 246, 0.2)',
-        tension: 0.4,
-        pointBackgroundColor: '#ff5353',
-        pointRadius: 5,
+        data: stats && stats.series ? stats.series.map((s) => (s.classes ? s.classes.eau_km2 : 0)) : [],
+        borderColor: '#0ea5e9', // Sky-500 pour matcher Tailwind
+        borderWidth: 2,
+        tension: 0.3,
+        fill: true,
+        backgroundColor: (context) => {
+          const ctx = context.chart.ctx;
+          const gradient = ctx.createLinearGradient(0, 0, 0, 160);
+          gradient.addColorStop(0, 'rgba(14, 165, 233, 0.35)');
+          gradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
+          return gradient;
+        },
+        pointBackgroundColor: '#38bdf8',
+        pointBorderColor: '#0f172a',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
       },
     ],
   };
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#0f172a',
+        backgroundColor: '#1e293b',
+        titleColor: '#f8fafc',
+        bodyColor: '#38bdf8',
         borderColor: '#334155',
         borderWidth: 1,
+        padding: 8,
+        displayColors: false,
+        callbacks: {
+          label: (context) => `${context.parsed.y} km²`,
+        },
       },
     },
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#94a3b8', font: { size: 11 } },
+        ticks: { color: '#64748b', font: { size: 10 } },
       },
       y: {
-        grid: { color: '#1e293b' },
-        ticks: { color: '#94a3b8', font: { size: 11 } },
+        grid: { color: '#1e293b', drawBorder: false },
+        ticks: { 
+          color: '#64748b', 
+          font: { size: 10 },
+          callback: (value) => `${value} km²`
+        },
       },
     },
   };
@@ -165,12 +191,12 @@ useEffect(() => {
           </div>
 
           {/* Water Extent Trend */}
-          <div className="space-y-2">
-            <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Water Extent Trend</span>
-            <div className="bg-slate-800/40 p-2.5 rounded border border-slate-700/40 h-44">
-              <Line data={chartData} options={chartOptions} />
-            </div>
-          </div>
+<div className="space-y-2">
+  <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Water Extent Trend</span>
+  <div className="bg-slate-800/40 p-3 rounded-lg border border-slate-700/40 h-52">
+    <Line data={chartData} options={chartOptions} />
+  </div>
+</div>
         </div>
       )}
       {/* Story */}
