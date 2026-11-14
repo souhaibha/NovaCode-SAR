@@ -3,6 +3,7 @@ import TopBar from "./components/TopBar";
 import ControlsPanel from "./components/ControlsPanel";
 import MapView from "./components/MapView";
 import Timeline from "./components/Timeline";
+import SidebarRight from "./components/SidebarRight";
 import Landing from "./pages/Landing";
 import { useManifest } from "./hooks/useManifest";
 import { useHashRoute } from "./lib/router";
@@ -320,6 +321,11 @@ export default function App() {
             />
           </div>
         </section>
+
+        {/* Right sidebar — metrics, charts & explanations (Dev B) */}
+        <div className="hidden lg:flex shrink-0 h-full z-20">
+          <SidebarRight selectedZone={matchedZone} />
+        </div>
       </div>
     </div>
   );
