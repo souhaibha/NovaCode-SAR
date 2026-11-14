@@ -61,7 +61,29 @@ body { overscroll-behavior: none; }
   width: 100% !important;
   height: 100% !important;
   background-color: #070e1c !important;
+  cursor: crosshair !important;
   z-index: 1;
+}
+
+.leaflet-grab,
+.leaflet-interactive {
+  cursor: crosshair !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: inherit !important;
+}
+
+.leaflet-popup-tip {
+  background: #151b2a !important;
 }
 
 .leaflet-container img {

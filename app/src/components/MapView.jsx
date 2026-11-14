@@ -5,10 +5,18 @@ import {
   ImageOverlay,
   GeoJSON,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import MapControls from "./MapControls";
-import { loadImageData, eventMask } from "../lib/eventMask";
+import ClickTooltip from "./ClickTooltip";
+import { loadImageData, eventMask, buildColorToClass } from "../lib/eventMask";
+import {
+  latLngToPixel,
+  classAtPixel,
+  confidenceAt,
+  fetchConfidence,
+} from "../lib/pixelInfo";
 
 const BASE = import.meta.env.BASE_URL + "data/";
 
@@ -124,6 +132,144 @@ function ZoomButtons() {
   );
 }
 
+// A6: Map click handler for pixel class and confidence inspection
+function MapClickHandler({
+  zone,
+  startDate,
+  endDate,
+  selectedEvent,
+  classes,
+  colorToClass,
+  onPointSelect,
+  setClickedPoint,
+  setPointError,
+}) {
+  useMapEvents({
+    click: async (e) => {
+      const { lat, lng } = e.latlng;
+      const bbox = zone?.bbox;
+      if (!bbox) return;
+
+      const [west, south, east, north] = bbox;
+      // Ignore clicks outside the zone bounding box
+      if (lat < south || lat > north || lng < west || lng > east) {
+        return;
+      }
+
+      if (!endDate || !zone?.layers?.classification) return;
+
+      setPointError?.(null);
+
+      const endClassificationUrl = fillTemplate(zone.layers.classification, endDate);
+      let endImg;
+      try {
+        endImg = await loadImageData(endClassificationUrl);
+      } catch (err) {
+        setPointError?.(`Failed to load image: ${endClassificationUrl}`);
+        return;
+      }
+
+      const px = latLngToPixel(lat, lng, bbox, endImg.width, endImg.height);
+      if (!px) return;
+
+      const endClassId = classAtPixel(endImg, px.x, px.y, colorToClass);
+      const endClassObj = classes.find((c) => c.id === endClassId) || null;
+
+      // Confidence for end date
+      let confEnd = null;
+      if (zone.confidence) {
+        const confEndUrl = fillTemplate(zone.confidence, endDate);
+        try {
+          const confEndJson = await fetchConfidence(confEndUrl);
+          confEnd = confidenceAt(confEndJson, px.fx, px.fy);
+        } catch (err) {
+          // If confidence file fails, confEnd remains null (do not invent)
+        }
+      }
+
+      // If an event is active and start < end: check start date class & event membership
+      let startClassObj = null;
+      let inEvent = false;
+      let finalConfidence = confEnd;
+
+      const hasActiveEvent =
+        Boolean(selectedEvent) && Boolean(startDate) && Boolean(endDate) && startDate < endDate;
+
+      if (hasActiveEvent) {
+        const startClassificationUrl = fillTemplate(
+          zone.layers.classification,
+          startDate
+        );
+        let startImg;
+        try {
+          startImg = await loadImageData(startClassificationUrl);
+        } catch (err) {
+          setPointError?.(`Failed to load image: ${startClassificationUrl}`);
+          return;
+        }
+
+        const startPx = latLngToPixel(lat, lng, bbox, startImg.width, startImg.height);
+        const startClassId = startPx
+          ? classAtPixel(startImg, startPx.x, startPx.y, colorToClass)
+          : null;
+
+        startClassObj = classes.find((c) => c.id === startClassId) || null;
+
+        // Check if clicked pixel belongs to the active event
+        if (startClassId && endClassId) {
+          if (selectedEvent.id === "water_change") {
+            const isGained =
+              (startClassId === "sol_nu" || startClassId === "vegetation") &&
+              endClassId === "eau";
+            const isLost = startClassId === "eau" && endClassId === "sol_nu";
+            inEvent = isGained || isLost;
+          } else if (selectedEvent.from && selectedEvent.to) {
+            inEvent =
+              selectedEvent.from.includes(startClassId) &&
+              selectedEvent.to.includes(endClassId);
+          }
+        }
+
+        // Confidence: the LOWER of the two dates' confidence values
+        let confStart = null;
+        if (zone.confidence) {
+          const confStartUrl = fillTemplate(zone.confidence, startDate);
+          try {
+            const confStartJson = await fetchConfidence(confStartUrl);
+            confStart = confidenceAt(confStartJson, px.fx, px.fy);
+          } catch (err) {
+            // Leave confStart as null
+          }
+        }
+
+        if (typeof confStart === "number" && typeof confEnd === "number") {
+          finalConfidence = Math.min(confStart, confEnd);
+        } else if (typeof confEnd === "number") {
+          finalConfidence = confEnd;
+        } else if (typeof confStart === "number") {
+          finalConfidence = confStart;
+        } else {
+          finalConfidence = null;
+        }
+      }
+
+      const pointResult = {
+        latlng: { lat, lng },
+        endClass: endClassObj,
+        startClass: startClassObj,
+        inEvent,
+        confidence: finalConfidence,
+        eventLabel: hasActiveEvent ? selectedEvent.label : null,
+      };
+
+      setClickedPoint(pointResult);
+      onPointSelect?.(pointResult);
+    },
+  });
+
+  return null;
+}
+
 export default function MapView(props) {
   // If props are missing, MapView maintains its own internal state (standalone mode)
   const isStandalone =
@@ -168,12 +314,17 @@ export default function MapView(props) {
   const activeClasses = props.activeClasses || internalActiveClasses;
   const opacity = props.opacity !== undefined ? props.opacity : internalOpacity;
   const onEventResult = props.onEventResult;
+  const onPointSelect = props.onPointSelect;
 
   const [aoi, setAoi] = useState(null);
   const [eventDataUrl, setEventDataUrl] = useState(null);
   const [eventStats, setEventStats] = useState(null);
   const [loadingEvent, setLoadingEvent] = useState(false);
   const [eventError, setEventError] = useState(null);
+
+  // A6 State: Clicked pixel point & error
+  const [clickedPoint, setClickedPoint] = useState(null);
+  const [pointError, setPointError] = useState(null);
 
   // Fetch AOI GeoJSON boundary
   useEffect(() => {
@@ -187,6 +338,9 @@ export default function MapView(props) {
 
   const classes = useMemo(() => zone?.classes || [], [zone?.classes]);
   const events = useMemo(() => zone?.events || [], [zone?.events]);
+
+  // Fast integer color to class map for pixel sampling
+  const colorToClass = useMemo(() => buildColorToClass(classes), [classes]);
 
   // Selected event (handling water_change special case)
   const selectedEvent = useMemo(() => {
@@ -208,6 +362,12 @@ export default function MapView(props) {
   const isInvalidDateRange = Boolean(
     startDate && endDate && startDate >= endDate
   );
+
+  // Clear clicked point when zone, dates, or event change
+  useEffect(() => {
+    setClickedPoint(null);
+    setPointError(null);
+  }, [zone?.id, startDate, endDate, eventId]);
 
   // Compute event layer mask and transitions via eventMask.js
   useEffect(() => {
@@ -372,6 +532,7 @@ export default function MapView(props) {
           width: "100%",
           height: "100%",
           background: "#070e1c",
+          cursor: "crosshair",
         }}
         zoomControl={false}
         scrollWheelZoom
@@ -432,6 +593,25 @@ export default function MapView(props) {
           />
         )}
 
+        {/* A6: Map Click Inspector */}
+        <MapClickHandler
+          zone={zone}
+          startDate={startDate}
+          endDate={endDate}
+          selectedEvent={selectedEvent}
+          classes={classes}
+          colorToClass={colorToClass}
+          onPointSelect={onPointSelect}
+          setClickedPoint={setClickedPoint}
+          setPointError={setPointError}
+        />
+
+        {/* A6: Click Tooltip Popup */}
+        <ClickTooltip
+          point={clickedPoint}
+          onClose={() => setClickedPoint(null)}
+        />
+
         <div className="leaflet-top leaflet-right">
           <ZoomButtons />
         </div>
@@ -476,15 +656,24 @@ export default function MapView(props) {
         </div>
       )}
 
-      {eventError && (
+      {(eventError || pointError) && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] max-w-md px-4 py-2.5 rounded-xl bg-red-950/95 border border-red-500/50 shadow-xl flex items-start gap-2">
           <span className="material-symbols-outlined text-[18px] text-red-400 mt-0.5 shrink-0">
             error
           </span>
           <div className="text-xs text-red-200">
-            <span className="font-bold block">Event layer error</span>
-            <span className="font-mono text-[11px] break-all">{eventError}</span>
+            <span className="font-bold block">Error</span>
+            <span className="font-mono text-[11px] break-all">{eventError || pointError}</span>
           </div>
+          <button
+            onClick={() => {
+              setEventError(null);
+              setPointError(null);
+            }}
+            className="text-red-300 hover:text-white ml-2"
+          >
+            <span className="material-symbols-outlined text-[14px]">close</span>
+          </button>
         </div>
       )}
 
