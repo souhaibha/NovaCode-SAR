@@ -70,44 +70,69 @@ class GlobeErrorBoundary extends React.Component {
   }
 }
 
+// Fast static color & styling constants to prevent Three.js shader / geometry rebuilds
+const STATIC_POLYGON_CAP = "rgba(21, 27, 42, 0.45)";
+const STATIC_POLYGON_STROKE = "rgba(60, 74, 70, 0.4)";
+const STATIC_POLYGON_SIDE = "transparent";
+const getRingColor = (t) => `rgba(87, 241, 219, ${Math.max(0, 1 - t)})`;
+
 const GlobeInner = forwardRef(function GlobeInner(
   {
     zones = [],
     selectedId,
-    hoverZoneId,
     isCardOpen = false,
     onZoneSelect,
     onGlobeClick,
-    onHoverZone,
   },
   ref
 ) {
   const globeEl = useRef();
   const containerRef = useRef();
+  const hoverCountryRef = useRef(null);
 
+  const [hoverZoneId, setHoverZoneId] = useState(null);
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
   const [countries, setCountries] = useState([]);
-  const [hoverPolygon, setHoverPolygon] = useState(null);
+
+  // Cap renderer pixel ratio to max 1.25 to save 75% GPU fillrate on high-DPI screens
+  useEffect(() => {
+    const globe = globeEl.current;
+    if (!globe) return;
+    try {
+      const renderer = globe.renderer();
+      if (renderer) {
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+      }
+    } catch {
+      // Ignore if renderer not yet initialized
+    }
+  }, []);
 
   // Resize handler
   useEffect(() => {
+    let timeoutId = null;
     const updateSize = () => {
-      if (containerRef.current) {
-        setDimensions({
-          width: containerRef.current.clientWidth || window.innerWidth,
-          height: containerRef.current.clientHeight || window.innerHeight,
-        });
-      }
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (containerRef.current) {
+          setDimensions({
+            width: containerRef.current.clientWidth || window.innerWidth,
+            height: containerRef.current.clientHeight || window.innerHeight,
+          });
+        }
+      }, 100);
     };
-    updateSize();
     window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener("resize", updateSize);
+    };
   }, []);
 
-  // Fetch optional world polygons
+  // Fetch optional world polygons once
   useEffect(() => {
     let active = true;
     fetch(`${BASE}world.geojson`)
@@ -146,7 +171,7 @@ const GlobeInner = forwardRef(function GlobeInner(
     }
 
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.35;
+    controls.autoRotateSpeed = 0.3;
 
     let idleTimeout = null;
 
@@ -216,10 +241,10 @@ const GlobeInner = forwardRef(function GlobeInner(
 
   const handleGlobeClick = useCallback(
     ({ lat, lng }) => {
-      const countryName = hoverPolygon?.properties?.NAME || null;
+      const countryName = hoverCountryRef.current || null;
       onGlobeClick({ lat, lng, countryName });
     },
-    [hoverPolygon, onGlobeClick]
+    [onGlobeClick]
   );
 
   const handlePolygonClick = useCallback(
@@ -230,6 +255,11 @@ const GlobeInner = forwardRef(function GlobeInner(
     [onGlobeClick]
   );
 
+  const handlePolygonHover = useCallback((polygon) => {
+    // Store in ref instead of triggering component-wide React re-render
+    hoverCountryRef.current = polygon?.properties?.NAME || null;
+  }, []);
+
   return (
     <div ref={containerRef} className={CSS.container}>
       <Globe
@@ -238,20 +268,16 @@ const GlobeInner = forwardRef(function GlobeInner(
         height={dimensions.height}
         backgroundColor="#070e1c"
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
-        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         atmosphereColor="#57f1db"
-        atmosphereAltitude={0.15}
-        // Country polygons
+        atmosphereAltitude={0.12}
+        // Optimized flat polygons (no dynamic height extrusion = no heavy mesh rebuilds)
         polygonsData={countries}
-        polygonAltitude={(d) => (d === hoverPolygon ? 0.03 : 0.005)}
-        polygonCapColor={(d) =>
-          d === hoverPolygon
-            ? "rgba(87, 241, 219, 0.18)"
-            : "rgba(21, 27, 42, 0.55)"
-        }
-        polygonSideColor={() => "rgba(7, 14, 28, 0.4)"}
-        polygonStrokeColor={() => "rgba(60, 74, 70, 0.45)"}
-        onPolygonHover={setHoverPolygon}
+        polygonAltitude={0.003}
+        polygonCapColor={() => STATIC_POLYGON_CAP}
+        polygonSideColor={() => STATIC_POLYGON_SIDE}
+        polygonStrokeColor={() => STATIC_POLYGON_STROKE}
+        polygonsTransitionDuration={0}
+        onPolygonHover={handlePolygonHover}
         onPolygonClick={handlePolygonClick}
         // Zone points
         pointsData={pointsData}
@@ -261,21 +287,24 @@ const GlobeInner = forwardRef(function GlobeInner(
           d.id === selectedId || d.id === hoverZoneId ? "#57f1db" : "#38bdf8"
         }
         pointAltitude={(d) =>
-          d.id === selectedId || d.id === hoverZoneId ? 0.06 : 0.03
+          d.id === selectedId || d.id === hoverZoneId ? 0.05 : 0.02
         }
         pointRadius={(d) =>
-          d.id === selectedId || d.id === hoverZoneId ? 0.9 : 0.5
+          d.id === selectedId || d.id === hoverZoneId ? 0.8 : 0.5
         }
         onPointClick={(point) => onZoneSelect(point)}
-        onPointHover={(point) => onHoverZone?.(point ? point.id : null)}
+        onPointHover={(point) => {
+          const nextId = point ? point.id : null;
+          setHoverZoneId((prev) => (prev === nextId ? prev : nextId));
+        }}
         // Pulsing rings
         ringsData={ringsData}
         ringLat="lat"
         ringLng="lng"
-        ringColor={() => (t) => `rgba(87, 241, 219, ${Math.max(0, 1 - t)})`}
-        ringMaxRadius={(d) => (d.isHighlighted ? 9 : 5)}
-        ringPropagationSpeed={(d) => (d.isHighlighted ? 3 : 1.5)}
-        ringRepeatPeriod={(d) => (d.isHighlighted ? 900 : 1600)}
+        ringColor={() => getRingColor}
+        ringMaxRadius={(d) => (d.isHighlighted ? 8 : 5)}
+        ringPropagationSpeed={(d) => (d.isHighlighted ? 2.5 : 1.5)}
+        ringRepeatPeriod={(d) => (d.isHighlighted ? 1000 : 1600)}
         // Interaction
         onGlobeClick={handleGlobeClick}
       />

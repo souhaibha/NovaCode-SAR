@@ -35,7 +35,6 @@ export default function Landing({ manifest, onNavigateToZone }) {
 
   const [selectedZone, setSelectedZone] = useState(null);
   const [clickInfo, setClickInfo] = useState(null);
-  const [hoverZoneId, setHoverZoneId] = useState(null);
 
   const zones = manifest?.zones || [];
   const sensor = manifest?.sensor || null;
@@ -145,11 +144,9 @@ export default function Landing({ manifest, onNavigateToZone }) {
             ref={globeRef}
             zones={zones}
             selectedId={selectedZone?.id}
-            hoverZoneId={hoverZoneId}
             isCardOpen={isCardOpen}
             onZoneSelect={handleMarkerSelect}
             onGlobeClick={handleGlobeClick}
-            onHoverZone={setHoverZoneId}
           />
         </Suspense>
       </main>
