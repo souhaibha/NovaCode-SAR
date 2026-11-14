@@ -1,235 +1,233 @@
 import { useEffect, useRef } from "react";
-import { bboxAreaKm2, formatCoords } from "../lib/geo";
 
-// ─── Single styling object for presentation redesign ──────────────────────
-const STYLES = {
-  dialog:
-    "relative z-50 w-full max-w-sm rounded-2xl bg-surface-container-low/95 p-5 text-on-surface shadow-2xl backdrop-blur-xl border border-outline-variant/50 flex flex-col gap-3.5 focus:outline-none focus:ring-2 focus:ring-primary",
+// Single styling block for the entire component
+const CSS = {
+  container:
+    "absolute bottom-6 right-6 z-[1000] w-[340px] max-w-[calc(100vw-32px)] rounded-2xl bg-[#151b2a]/95 backdrop-blur-md border border-[rgba(60,74,70,0.5)] shadow-2xl p-5 text-[#dce2f6] flex flex-col gap-4 animate-in fade-in duration-200 outline-none",
   header: "flex items-start justify-between gap-3",
-  titleWrap: "flex flex-col gap-0.5",
-  title: "text-lg font-bold tracking-tight text-on-surface font-sans",
-  subtitle: "text-xs font-medium text-on-surface-variant flex items-center gap-1.5",
+  titleBox: "flex flex-col gap-1 min-w-0",
+  title: "text-lg font-bold text-[#dce2f6] truncate tracking-tight font-sans",
+  subtitle: "text-xs font-mono text-[#bacac5] flex items-center gap-1.5",
   closeBtn:
-    "flex h-7 w-7 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors",
-  badgeWrap: "flex flex-wrap items-center gap-2",
-  badgeFlood:
-    "inline-flex items-center gap-1 rounded-md bg-sky-500/15 px-2 py-0.5 text-[11px] font-semibold text-sky-400 border border-sky-500/30",
-  badgeQuake:
-    "inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-400 border border-amber-500/30",
-  badgeDefault:
-    "inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary border border-primary/30",
+    "w-7 h-7 rounded-lg flex items-center justify-center text-[#bacac5] hover:text-[#dce2f6] hover:bg-[#232a39] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#57f1db] shrink-0",
+  badgeRow: "flex flex-wrap items-center gap-2",
+  badgeEventType:
+    "px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider bg-[rgba(87,241,219,0.15)] text-[#57f1db] border border-[rgba(87,241,219,0.3)]",
   badgeSensor:
-    "inline-flex items-center gap-1 rounded-md bg-surface-container-high px-2 py-0.5 text-[10px] font-mono text-primary border border-outline-variant/30",
-  alertBox:
-    "rounded-xl bg-surface-container/80 p-3 text-xs border border-outline-variant/40 flex flex-col gap-1",
-  alertTitle: "font-semibold text-primary flex items-center gap-1.5",
-  alertDesc: "text-on-surface-variant leading-relaxed",
-  grid: "grid grid-cols-2 gap-2 text-xs",
-  statItem:
-    "flex flex-col gap-0.5 rounded-lg bg-surface-container/60 p-2 border border-outline-variant/20",
-  statLabel: "text-[10px] uppercase font-mono tracking-wider text-outline",
-  statValue: "font-semibold text-on-surface font-mono",
-  description: "text-xs text-on-surface-variant leading-relaxed line-clamp-3",
-  footer: "pt-1 flex items-center justify-end gap-2",
-  primaryBtn:
-    "w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:bg-primary-fixed transition-colors shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface no-underline",
-  secondaryBtn:
-    "inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+    "px-2 py-0.5 rounded-full text-[10px] font-mono text-[#bacac5] bg-[#232a39] border border-[rgba(60,74,70,0.4)]",
+  gridDetails:
+    "grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#0c1321]/70 border border-[rgba(60,74,70,0.3)] text-xs font-mono",
+  gridItemLabel: "text-[10px] text-[#bacac5] uppercase tracking-wider block",
+  gridItemValue: "text-xs text-[#dce2f6] font-semibold mt-0.5 truncate",
+  description:
+    "text-xs leading-relaxed text-[#bacac5] max-h-24 overflow-y-auto pr-1",
+  btnPrimary:
+    "w-full py-2.5 px-4 rounded-xl bg-[#57f1db] text-[#003731] font-bold text-sm text-center flex items-center justify-center gap-2 hover:bg-[#78f5e3] active:scale-[0.99] transition-all shadow-[0_0_16px_rgba(87,241,219,0.25)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white",
+  btnSecondary:
+    "w-full py-2 px-4 rounded-xl bg-[#232a39] text-[#57f1db] border border-[rgba(87,241,219,0.3)] font-semibold text-xs text-center flex items-center justify-center gap-2 hover:bg-[#2c3547] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#57f1db]",
+  noticeBox:
+    "p-3 rounded-xl bg-[rgba(255,180,171,0.08)] border border-[rgba(255,180,171,0.25)] text-xs text-[#dce2f6] flex flex-col gap-2",
+  noticeTitle: "font-semibold flex items-center gap-1.5 text-[#ffb4ab]",
+  coordsText: "font-mono text-[11px] text-[#bacac5]",
 };
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const [y, m, d] = dateStr.split("-").map(Number);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
   return `${d} ${months[m - 1]} ${y}`;
 }
 
-export default function ZoneInfoCard({ cardData, onClose, manifestSensor }) {
-  const dialogRef = useRef(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+function computeAreaKm2(bbox) {
+  if (!bbox || bbox.length < 4) return null;
+  const [lonMin, latMin, lonMax, latMax] = bbox;
+  const midLat = ((latMin + latMax) / 2 * Math.PI) / 180;
+  const widthKm = Math.abs(lonMax - lonMin) * 111.32 * Math.cos(midLat);
+  const heightKm = Math.abs(latMax - latMin) * 110.574;
+  const area = widthKm * heightKm;
+  return Math.round(area);
+}
 
-  // Keyboard accessibility: Esc to close
+export default function ZoneInfoCard({
+  zone,
+  clickInfo,
+  sensor,
+  onClose,
+  onOpenZone,
+}) {
+  const cardRef = useRef(null);
+
+  // Esc key listener and focus management
   useEffect(() => {
-    function onKeyDown(e) {
-      if (e.key === "Escape" || e.keyCode === 27) {
-        e.preventDefault();
-        onCloseRef.current?.();
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
       }
-    }
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, []);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    cardRef.current?.focus();
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
-  if (!cardData) return null;
+  // Case 1: Exact supported zone
+  if (zone) {
+    const areaKm2 = computeAreaKm2(zone.bbox);
+    const dates = zone.dates || [];
+    const dateRange =
+      dates.length > 0
+        ? `${formatDate(dates[0])} – ${formatDate(dates[dates.length - 1])}`
+        : null;
 
-  const { type, zone, distanceKm, clickedCoords, countryName } = cardData;
-  const isDirect = type === "zone";
-  const isNear = type === "near";
-  const isFar = type === "far";
-
-  const dates = zone?.dates || [];
-  const hasDates = dates.length > 0;
-  const dateRange = hasDates
-    ? dates.length > 1
-      ? `${formatDate(dates[0])} – ${formatDate(dates[dates.length - 1])}`
-      : formatDate(dates[0])
-    : null;
-
-  const area = zone?.bbox ? bboxAreaKm2(zone.bbox) : null;
-  const sensorText = zone?.sensor || manifestSensor;
-  const hasNisar = typeof sensorText === "string" && sensorText.includes("NISAR L-band");
-
-  const dialogTitle = isDirect
-    ? zone.name
-    : isNear
-    ? `Near ${zone?.name || "Zone"}`
-    : "No Data Available";
-
-  return (
-    <div
-      ref={dialogRef}
-      role="dialog"
-      aria-label={dialogTitle}
-      tabIndex={-1}
-      className={STYLES.dialog}
-    >
-      {/* Header */}
-      <div className={STYLES.header}>
-        <div className={STYLES.titleWrap}>
-          <h2 className={STYLES.title}>
-            {isDirect ? zone.name : isNear ? `Proximity: ${zone?.name}` : "Unmonitored Area"}
-          </h2>
-          <div className={STYLES.subtitle}>
-            {isDirect && zone.country && <span>{zone.country}</span>}
-            {!isDirect && clickedCoords && (
-              <span>
-                {formatCoords(clickedCoords.lat, clickedCoords.lng)}
-                {countryName ? ` • ${countryName}` : ""}
+    return (
+      <div
+        ref={cardRef}
+        role="dialog"
+        aria-label={`Zone details for ${zone.name}`}
+        tabIndex={-1}
+        className={CSS.container}
+      >
+        <div className={CSS.header}>
+          <div className={CSS.titleBox}>
+            <h2 className={CSS.title}>{zone.name}</h2>
+            {zone.country && (
+              <span className={CSS.subtitle}>
+                <span className="material-symbols-outlined text-[14px]">public</span>
+                {zone.country}
               </span>
             )}
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className={CSS.closeBtn}
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
         </div>
 
+        {/* Badges */}
+        <div className={CSS.badgeRow}>
+          {zone.event_type && (
+            <span className={CSS.badgeEventType}>
+              {zone.event_type}
+            </span>
+          )}
+          {sensor && (
+            <span className={CSS.badgeSensor}>
+              {sensor}
+            </span>
+          )}
+        </div>
+
+        {/* Details Grid */}
+        <div className={CSS.gridDetails}>
+          {dateRange && (
+            <div className="col-span-2">
+              <span className={CSS.gridItemLabel}>Observed Period</span>
+              <span className={CSS.gridItemValue}>{dateRange}</span>
+            </div>
+          )}
+          {dates.length > 0 && (
+            <div>
+              <span className={CSS.gridItemLabel}>Acquisitions</span>
+              <span className={CSS.gridItemValue}>{dates.length} SAR passes</span>
+            </div>
+          )}
+          {areaKm2 != null && (
+            <div>
+              <span className={CSS.gridItemLabel}>Coverage</span>
+              <span className={CSS.gridItemValue}>~{areaKm2.toLocaleString()} km²</span>
+            </div>
+          )}
+        </div>
+
+        {/* Description */}
+        {zone.description && (
+          <p className={CSS.description}>{zone.description}</p>
+        )}
+
+        {/* Action Button */}
+        <button
+          type="button"
+          onClick={() => onOpenZone(zone.id)}
+          className={CSS.btnPrimary}
+        >
+          <span>Open dashboard</span>
+          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+      </div>
+    );
+  }
+
+  // Case 2: Clicked outside or nearby
+  const nearest = clickInfo?.nearest?.zone;
+  const distanceKm = clickInfo?.nearest?.distanceKm;
+  const isNear = clickInfo?.isNear;
+  const lat = clickInfo?.lat;
+  const lng = clickInfo?.lng;
+  const countryName = clickInfo?.countryName;
+
+  return (
+    <div
+      ref={cardRef}
+      role="dialog"
+      aria-label="Location details"
+      tabIndex={-1}
+      className={CSS.container}
+    >
+      <div className={CSS.header}>
+        <div className={CSS.titleBox}>
+          <h2 className={CSS.title}>
+            {isNear ? "Nearby SAR Zone" : "No processed data here yet"}
+          </h2>
+          {(lat != null && lng != null) && (
+            <span className={CSS.coordsText}>
+              {lat.toFixed(2)}°N, {lng.toFixed(2)}°E {countryName ? `• ${countryName}` : ""}
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close info card"
-          className={STYLES.closeBtn}
+          aria-label="Close"
+          className={CSS.closeBtn}
         >
           <span className="material-symbols-outlined text-[18px]">close</span>
         </button>
       </div>
 
-      {/* Proximity / Status Notices */}
-      {isNear && zone && (
-        <div className={STYLES.alertBox}>
-          <div className={STYLES.alertTitle}>
-            <span className="material-symbols-outlined text-[16px]">near_me</span>
-            <span>Nearest supported zone</span>
-          </div>
-          <p className={STYLES.alertDesc}>
-            {zone.name}, about <strong className="text-on-surface font-semibold">{Math.round(distanceKm)} km</strong> away.
+      <div className={CSS.noticeBox}>
+        <div className={CSS.noticeTitle}>
+          <span className="material-symbols-outlined text-[16px]">info</span>
+          <span>{isNear ? "Supported zone in proximity" : "Coverage limitation"}</span>
+        </div>
+        {nearest ? (
+          <p className="leading-relaxed">
+            {isNear
+              ? `Nearest supported zone: ${nearest.name}, about ${distanceKm} km away.`
+              : `This location has no radar change analysis processed. The closest available monitoring zone is ${nearest.name} (${distanceKm} km away).`}
           </p>
-        </div>
-      )}
+        ) : (
+          <p className="leading-relaxed">
+            No monitoring zones are currently available.
+          </p>
+        )}
+      </div>
 
-      {isFar && (
-        <div className={STYLES.alertBox}>
-          <div className={STYLES.alertTitle}>
-            <span className="material-symbols-outlined text-[16px]">info</span>
-            <span>No processed data here yet</span>
-          </div>
-          {zone && typeof distanceKm === "number" && (
-            <p className={STYLES.alertDesc}>
-              Nearest supported zone: <strong className="text-on-surface font-semibold">{zone.name}</strong> ({Math.round(distanceKm)} km away).
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Zone Details (Direct or Nearest Zone in Proximity) */}
-      {zone && (
-        <>
-          {/* Badges row: event type, sensor */}
-          <div className={STYLES.badgeWrap}>
-            {zone.event_type && (
-              <span
-                className={
-                  zone.event_type.toLowerCase() === "flood"
-                    ? STYLES.badgeFlood
-                    : zone.event_type.toLowerCase() === "earthquake"
-                    ? STYLES.badgeQuake
-                    : STYLES.badgeDefault
-                }
-              >
-                <span className="material-symbols-outlined text-[13px]">
-                  {zone.event_type.toLowerCase() === "flood"
-                    ? "flood"
-                    : zone.event_type.toLowerCase() === "earthquake"
-                    ? "landslide"
-                    : "emergency"}
-                </span>
-                {zone.event_type.charAt(0).toUpperCase() + zone.event_type.slice(1)}
-              </span>
-            )}
-
-            {hasNisar && (
-              <span className={STYLES.badgeSensor}>
-                <span className="material-symbols-outlined text-[12px]">sensors</span>
-                NISAR L-band
-              </span>
-            )}
-          </div>
-
-          {/* Data Grid: Dates, Acquisitions, Area */}
-          <div className={STYLES.grid}>
-            {dateRange && (
-              <div className={STYLES.statItem}>
-                <span className={STYLES.statLabel}>Period</span>
-                <span className={STYLES.statValue} title={dateRange}>
-                  {dateRange}
-                </span>
-              </div>
-            )}
-
-            {dates.length > 0 && (
-              <div className={STYLES.statItem}>
-                <span className={STYLES.statLabel}>Acquisitions</span>
-                <span className={STYLES.statValue}>
-                  {dates.length} pass{dates.length > 1 ? "es" : ""}
-                </span>
-              </div>
-            )}
-
-            {area !== null && area > 0 && (
-              <div className={STYLES.statItem}>
-                <span className={STYLES.statLabel}>Coverage Area</span>
-                <span className={STYLES.statValue}>~{area.toLocaleString()} km²</span>
-              </div>
-            )}
-
-            {zone.country && !isDirect && (
-              <div className={STYLES.statItem}>
-                <span className={STYLES.statLabel}>Country</span>
-                <span className={STYLES.statValue}>{zone.country}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Description text */}
-          {zone.description && (
-            <p className={STYLES.description}>{zone.description}</p>
-          )}
-
-          {/* Action button */}
-          <div className={STYLES.footer}>
-            <a href={`#/map/${zone.id}`} className={STYLES.primaryBtn}>
-              <span>{isDirect ? "Open dashboard" : `Open ${zone.name}`}</span>
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </a>
-          </div>
-        </>
+      {nearest && (
+        <button
+          type="button"
+          onClick={() => onOpenZone(nearest.id)}
+          className={CSS.btnSecondary}
+        >
+          <span>Open {nearest.name}</span>
+          <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+        </button>
       )}
     </div>
   );

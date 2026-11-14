@@ -5,29 +5,14 @@ import MapView from "./components/MapView";
 import Timeline from "./components/Timeline";
 import Landing from "./pages/Landing";
 import { useManifest } from "./hooks/useManifest";
+import { useHashRoute } from "./lib/router";
 
-/**
- * Hash-based router helper for GitHub Pages compatibility.
- *   "#/"             -> { page: "landing" }
- *   "#/map/<zoneId>" -> { page: "map", zoneId: "<zoneId>" }
- */
-function parseHash(hash) {
-  const clean = hash ? hash.replace(/^#\/?/, "") : "";
-  if (!clean || clean === "/") {
-    return { page: "landing" };
-  }
-  if (clean.startsWith("map/")) {
-    const rawId = clean.slice(4).split("?")[0].split("/")[0];
-    return { page: "map", zoneId: decodeURIComponent(rawId) };
-  }
-  return { page: "landing" };
-}
+const MANIFEST_PATH = import.meta.env.BASE_URL + "data/manifest.json";
 
 export default function App() {
   const { manifest, loading, error } = useManifest();
-  const [route, setRoute] = useState(() => parseHash(window.location.hash));
+  const { route, navigate } = useHashRoute();
 
-  // Dashboard state
   const [eventId, setEventId] = useState(null);
   const [period, setPeriod] = useState({ start: null, end: null });
   const [activeClasses, setActiveClasses] = useState([]);
@@ -36,49 +21,63 @@ export default function App() {
   const [opacity, setOpacity] = useState(0.85);
   const [eventResult, setEventResult] = useState(null);
 
-  // Listen to hash changes for routing
+  // Parse current route
+  const isMapRoute = route.startsWith("/map/");
+  const routeZoneId = isMapRoute ? route.replace("/map/", "").trim() : null;
+
+  // Resolve target zone from manifest
+  const matchedZone = isMapRoute
+    ? manifest?.zones?.find((z) => z.id === routeZoneId)
+    : null;
+
+  // Initialize or re-sync period and active classes when zone changes
   useEffect(() => {
-    function onHashChange() {
-      setRoute(parseHash(window.location.hash));
-    }
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
-
-  // Determine current zone based on route
-  const currentZoneId = route.page === "map" ? route.zoneId : null;
-  const zone = manifest?.zones?.find((z) => z.id === currentZoneId);
-  const zoneNotFound = route.page === "map" && !loading && !zone;
-
-  const events = zone?.events || manifest?.events || [];
-  const classes = zone?.classes || manifest?.classes || [];
-
-  // Reset or initialize period, activeClasses, and eventId when the active zone changes
-  useEffect(() => {
-    if (!zone) return;
-    if (zone.dates?.length) {
+    if (matchedZone?.dates?.length) {
       setPeriod({
-        start: zone.dates[0],
-        end: zone.dates[zone.dates.length - 1],
+        start: matchedZone.dates[0],
+        end: matchedZone.dates[matchedZone.dates.length - 1],
       });
+      const cls = matchedZone.classes || manifest?.classes || [];
+      setActiveClasses(cls.map((c) => c.id));
+      const evs = matchedZone.events || manifest?.events || [];
+      setEventId(evs[0]?.id || null);
     }
-    if (classes.length) {
-      setActiveClasses(classes.map((c) => c.id));
-    }
-    if (events.length) {
-      setEventId(events[0].id);
-    }
-  }, [zone?.id]);
+  }, [matchedZone?.id]);
 
-  // Loading state (while fetching manifest.json)
+  // Loading state
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-surface text-on-surface">
-        <div className="flex flex-col items-center gap-3">
-          <span className="material-symbols-outlined text-primary text-[44px] animate-spin">
-            progress_activity
+      <div
+        style={{
+          display: "flex",
+          height: "100vh",
+          width: "100vw",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#0c1321",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <span
+            className="material-symbols-outlined animate-pulse"
+            style={{ color: "#57f1db", fontSize: 48 }}
+          >
+            radar
           </span>
-          <span className="text-sm font-mono text-on-surface-variant">
+          <span
+            style={{
+              color: "#bacac5",
+              fontSize: 14,
+              fontFamily: "'JetBrains Mono',monospace",
+            }}
+          >
             Loading SAR data…
           </span>
         </div>
@@ -86,50 +85,134 @@ export default function App() {
     );
   }
 
-  // Error state (manifest failed to load)
+  // Error state with manifest file path
   if (error) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-surface p-6">
-        <div className="max-w-md rounded-2xl bg-surface-container-low p-6 border border-error/50 shadow-2xl flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-error font-semibold">
-            <span className="material-symbols-outlined">error</span>
-            <span>Failed to load manifest</span>
-          </div>
-          <p className="text-xs font-mono text-on-surface-variant break-all">
-            File path: public/data/manifest.json
+      <div
+        style={{
+          display: "flex",
+          height: "100vh",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#0c1321",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 480,
+            padding: 24,
+            borderRadius: 16,
+            background: "#151b2a",
+            border: "1px solid rgba(255,180,171,0.3)",
+            textAlign: "center",
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ color: "#ffb4ab", fontSize: 40, marginBottom: 8 }}
+          >
+            error
+          </span>
+          <h2 style={{ color: "#ffb4ab", fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
+            Manifest Load Failure
+          </h2>
+          <p
+            style={{
+              color: "#bacac5",
+              fontSize: 12,
+              fontFamily: "'JetBrains Mono',monospace",
+              marginBottom: 8,
+              wordBreak: "break-all",
+            }}
+          >
+            File path: {MANIFEST_PATH}
           </p>
-          <p className="text-xs text-error/90">{error}</p>
+          <p style={{ color: "#ffb4ab", fontSize: 13 }}>{error}</p>
         </div>
       </div>
     );
   }
 
-  // Route: Landing page (#/)
-  if (route.page === "landing") {
-    return <Landing manifest={manifest} loading={loading} error={error} />;
+  // 1. Landing route ("/")
+  if (!isMapRoute || route === "/") {
+    return (
+      <Landing
+        manifest={manifest}
+        onNavigateToZone={(zoneId) => navigate(`/map/${zoneId}`)}
+      />
+    );
   }
 
-  // Route: Map dashboard (#/map/<zone-id>) - Zone not found error
-  if (zoneNotFound) {
+  // 2. Zone not found route
+  if (!matchedZone) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center bg-surface p-6 text-on-surface">
-        <div className="flex max-w-md flex-col items-center gap-4 rounded-2xl bg-surface-container-low p-8 text-center border border-outline-variant/40 shadow-2xl">
-          <span className="material-symbols-outlined text-4xl text-error">
-            wrong_location
+      <div
+        style={{
+          display: "flex",
+          height: "100vh",
+          width: "100vw",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#070e1c",
+          color: "#dce2f6",
+        }}
+      >
+        <div
+          style={{
+            padding: 32,
+            borderRadius: 20,
+            background: "#151b2a",
+            border: "1px solid rgba(60,74,70,0.5)",
+            textAlign: "center",
+            maxWidth: 420,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 48, color: "#ffb4ab", marginBottom: 12 }}
+          >
+            location_off
           </span>
-          <h1 className="text-xl font-bold font-sans">Zone not found</h1>
-          <p className="text-xs text-on-surface-variant leading-relaxed">
-            The requested monitoring zone{" "}
-            <strong className="text-on-surface font-mono font-semibold">
-              "{route.zoneId}"
-            </strong>{" "}
-            was not found in public/data/manifest.json.
+          <h2
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              marginBottom: 8,
+            }}
+          >
+            Zone not found
+          </h2>
+          <p
+            style={{
+              fontSize: 13,
+              color: "#bacac5",
+              marginBottom: 24,
+              lineHeight: 1.5,
+            }}
+          >
+            The requested monitoring zone <code style={{ color: "#57f1db" }}>"{routeZoneId}"</code> is not registered in the SARdance manifest.
           </p>
           <a
             href="#/"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:bg-primary-fixed transition-colors no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-md"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 20px",
+              borderRadius: 12,
+              background: "#57f1db",
+              color: "#003731",
+              fontWeight: 700,
+              fontSize: 13,
+              textDecoration: "none",
+              boxShadow: "0 0 16px rgba(87,241,219,0.3)",
+            }}
           >
-            <span className="material-symbols-outlined text-[16px]">public</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+              public
+            </span>
             <span>Back to globe</span>
           </a>
         </div>
@@ -137,7 +220,7 @@ export default function App() {
     );
   }
 
-  // The map area height = 100vh minus the topbar (56px)
+  // 3. Active Dashboard Route for matchedZone
   const MAP_AREA_H = "calc(100vh - 56px)";
 
   return (
@@ -151,10 +234,10 @@ export default function App() {
         background: "#0c1321",
       }}
     >
-      {/* Top bar — fixed height 56px, includes "Back to globe" button */}
-      <TopBar zone={zone} manifest={manifest} />
+      {/* Top bar with back-to-globe button */}
+      <TopBar zone={matchedZone} showBack={true} />
 
-      {/* Body row — fills remaining height exactly */}
+      {/* Body row — fills remaining height */}
       <div
         style={{
           display: "flex",
@@ -166,7 +249,7 @@ export default function App() {
           overflow: "hidden",
         }}
       >
-        {/* Left controls panel */}
+        {/* Left panel */}
         <aside
           style={{
             width: 320,
@@ -183,7 +266,7 @@ export default function App() {
         >
           <ControlsPanel
             manifest={manifest}
-            zone={zone}
+            zone={matchedZone}
             eventId={eventId}
             setEventId={setEventId}
             activeClasses={activeClasses}
@@ -197,7 +280,7 @@ export default function App() {
           />
         </aside>
 
-        {/* Center map — takes full remaining space */}
+        {/* Center map */}
         <section
           style={{
             flex: 1,
@@ -210,7 +293,7 @@ export default function App() {
           }}
         >
           <MapView
-            zone={zone}
+            zone={matchedZone}
             eventId={eventId}
             period={period}
             activeClasses={activeClasses}
@@ -230,7 +313,11 @@ export default function App() {
               zIndex: 30,
             }}
           >
-            <Timeline zone={zone} period={period} setPeriod={setPeriod} />
+            <Timeline
+              zone={matchedZone}
+              period={period}
+              setPeriod={setPeriod}
+            />
           </div>
         </section>
       </div>

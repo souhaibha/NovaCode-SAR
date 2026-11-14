@@ -1,231 +1,309 @@
-import { useEffect, useRef, useState, useMemo, forwardRef, useImperativeHandle } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import Globe from "react-globe.gl";
-import { getZoneCenter } from "../lib/geo";
 
 const BASE = import.meta.env.BASE_URL + "data/";
 
-// Earth dark texture fallback from unpkg (cached by browser)
-const EARTH_TEXTURE = "//unpkg.com/three-globe/example/img/earth-dark.jpg";
-const EARTH_BUMP = "//unpkg.com/three-globe/example/img/earth-topology.png";
+// Single CSS definitions block
+const CSS = {
+  container: "relative w-full h-full overflow-hidden select-none",
+  fallback:
+    "flex flex-col items-center justify-center h-full w-full p-6 text-center bg-[#070e1c] text-[#dce2f6]",
+  fallbackCard:
+    "max-w-md p-6 rounded-2xl bg-[#151b2a] border border-[rgba(60,74,70,0.5)] shadow-2xl flex flex-col items-center gap-3",
+  fallbackIcon: "material-symbols-outlined text-[48px] text-[#57f1db]",
+  fallbackTitle: "text-lg font-bold font-sans",
+  fallbackText: "text-xs font-mono text-[#bacac5] leading-relaxed",
+};
 
-const GlobeView = forwardRef(function GlobeView(
+// Check WebGL availability
+function checkWebGLSupport() {
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(
+      window.WebGLRenderingContext &&
+        (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Error Boundary for WebGL/Three.js render failures
+class GlobeErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(err) {
+    console.warn("GlobeView error caught by boundary:", err);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className={CSS.fallback}>
+          <div className={CSS.fallbackCard}>
+            <span className={CSS.fallbackIcon}>public_off</span>
+            <h3 className={CSS.fallbackTitle}>3D Globe Unavailable</h3>
+            <p className={CSS.fallbackText}>
+              Your browser or graphics environment encountered an issue rendering
+              the 3D globe. Please use the zone search above to navigate directly.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const GlobeInner = forwardRef(function GlobeInner(
   {
     zones = [],
-    selectedZoneId,
-    hoveredZoneId,
-    cardOpen,
-    onSelectZone,
-    onHoverZone,
+    selectedId,
+    hoverZoneId,
+    isCardOpen = false,
+    onZoneSelect,
     onGlobeClick,
-    onPolygonClick,
-    onGeoError,
+    onHoverZone,
   },
   ref
 ) {
-  const globeRef = useRef(null);
-  const idleTimer = useRef(null);
-  const isInteracting = useRef(false);
+  const globeEl = useRef();
+  const containerRef = useRef();
 
-  const [countries, setCountries] = useState([]);
-  const [hoveredPolygon, setHoveredPolygon] = useState(null);
   const [dimensions, setDimensions] = useState({
-    width: typeof window !== "undefined" ? window.innerWidth : 800,
-    height: typeof window !== "undefined" ? window.innerHeight : 600,
+    width: window.innerWidth,
+    height: window.innerHeight,
   });
+  const [countries, setCountries] = useState([]);
+  const [hoverPolygon, setHoverPolygon] = useState(null);
 
-  // Expose pointOfView to parent via ref
-  useImperativeHandle(ref, () => ({
-    pointOfView: (pov, transitionMs = 1000) => {
-      globeRef.current?.pointOfView(pov, transitionMs);
-    },
-    controls: () => globeRef.current?.controls(),
-  }));
-
-  // Track window resizing
+  // Resize handler
   useEffect(() => {
-    function handleResize() {
-      setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    }
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const updateSize = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth || window.innerWidth,
+          height: containerRef.current.clientHeight || window.innerHeight,
+        });
+      }
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // Fetch country polygons ONLY from public/data/world.geojson
+  // Fetch optional world polygons
   useEffect(() => {
     let active = true;
-    const url = `${BASE}world.geojson`;
-    fetch(url)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
+    fetch(`${BASE}world.geojson`)
+      .then((res) => {
+        if (!res.ok) throw new Error("No world.geojson");
+        return res.json();
       })
-      .then((geo) => {
-        if (!active || !geo) return;
-        setCountries(geo.features || []);
-        onGeoError?.(null);
+      .then((data) => {
+        if (active && data?.features) {
+          setCountries(data.features);
+        }
       })
-      .catch((err) => {
-        if (!active) return;
-        console.warn("Failed to load country outlines:", err);
-        setCountries([]);
-        onGeoError?.(`Could not load country polygons: public/data/world.geojson (${err.message})`);
+      .catch(() => {
+        // Fallback: polygon-less globe
       });
     return () => {
       active = false;
     };
-  }, [onGeoError]);
-
-  // Check prefers-reduced-motion
-  const prefersReducedMotion = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }, []);
 
-  // Configure auto-rotate with idle resume
+  // Configure auto-rotate with prefers-reduced-motion and idle-resume
   useEffect(() => {
-    const controls = globeRef.current?.controls();
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    const globe = globeEl.current;
+    if (!globe) return;
+
+    const controls = globe.controls();
     if (!controls) return;
 
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion || isCardOpen) {
       controls.autoRotate = false;
       return;
     }
 
-    controls.autoRotateSpeed = 0.4;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.35;
 
-    if (cardOpen || isInteracting.current) {
+    let idleTimeout = null;
+
+    const handlePointerDown = () => {
       controls.autoRotate = false;
-    } else {
-      controls.autoRotate = true;
+      if (idleTimeout) clearTimeout(idleTimeout);
+    };
+
+    const handlePointerUp = () => {
+      if (idleTimeout) clearTimeout(idleTimeout);
+      idleTimeout = setTimeout(() => {
+        if (!isCardOpen && !prefersReducedMotion) {
+          controls.autoRotate = true;
+        }
+      }, 5000);
+    };
+
+    const domEl = containerRef.current;
+    if (domEl) {
+      domEl.addEventListener("pointerdown", handlePointerDown);
+      domEl.addEventListener("pointerup", handlePointerUp);
     }
-  }, [cardOpen, prefersReducedMotion]);
 
-  // Handle interaction pause & 5s idle resume
-  const handleInteraction = () => {
-    const controls = globeRef.current?.controls();
-    if (!controls || prefersReducedMotion) return;
-
-    isInteracting.current = true;
-    controls.autoRotate = false;
-
-    clearTimeout(idleTimer.current);
-    idleTimer.current = setTimeout(() => {
-      isInteracting.current = false;
-      if (!cardOpen && controls) {
-        controls.autoRotate = true;
+    return () => {
+      if (idleTimeout) clearTimeout(idleTimeout);
+      if (domEl) {
+        domEl.removeEventListener("pointerdown", handlePointerDown);
+        domEl.removeEventListener("pointerup", handlePointerUp);
       }
-    }, 5000);
-  };
+    };
+  }, [isCardOpen]);
 
-  // Markers data for all zones
-  const markers = useMemo(() => {
+  // Expose flyTo imperative method
+  useImperativeHandle(ref, () => ({
+    flyTo: (zone) => {
+      if (!globeEl.current || !zone) return;
+      const lat = zone.center
+        ? zone.center[1]
+        : (zone.bbox[1] + zone.bbox[3]) / 2;
+      const lng = zone.center
+        ? zone.center[0]
+        : (zone.bbox[0] + zone.bbox[2]) / 2;
+      globeEl.current.pointOfView({ lat, lng, altitude: 1.6 }, 1000);
+    },
+  }));
+
+  // Points data from manifest zones
+  const pointsData = useMemo(() => {
     return zones.map((z) => {
-      const center = getZoneCenter(z);
+      const lat = z.center ? z.center[1] : (z.bbox[1] + z.bbox[3]) / 2;
+      const lng = z.center ? z.center[0] : (z.bbox[0] + z.bbox[2]) / 2;
       return {
-        lat: center.lat,
-        lng: center.lng,
-        zone: z,
+        ...z,
+        lat,
+        lng,
       };
     });
   }, [zones]);
 
-  // Initial camera orientation
-  useEffect(() => {
-    if (globeRef.current) {
-      // Default viewpoint over Atlantic / North-West Africa to see Morocco and surroundings
-      globeRef.current.pointOfView({ lat: 30, lng: -10, altitude: 2.2 }, 0);
-    }
-  }, []);
+  // Rings data for active/hovered zones
+  const ringsData = useMemo(() => {
+    return pointsData.map((p) => ({
+      ...p,
+      isHighlighted: p.id === selectedId || p.id === hoverZoneId,
+    }));
+  }, [pointsData, selectedId, hoverZoneId]);
+
+  const handleGlobeClick = useCallback(
+    ({ lat, lng }) => {
+      const countryName = hoverPolygon?.properties?.NAME || null;
+      onGlobeClick({ lat, lng, countryName });
+    },
+    [hoverPolygon, onGlobeClick]
+  );
+
+  const handlePolygonClick = useCallback(
+    (polygon, event, { lat, lng }) => {
+      const countryName = polygon?.properties?.NAME || null;
+      onGlobeClick({ lat, lng, countryName });
+    },
+    [onGlobeClick]
+  );
 
   return (
-    <div
-      onPointerDown={handleInteraction}
-      onWheel={handleInteraction}
-      className="absolute inset-0 z-0 h-full w-full overflow-hidden bg-[#070e1c]"
-    >
+    <div ref={containerRef} className={CSS.container}>
       <Globe
-        ref={globeRef}
+        ref={globeEl}
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="#070e1c"
-        globeImageUrl={EARTH_TEXTURE}
-        bumpImageUrl={EARTH_BUMP}
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         atmosphereColor="#57f1db"
-        atmosphereAltitude={0.16}
-        // Points / markers for zones
-        pointsData={markers}
+        atmosphereAltitude={0.15}
+        // Country polygons
+        polygonsData={countries}
+        polygonAltitude={(d) => (d === hoverPolygon ? 0.03 : 0.005)}
+        polygonCapColor={(d) =>
+          d === hoverPolygon
+            ? "rgba(87, 241, 219, 0.18)"
+            : "rgba(21, 27, 42, 0.55)"
+        }
+        polygonSideColor={() => "rgba(7, 14, 28, 0.4)"}
+        polygonStrokeColor={() => "rgba(60, 74, 70, 0.45)"}
+        onPolygonHover={setHoverPolygon}
+        onPolygonClick={handlePolygonClick}
+        // Zone points
+        pointsData={pointsData}
         pointLat="lat"
         pointLng="lng"
+        pointColor={(d) =>
+          d.id === selectedId || d.id === hoverZoneId ? "#57f1db" : "#38bdf8"
+        }
         pointAltitude={(d) =>
-          d.zone.id === selectedZoneId || d.zone.id === hoveredZoneId ? 0.05 : 0.02
+          d.id === selectedId || d.id === hoverZoneId ? 0.06 : 0.03
         }
         pointRadius={(d) =>
-          d.zone.id === selectedZoneId || d.zone.id === hoveredZoneId ? 0.9 : 0.55
+          d.id === selectedId || d.id === hoverZoneId ? 0.9 : 0.5
         }
-        pointColor={(d) =>
-          d.zone.id === selectedZoneId || d.zone.id === hoveredZoneId
-            ? "#57f1db"
-            : "#3cddc7"
-        }
-        onPointClick={(d) => onSelectZone?.(d.zone)}
-        onPointHover={(d) => onHoverZone?.(d ? d.zone : null)}
-        // Pulsing rings around zones
-        ringsData={markers}
+        onPointClick={(point) => onZoneSelect(point)}
+        onPointHover={(point) => onHoverZone?.(point ? point.id : null)}
+        // Pulsing rings
+        ringsData={ringsData}
         ringLat="lat"
         ringLng="lng"
-        ringColor={(d) =>
-          d.zone.id === selectedZoneId || d.zone.id === hoveredZoneId
-            ? () => "#57f1db"
-            : () => "rgba(87, 241, 219, 0.45)"
-        }
-        ringMaxRadius={(d) =>
-          d.zone.id === selectedZoneId || d.zone.id === hoveredZoneId ? 6.0 : 3.8
-        }
-        ringPropagationSpeed={2.2}
-        ringRepeatPeriod={1200}
-        // Country polygons from world.geojson (Natural Earth Morocco POV)
-        polygonsData={countries}
-        polygonLabel={(feat) =>
-          feat?.properties?.NAME
-            ? `<div style="background: rgba(21, 27, 42, 0.95); color: #dce2f6; padding: 4px 8px; border-radius: 6px; font-family: sans-serif; font-size: 11px; border: 1px solid rgba(87, 241, 219, 0.3); font-weight: 600;">${feat.properties.NAME}</div>`
-            : ""
-        }
-        polygonCapColor={(feat) =>
-          feat === hoveredPolygon
-            ? "rgba(87, 241, 219, 0.28)"
-            : "rgba(21, 27, 42, 0.6)"
-        }
-        polygonSideColor={() => "rgba(7, 14, 28, 0.3)"}
-        polygonStrokeColor={() => "rgba(60, 74, 70, 0.45)"}
-        polygonAltitude={0.006}
-        onPolygonHover={(feat) => setHoveredPolygon(feat || null)}
-        onPolygonClick={(feat, event, coords) => {
-          handleInteraction();
-          const pt =
-            coords && typeof coords.lat === "number"
-              ? coords
-              : event && typeof event.lat === "number"
-              ? event
-              : null;
-          onPolygonClick?.(feat, pt);
-        }}
-        // Background globe click
-        onGlobeClick={(coords, event) => {
-          handleInteraction();
-          const pt =
-            coords && typeof coords.lat === "number"
-              ? coords
-              : event && typeof event.lat === "number"
-              ? event
-              : null;
-          if (pt) onGlobeClick?.(pt);
-        }}
+        ringColor={() => (t) => `rgba(87, 241, 219, ${Math.max(0, 1 - t)})`}
+        ringMaxRadius={(d) => (d.isHighlighted ? 9 : 5)}
+        ringPropagationSpeed={(d) => (d.isHighlighted ? 3 : 1.5)}
+        ringRepeatPeriod={(d) => (d.isHighlighted ? 900 : 1600)}
+        // Interaction
+        onGlobeClick={handleGlobeClick}
       />
     </div>
   );
 });
 
-export default GlobeView;
+export default forwardRef(function GlobeView(props, ref) {
+  const isWebGL = useMemo(() => checkWebGLSupport(), []);
+
+  if (!isWebGL) {
+    return (
+      <div className={CSS.fallback}>
+        <div className={CSS.fallbackCard}>
+          <span className={CSS.fallbackIcon}>public_off</span>
+          <h3 className={CSS.fallbackTitle}>3D Globe Requires WebGL</h3>
+          <p className={CSS.fallbackText}>
+            WebGL is not supported or is disabled in your browser. Use the zone
+            picker above to explore radar datasets.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <GlobeErrorBoundary>
+      <GlobeInner ref={ref} {...props} />
+    </GlobeErrorBoundary>
+  );
+});
