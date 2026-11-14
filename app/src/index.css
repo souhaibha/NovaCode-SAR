@@ -1,6 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 @import "tailwindcss";
+@source "..";
 
 @theme {
   --color-surface: #0c1321;
@@ -41,7 +40,9 @@
   --color-inverse-on-surface: #2a3040;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   margin: 0;
@@ -53,9 +54,17 @@ html, body, #root {
   font-size: 14px;
 }
 
-* { box-sizing: border-box; }
-::-webkit-scrollbar { display: none; }
-body { overscroll-behavior: none; }
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  overscroll-behavior: none;
+}
 
 .leaflet-container {
   width: 100% !important;
@@ -111,8 +120,14 @@ body { overscroll-behavior: none; }
   -webkit-font-smoothing: antialiased;
 }
 
-.leaflet-control-zoom { display: none !important; }
-.leaflet-control-attribution { opacity: 0.4; font-size: 9px; }
+.leaflet-control-zoom {
+  display: none !important;
+}
+
+.leaflet-control-attribution {
+  opacity: 0.4;
+  font-size: 9px;
+}
 
 input[type="range"] {
   -webkit-appearance: none;
@@ -122,6 +137,7 @@ input[type="range"] {
   height: 6px;
   cursor: pointer;
 }
+
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -130,15 +146,27 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 50%;
   background: #57f1db;
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(87,241,219,0.5);
+  box-shadow: 0 0 6px rgba(87, 241, 219, 0.5);
 }
 
 @keyframes ping {
-  75%, 100% { transform: scale(2); opacity: 0; }
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
-.animate-ping { animation: ping 1s cubic-bezier(0,0,0.2,1) infinite; }
+
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
 
 @keyframes pulse {
-  50% { opacity: 0.5; }
+  50% {
+    opacity: 0.5;
+  }
 }
-.animate-pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

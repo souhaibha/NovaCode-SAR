@@ -1,0 +1,8 @@
+{
+  "series": [
+    {"date": "2026-09-12", "classes": {"eau_km2": 18.9, "vegetation_km2": 42.1, "sol_nu_km2": 30.4, "bati_km2": 8.6}}
+  ],
+  "transitions": [
+    {"from": "2026-08-19", "to": "2026-09-12", "sol_nu_to_eau_km2": 6.5, "vegetation_to_eau_km2": 0.6}
+  ]
+}
