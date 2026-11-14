@@ -8,6 +8,8 @@ import React, {
   forwardRef,
 } from "react";
 import Globe from "react-globe.gl";
+import { buildWorldTexture } from "../lib/worldTexture";
+import { countryAt } from "../lib/countryAt";
 
 const BASE = import.meta.env.BASE_URL + "data/";
 
@@ -17,7 +19,7 @@ const CSS = {
   fallback:
     "flex flex-col items-center justify-center h-full w-full p-6 text-center bg-[#070e1c] text-[#dce2f6]",
   fallbackCard:
-    "max-w-md p-6 rounded-2xl bg-[#151b2a] border border-[rgba(60,74,70,0.5)] shadow-2xl flex flex-col items-center gap-3",
+    "max-w-md p-6 rounded-2xl bg-[#151b2a] border border-[rgba(60,74,70,0.5)] flex flex-col items-center gap-3",
   fallbackIcon: "material-symbols-outlined text-[48px] text-[#57f1db]",
   fallbackTitle: "text-lg font-bold font-sans",
   fallbackText: "text-xs font-mono text-[#bacac5] leading-relaxed",
@@ -35,6 +37,32 @@ function checkWebGLSupport() {
     return false;
   }
 }
+
+// 1x1 flat ocean fallback texture until baked texture is ready
+function createFlatOceanTexture() {
+  if (typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = 2;
+  canvas.height = 2;
+  const ctx = canvas.getContext("2d");
+  const computed = window.getComputedStyle
+    ? window.getComputedStyle(document.documentElement)
+    : null;
+  ctx.fillStyle =
+    computed?.getPropertyValue("--color-surface-container-lowest")?.trim() ||
+    "#070e1c";
+  ctx.fillRect(0, 0, 2, 2);
+  return canvas.toDataURL("image/png");
+}
+
+// Module-level stable ring accessors
+const getRingLat = (d) => d.lat;
+const getRingLng = (d) => d.lng;
+const getRingColor = () => (t) =>
+  `rgba(87, 241, 219, ${Math.max(0, 1 - t)})`;
+const getRingMaxRadius = (d) => (d.isHighlighted ? 8 : 5);
+const getRingPropagationSpeed = (d) => (d.isHighlighted ? 2.5 : 1.5);
+const getRingRepeatPeriod = (d) => (d.isHighlighted ? 1000 : 1600);
 
 // Error Boundary for WebGL/Three.js render failures
 class GlobeErrorBoundary extends React.Component {
@@ -70,12 +98,6 @@ class GlobeErrorBoundary extends React.Component {
   }
 }
 
-// Fast static color & styling constants to prevent Three.js shader / geometry rebuilds
-const STATIC_POLYGON_CAP = "rgba(21, 27, 42, 0.45)";
-const STATIC_POLYGON_STROKE = "rgba(60, 74, 70, 0.4)";
-const STATIC_POLYGON_SIDE = "transparent";
-const getRingColor = (t) => `rgba(87, 241, 219, ${Math.max(0, 1 - t)})`;
-
 const GlobeInner = forwardRef(function GlobeInner(
   {
     zones = [],
@@ -88,30 +110,46 @@ const GlobeInner = forwardRef(function GlobeInner(
 ) {
   const globeEl = useRef();
   const containerRef = useRef();
-  const hoverCountryRef = useRef(null);
+  const rawFeaturesRef = useRef([]);
 
   const [hoverZoneId, setHoverZoneId] = useState(null);
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
-  const [countries, setCountries] = useState([]);
+  const [textureUrl, setTextureUrl] = useState(() => createFlatOceanTexture());
 
-  // Cap renderer pixel ratio to max 1.25 to save 75% GPU fillrate on high-DPI screens
+  // Cap renderer pixel ratio at 1.5
   useEffect(() => {
     const globe = globeEl.current;
     if (!globe) return;
     try {
       const renderer = globe.renderer();
       if (renderer) {
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       }
     } catch {
-      // Ignore if renderer not yet initialized
+      // Ignore
     }
   }, []);
 
-  // Resize handler
+  // Pause / resume animation on tab visibilitychange
+  useEffect(() => {
+    const handleVisibility = () => {
+      const globe = globeEl.current;
+      if (!globe) return;
+      if (document.hidden) {
+        globe.pauseAnimation?.();
+      } else {
+        globe.resumeAnimation?.();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
+  // Debounced window resize handler
   useEffect(() => {
     let timeoutId = null;
     const updateSize = () => {
@@ -132,28 +170,40 @@ const GlobeInner = forwardRef(function GlobeInner(
     };
   }, []);
 
-  // Fetch optional world polygons once
+  // Zone country names list for baked texture highlight
+  const zoneCountryNames = useMemo(() => {
+    return zones
+      .map((z) => z.country)
+      .filter(Boolean);
+  }, [zones]);
+
+  // Load world.geojson and bake 2048x1024 texture once
   useEffect(() => {
     let active = true;
     fetch(`${BASE}world.geojson`)
       .then((res) => {
-        if (!res.ok) throw new Error("No world.geojson");
+        if (!res.ok) throw new Error("world.geojson missing");
         return res.json();
       })
       .then((data) => {
-        if (active && data?.features) {
-          setCountries(data.features);
+        if (!active || !data?.features) return;
+        rawFeaturesRef.current = data.features;
+        const bakedUrl = buildWorldTexture(data.features, {
+          zoneCountryNames,
+        });
+        if (active && bakedUrl) {
+          setTextureUrl(bakedUrl);
         }
       })
-      .catch(() => {
-        // Fallback: polygon-less globe
+      .catch((err) => {
+        console.warn("World texture loading skipped, using flat globe:", err);
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [zoneCountryNames]);
 
-  // Configure auto-rotate with prefers-reduced-motion and idle-resume
+  // Auto-rotate with prefers-reduced-motion check and idle-resume
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
@@ -218,46 +268,44 @@ const GlobeInner = forwardRef(function GlobeInner(
     },
   }));
 
-  // Points data from manifest zones
+  // Stable precomputed points data with attribute names
   const pointsData = useMemo(() => {
     return zones.map((z) => {
       const lat = z.center ? z.center[1] : (z.bbox[1] + z.bbox[3]) / 2;
       const lng = z.center ? z.center[0] : (z.bbox[0] + z.bbox[2]) / 2;
+      const isHighlighted = z.id === selectedId || z.id === hoverZoneId;
       return {
         ...z,
         lat,
         lng,
+        color: isHighlighted ? "#57f1db" : "#38bdf8",
+        altitude: isHighlighted ? 0.05 : 0.02,
+        radius: isHighlighted ? 0.8 : 0.5,
       };
     });
-  }, [zones]);
+  }, [zones, selectedId, hoverZoneId]);
 
-  // Rings data for active/hovered zones
+  // Stable rings data
   const ringsData = useMemo(() => {
     return pointsData.map((p) => ({
-      ...p,
+      lat: p.lat,
+      lng: p.lng,
       isHighlighted: p.id === selectedId || p.id === hoverZoneId,
     }));
   }, [pointsData, selectedId, hoverZoneId]);
 
+  // Handle globe click with fast cached countryAt lookup
   const handleGlobeClick = useCallback(
     ({ lat, lng }) => {
-      const countryName = hoverCountryRef.current || null;
+      const countryName = countryAt(rawFeaturesRef.current, lat, lng);
       onGlobeClick({ lat, lng, countryName });
     },
     [onGlobeClick]
   );
 
-  const handlePolygonClick = useCallback(
-    (polygon, event, { lat, lng }) => {
-      const countryName = polygon?.properties?.NAME || null;
-      onGlobeClick({ lat, lng, countryName });
-    },
-    [onGlobeClick]
-  );
-
-  const handlePolygonHover = useCallback((polygon) => {
-    // Store in ref instead of triggering component-wide React re-render
-    hoverCountryRef.current = polygon?.properties?.NAME || null;
+  const handlePointHover = useCallback((point) => {
+    const nextId = point ? point.id : null;
+    setHoverZoneId((prev) => (prev === nextId ? prev : nextId));
   }, []);
 
   return (
@@ -267,44 +315,26 @@ const GlobeInner = forwardRef(function GlobeInner(
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="#070e1c"
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
-        atmosphereColor="#57f1db"
-        atmosphereAltitude={0.12}
-        // Optimized flat polygons (no dynamic height extrusion = no heavy mesh rebuilds)
-        polygonsData={countries}
-        polygonAltitude={0.003}
-        polygonCapColor={() => STATIC_POLYGON_CAP}
-        polygonSideColor={() => STATIC_POLYGON_SIDE}
-        polygonStrokeColor={() => STATIC_POLYGON_STROKE}
-        polygonsTransitionDuration={0}
-        onPolygonHover={handlePolygonHover}
-        onPolygonClick={handlePolygonClick}
-        // Zone points
+        globeImageUrl={textureUrl}
+        showAtmosphere={false}
+        rendererConfig={{ powerPreference: "high-performance" }}
+        // Zone points using stable string attribute accessors
         pointsData={pointsData}
         pointLat="lat"
         pointLng="lng"
-        pointColor={(d) =>
-          d.id === selectedId || d.id === hoverZoneId ? "#57f1db" : "#38bdf8"
-        }
-        pointAltitude={(d) =>
-          d.id === selectedId || d.id === hoverZoneId ? 0.05 : 0.02
-        }
-        pointRadius={(d) =>
-          d.id === selectedId || d.id === hoverZoneId ? 0.8 : 0.5
-        }
-        onPointClick={(point) => onZoneSelect(point)}
-        onPointHover={(point) => {
-          const nextId = point ? point.id : null;
-          setHoverZoneId((prev) => (prev === nextId ? prev : nextId));
-        }}
-        // Pulsing rings
+        pointColor="color"
+        pointAltitude="altitude"
+        pointRadius="radius"
+        onPointClick={onZoneSelect}
+        onPointHover={handlePointHover}
+        // Pulsing rings with module-level accessors
         ringsData={ringsData}
-        ringLat="lat"
-        ringLng="lng"
-        ringColor={() => getRingColor}
-        ringMaxRadius={(d) => (d.isHighlighted ? 8 : 5)}
-        ringPropagationSpeed={(d) => (d.isHighlighted ? 2.5 : 1.5)}
-        ringRepeatPeriod={(d) => (d.isHighlighted ? 1000 : 1600)}
+        ringLat={getRingLat}
+        ringLng={getRingLng}
+        ringColor={getRingColor}
+        ringMaxRadius={getRingMaxRadius}
+        ringPropagationSpeed={getRingPropagationSpeed}
+        ringRepeatPeriod={getRingRepeatPeriod}
         // Interaction
         onGlobeClick={handleGlobeClick}
       />

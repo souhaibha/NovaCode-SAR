@@ -1,17 +1,17 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 
-// Single styling block for ZonePicker
+// Single styling block for ZonePicker (solid backgrounds, no blur or shadows over canvas)
 const CSS = {
   container: "relative w-full max-w-md",
   inputWrapper:
-    "flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#151b2a]/90 backdrop-blur-md border border-[rgba(60,74,70,0.5)] shadow-lg focus-within:border-[#57f1db] focus-within:ring-2 focus-within:ring-[rgba(87,241,219,0.2)] transition-all",
+    "flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#151b2a] border border-[rgba(60,74,70,0.5)] focus-within:border-[#57f1db] transition-colors",
   searchIcon: "material-symbols-outlined text-[18px] text-[#bacac5] shrink-0",
   input:
     "w-full bg-transparent text-sm text-[#dce2f6] placeholder-[#bacac5]/60 outline-none font-sans",
   clearBtn:
     "text-[#bacac5] hover:text-[#dce2f6] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#57f1db] rounded p-0.5 shrink-0",
   dropdown:
-    "absolute top-full left-0 right-0 mt-2 max-h-64 overflow-y-auto rounded-xl bg-[#151b2a]/95 backdrop-blur-lg border border-[rgba(60,74,70,0.5)] shadow-2xl z-50 p-1 flex flex-col gap-0.5 outline-none",
+    "absolute top-full left-0 right-0 mt-2 max-h-64 overflow-y-auto rounded-xl bg-[#151b2a] border border-[rgba(60,74,70,0.5)] z-50 p-1 flex flex-col gap-0.5 outline-none",
   option:
     "px-3 py-2 rounded-lg text-sm flex items-center justify-between cursor-pointer transition-colors outline-none",
   optionActive: "bg-[#232a39] text-[#57f1db]",

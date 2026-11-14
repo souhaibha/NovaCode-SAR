@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 
-// Single styling block for the entire component
+// Single styling block for the entire component (solid background, no backdrop-blur or heavy shadows over canvas)
 const CSS = {
   container:
-    "absolute bottom-6 right-6 z-[1000] w-[340px] max-w-[calc(100vw-32px)] rounded-2xl bg-[#151b2a]/95 backdrop-blur-md border border-[rgba(60,74,70,0.5)] shadow-2xl p-5 text-[#dce2f6] flex flex-col gap-4 animate-in fade-in duration-200 outline-none",
+    "absolute bottom-6 right-6 z-[1000] w-[340px] max-w-[calc(100vw-32px)] rounded-2xl bg-[#151b2a] border border-[rgba(60,74,70,0.5)] p-5 text-[#dce2f6] flex flex-col gap-4 outline-none",
   header: "flex items-start justify-between gap-3",
   titleBox: "flex flex-col gap-1 min-w-0",
   title: "text-lg font-bold text-[#dce2f6] truncate tracking-tight font-sans",
@@ -16,17 +16,17 @@ const CSS = {
   badgeSensor:
     "px-2 py-0.5 rounded-full text-[10px] font-mono text-[#bacac5] bg-[#232a39] border border-[rgba(60,74,70,0.4)]",
   gridDetails:
-    "grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#0c1321]/70 border border-[rgba(60,74,70,0.3)] text-xs font-mono",
+    "grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#0c1321] border border-[rgba(60,74,70,0.3)] text-xs font-mono",
   gridItemLabel: "text-[10px] text-[#bacac5] uppercase tracking-wider block",
   gridItemValue: "text-xs text-[#dce2f6] font-semibold mt-0.5 truncate",
   description:
     "text-xs leading-relaxed text-[#bacac5] max-h-24 overflow-y-auto pr-1",
   btnPrimary:
-    "w-full py-2.5 px-4 rounded-xl bg-[#57f1db] text-[#003731] font-bold text-sm text-center flex items-center justify-center gap-2 hover:bg-[#78f5e3] active:scale-[0.99] transition-all shadow-[0_0_16px_rgba(87,241,219,0.25)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white",
+    "w-full py-2.5 px-4 rounded-xl bg-[#57f1db] text-[#003731] font-bold text-sm text-center flex items-center justify-center gap-2 hover:bg-[#78f5e3] active:scale-[0.99] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white",
   btnSecondary:
     "w-full py-2 px-4 rounded-xl bg-[#232a39] text-[#57f1db] border border-[rgba(87,241,219,0.3)] font-semibold text-xs text-center flex items-center justify-center gap-2 hover:bg-[#2c3547] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#57f1db]",
   noticeBox:
-    "p-3 rounded-xl bg-[rgba(255,180,171,0.08)] border border-[rgba(255,180,171,0.25)] text-xs text-[#dce2f6] flex flex-col gap-2",
+    "p-3 rounded-xl bg-[#19202e] border border-[rgba(255,180,171,0.25)] text-xs text-[#dce2f6] flex flex-col gap-2",
   noticeTitle: "font-semibold flex items-center gap-1.5 text-[#ffb4ab]",
   coordsText: "font-mono text-[11px] text-[#bacac5]",
 };
