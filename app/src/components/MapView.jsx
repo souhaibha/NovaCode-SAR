@@ -5,20 +5,25 @@ import {
   ImageOverlay,
   GeoJSON,
   useMap,
-  useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import MapControls from "./MapControls";
+import { loadImageData, eventMask } from "../lib/eventMask";
 
 const BASE = import.meta.env.BASE_URL + "data/";
 
 const BASEMAP_URL =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
-function toBounds([w, s, e, n]) {
+/**
+ * Coordinate order:
+ * Manifest bbox is [lon_min, lat_min, lon_max, lat_max].
+ * Leaflet requires [[lat_min, lon_min], [lat_max, lon_max]] -> swapped here.
+ */
+function toBounds([lon_min, lat_min, lon_max, lat_max]) {
   return [
-    [s, w],
-    [n, e],
+    [lat_min, lon_min],
+    [lat_max, lon_max],
   ];
 }
 
@@ -27,17 +32,16 @@ function fillTemplate(template, date) {
   return BASE + template.replace("{date}", date);
 }
 
-function parseHex(hex) {
-  if (!hex) return [0, 0, 0];
-  const h = hex.replace("#", "");
-  return [
-    parseInt(h.substring(0, 2), 16) || 0,
-    parseInt(h.substring(2, 4), 16) || 0,
-    parseInt(h.substring(4, 6), 16) || 0,
-  ];
-}
+// Special case definition for combined water change
+const WATER_CHANGE_EVENT = {
+  id: "water_change",
+  label: "Water change",
+  color: "#38BDF8",
+  secondaryColor: "#F59E0B",
+  isWaterChange: true,
+};
 
-// Staggered resize and fitBounds to prevent collapsed Leaflet layout
+// Resizes and fits bounds to prevent collapsed Leaflet layout
 function MapResizerAndFitBounds({ bounds }) {
   const map = useMap();
   useEffect(() => {
@@ -120,155 +124,8 @@ function ZoomButtons() {
   );
 }
 
-// Map Click & Hover Inspector
-function MapInspector({
-  zone,
-  period,
-  eventId,
-  cachedPixels,
-  confidenceCache,
-  setTooltip,
-  setCoords,
-}) {
-  useMapEvents({
-    mousemove: (e) => {
-      setCoords?.({ lat: e.latlng.lat, lng: e.latlng.lng });
-    },
-    mouseout: () => {
-      setCoords?.(null);
-    },
-    click: async (e) => {
-      const { lat, lng } = e.latlng;
-      const bbox = zone?.bbox;
-      if (!bbox) return;
-      const [w, s, east, n] = bbox;
-
-      // Click outside bbox closes tooltip
-      if (lat < s || lat > n || lng < w || lng > east) {
-        setTooltip(null);
-        return;
-      }
-
-      const endDate = period?.end || zone?.dates?.[zone.dates.length - 1];
-      const startDate = period?.start || zone?.dates?.[0];
-
-      // Sample class from cached classification image of endDate
-      let detectedClass = null;
-      let isEventPixel = false;
-      const endPx = cachedPixels.current[endDate];
-      const startPx = cachedPixels.current[startDate];
-
-      if (endPx) {
-        const pxX = Math.floor(((lng - w) / (east - w)) * endPx.width);
-        const pxY = Math.floor(((n - lat) / (n - s)) * endPx.height);
-        const clampedX = Math.max(0, Math.min(endPx.width - 1, pxX));
-        const clampedY = Math.max(0, Math.min(endPx.height - 1, pxY));
-        const idx = (clampedY * endPx.width + clampedX) * 4;
-
-        const er = endPx.data.data[idx];
-        const eg = endPx.data.data[idx + 1];
-        const eb = endPx.data.data[idx + 2];
-        const ea = endPx.data.data[idx + 3];
-
-        if (ea > 50 && zone.classes) {
-          let bestD = Infinity;
-          zone.classes.forEach((c) => {
-            const [cr, cg, cb] = parseHex(c.color);
-            const d = (er - cr) ** 2 + (eg - cg) ** 2 + (eb - cb) ** 2;
-            if (d < bestD) {
-              bestD = d;
-              detectedClass = c;
-            }
-          });
-        }
-
-        // Check if event pixel
-        const ev = zone.events?.find((x) => x.id === eventId);
-        if (ev && startPx && detectedClass) {
-          const sr = startPx.data.data[idx];
-          const sg = startPx.data.data[idx + 1];
-          const sb = startPx.data.data[idx + 2];
-          const sa = startPx.data.data[idx + 3];
-          if (sa > 50) {
-            let startBestD = Infinity;
-            let startClass = null;
-            zone.classes.forEach((c) => {
-              const [cr, cg, cb] = parseHex(c.color);
-              const d = (sr - cr) ** 2 + (sg - cg) ** 2 + (sb - cb) ** 2;
-              if (d < startBestD) {
-                startBestD = d;
-                startClass = c;
-              }
-            });
-            if (
-              startClass &&
-              ev.from.includes(startClass.id) &&
-              ev.to.includes(detectedClass.id)
-            ) {
-              isEventPixel = true;
-            }
-          }
-        }
-      }
-
-      // Fetch confidence grid
-      async function getConf(date) {
-        if (!date) return null;
-        if (confidenceCache.current[date]) return confidenceCache.current[date];
-        try {
-          const r = await fetch(fillTemplate(zone.confidence, date));
-          if (r.ok) {
-            const d = await r.json();
-            confidenceCache.current[date] = d;
-            return d;
-          }
-        } catch {}
-        return null;
-      }
-
-      let confidence = null;
-      const confEndData = await getConf(endDate);
-      const confStartData = eventId ? await getConf(startDate) : null;
-
-      function sampleGrid(confData) {
-        if (!confData?.grid?.length) return null;
-        const g = confData.grid;
-        const rows = g.length;
-        const cols = g[0].length;
-        const col = Math.floor(((lng - w) / (east - w)) * cols);
-        const row = Math.floor(((n - lat) / (n - s)) * rows);
-        const cClamped = Math.max(0, Math.min(cols - 1, col));
-        const rClamped = Math.max(0, Math.min(rows - 1, row));
-        return g[rClamped][cClamped];
-      }
-
-      const valEnd = sampleGrid(confEndData);
-      const valStart = sampleGrid(confStartData);
-
-      if (eventId && valEnd !== null && valStart !== null) {
-        // For an event, show the lower confidence of the two dates
-        confidence = Math.min(valStart, valEnd);
-      } else {
-        confidence = valEnd;
-      }
-
-      setTooltip({
-        lat,
-        lng,
-        className: detectedClass?.label || "Classification",
-        classColor: detectedClass?.color || "#57f1db",
-        isEvent: isEventPixel,
-        eventLabel: zone.events?.find((x) => x.id === eventId)?.label,
-        confidence,
-        date: endDate,
-      });
-    },
-  });
-  return null;
-}
-
 export default function MapView(props) {
-  // If props are missing, MapView maintains its own internal state
+  // If props are missing, MapView maintains its own internal state (standalone mode)
   const isStandalone =
     !props.zone ||
     props.eventId === undefined ||
@@ -282,7 +139,7 @@ export default function MapView(props) {
   const [internalActiveClasses, setInternalActiveClasses] = useState([]);
   const [internalOpacity, setInternalOpacity] = useState(0.85);
 
-  // If zone prop is missing, fetch manifest.json
+  // If zone prop is missing, fetch manifest.json automatically
   useEffect(() => {
     if (!props.zone && !loadedZone) {
       fetch(`${BASE}manifest.json`)
@@ -305,22 +162,20 @@ export default function MapView(props) {
 
   const zone = props.zone || loadedZone;
 
-  // Effective values: use props if given, otherwise internal state
+  // Effective state: prefer props, fall back to standalone state
   const eventId = props.eventId !== undefined ? props.eventId : internalEventId;
   const period = props.period || internalPeriod;
   const activeClasses = props.activeClasses || internalActiveClasses;
   const opacity = props.opacity !== undefined ? props.opacity : internalOpacity;
   const onEventResult = props.onEventResult;
 
-  const [coords, setCoords] = useState(null);
   const [aoi, setAoi] = useState(null);
-  const [tooltip, setTooltip] = useState(null);
   const [eventDataUrl, setEventDataUrl] = useState(null);
+  const [eventStats, setEventStats] = useState(null);
+  const [loadingEvent, setLoadingEvent] = useState(false);
+  const [eventError, setEventError] = useState(null);
 
-  const cachedPixels = useRef({});
-  const confidenceCache = useRef({});
-
-  // Fetch AOI GeoJSON
+  // Fetch AOI GeoJSON boundary
   useEffect(() => {
     if (zone?.aoi) {
       fetch(`${BASE}${zone.aoi}`)
@@ -332,163 +187,146 @@ export default function MapView(props) {
 
   const classes = useMemo(() => zone?.classes || [], [zone?.classes]);
   const events = useMemo(() => zone?.events || [], [zone?.events]);
-  const selectedEvent = useMemo(
-    () => events.find((e) => e.id === eventId) || null,
-    [events, eventId]
-  );
+
+  // Selected event (handling water_change special case)
+  const selectedEvent = useMemo(() => {
+    if (!eventId) return null;
+    if (eventId === "water_change") return WATER_CHANGE_EVENT;
+    return events.find((e) => e.id === eventId) || null;
+  }, [events, eventId]);
 
   const dates = zone?.dates || [];
   const startDate = period?.start || dates[0] || "";
   const endDate = period?.end || dates[dates.length - 1] || "";
 
-  // Helper to load classification PNG and extract pixel data
-  const loadClassificationPixels = async (date) => {
-    if (!date || !zone?.layers?.classification) return null;
-    if (cachedPixels.current[date]) return cachedPixels.current[date];
+  // Check if zone manifest has dedicated per-class mask files
+  const hasMaskLayers = useMemo(() => {
+    return classes.some((cls) => Boolean(zone?.layers?.[`mask_${cls.id}`]));
+  }, [classes, zone?.layers]);
 
-    const url = fillTemplate(zone.layers.classification, date);
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        cachedPixels.current[date] = {
-          data,
-          width: canvas.width,
-          height: canvas.height,
-        };
-        resolve(cachedPixels.current[date]);
-      };
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
-  };
+  // Check if date selection is valid: start must be strictly before end
+  const isInvalidDateRange = Boolean(
+    startDate && endDate && startDate >= endDate
+  );
 
-  // Pre-load current date pixels
+  // Compute event layer mask and transitions via eventMask.js
   useEffect(() => {
-    if (endDate) loadClassificationPixels(endDate);
-    if (startDate) loadClassificationPixels(startDate);
-  }, [startDate, endDate, zone?.layers?.classification]);
-
-  // A5: Event layer computed in browser from classification PNGs
-  useEffect(() => {
-    if (
-      !selectedEvent ||
-      !selectedEvent.from ||
-      !selectedEvent.to ||
-      !startDate ||
-      !endDate ||
-      startDate === endDate ||
-      !zone?.layers?.classification
-    ) {
+    // If start >= end, show no event layer
+    if (isInvalidDateRange || !selectedEvent || !startDate || !endDate || !zone?.layers?.classification) {
       setEventDataUrl(null);
+      setEventStats(null);
+      setLoadingEvent(false);
+      setEventError(null);
       onEventResult?.(null);
       return;
     }
 
     let isCancelled = false;
+    setLoadingEvent(true);
+    setEventError(null);
 
-    async function computeEventLayer() {
-      const [startPx, endPx] = await Promise.all([
-        loadClassificationPixels(startDate),
-        loadClassificationPixels(endDate),
-      ]);
+    async function runComputation() {
+      const startUrl = fillTemplate(zone.layers.classification, startDate);
+      const endUrl = fillTemplate(zone.layers.classification, endDate);
 
-      if (!startPx || !endPx || isCancelled) return;
-
-      const w = Math.min(startPx.width, endPx.width);
-      const h = Math.min(startPx.height, endPx.height);
-
-      const colorMap = classes.map((c) => ({
-        id: c.id,
-        rgb: parseHex(c.color),
-      }));
-
-      function matchClass(r, g, b, a) {
-        if (a < 50) return null;
-        let bestId = null;
-        let bestDist = Infinity;
-        for (let i = 0; i < colorMap.length; i++) {
-          const [cr, cg, cb] = colorMap[i].rgb;
-          const dist = (r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2;
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestId = colorMap[i].id;
-          }
+      try {
+        let imgStart;
+        try {
+          imgStart = await loadImageData(startUrl);
+        } catch (err) {
+          throw new Error(`Failed to load start classification file: ${startUrl}`);
         }
-        return bestId;
-      }
 
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      const out = ctx.createImageData(w, h);
+        let imgEnd;
+        try {
+          imgEnd = await loadImageData(endUrl);
+        } catch (err) {
+          throw new Error(`Failed to load end classification file: ${endUrl}`);
+        }
 
-      let pixelCount = 0;
-      const sData = startPx.data.data;
-      const eData = endPx.data.data;
+        if (isCancelled) return;
 
-      for (let i = 0; i < w * h; i++) {
-        const idx = i * 4;
-        const sr = sData[idx];
-        const sg = sData[idx + 1];
-        const sb = sData[idx + 2];
-        const sa = sData[idx + 3];
+        // Pure pixel computation from eventMask.js
+        const { mask, pixels, transitions, newWaterPixels, waterLostPixels } = eventMask(
+          imgStart,
+          imgEnd,
+          selectedEvent,
+          classes
+        );
 
-        const er = eData[idx];
-        const eg = eData[idx + 1];
-        const eb = eData[idx + 2];
-        const ea = eData[idx + 3];
+        if (isCancelled) return;
 
-        const sClass = matchClass(sr, sg, sb, sa);
-        const eClass = matchClass(er, eg, eb, ea);
+        // Render mask to offscreen canvas and convert to data URL for ImageOverlay
+        const canvas = document.createElement("canvas");
+        canvas.width = mask.width;
+        canvas.height = mask.height;
+        const ctx = canvas.getContext("2d");
+        ctx.putImageData(mask, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png");
 
-        if (
-          sClass &&
-          eClass &&
-          selectedEvent.from.includes(sClass) &&
-          selectedEvent.to.includes(eClass)
-        ) {
-          // Highlight event pixels with #FF5A5F
-          out.data[idx] = 255;
-          out.data[idx + 1] = 90;
-          out.data[idx + 2] = 95;
-          out.data[idx + 3] = 230;
-          pixelCount++;
+        // Calculate surface areas in km2 from pixel_area_km2
+        const pixelArea = zone.pixel_area_km2 || 0.0387653;
+        const km2 = pixels * pixelArea;
+
+        const transKm2 = {};
+        for (const [key, count] of Object.entries(transitions)) {
+          transKm2[key] = count * pixelArea;
+        }
+
+        const isWaterChange = selectedEvent.id === "water_change";
+        const new_water_km2 = isWaterChange ? (newWaterPixels || 0) * pixelArea : undefined;
+        const water_lost_km2 = isWaterChange ? (waterLostPixels || 0) * pixelArea : undefined;
+
+        const statsResult = {
+          pixels,
+          km2,
+          new_water_km2,
+          water_lost_km2,
+          transitions: transKm2,
+          event: selectedEvent,
+          startDate,
+          endDate,
+        };
+
+        setEventDataUrl(dataUrl);
+        setEventStats(statsResult);
+        setLoadingEvent(false);
+
+        // Emit onEventResult (with separate km2 for water_change)
+        if (isWaterChange) {
+          onEventResult?.({
+            pixels,
+            km2,
+            new_water_km2,
+            water_lost_km2,
+            transitions: transKm2,
+          });
         } else {
-          out.data[idx + 3] = 0;
+          onEventResult?.({
+            pixels,
+            km2,
+            transitions: transKm2,
+          });
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error("Event layer computation error:", err);
+          setEventError(err.message || String(err));
+          setEventDataUrl(null);
+          setEventStats(null);
+          setLoadingEvent(false);
+          onEventResult?.(null);
         }
       }
-
-      if (isCancelled) return;
-
-      ctx.putImageData(out, 0, 0);
-      const url = canvas.toDataURL("image/png");
-      setEventDataUrl(url);
-
-      const areaKm2 = pixelCount * (zone.pixel_area_km2 || 0.038765);
-      onEventResult?.({
-        pixelCount,
-        areaKm2,
-        event: selectedEvent,
-        startDate,
-        endDate,
-      });
     }
 
-    computeEventLayer();
+    runComputation();
 
     return () => {
       isCancelled = true;
     };
   }, [
+    isInvalidDateRange,
     selectedEvent,
     startDate,
     endDate,
@@ -509,11 +347,14 @@ export default function MapView(props) {
     );
   }
 
+  // Bounds for Leaflet (lat/lon swapped from manifest lon/lat bbox)
   const bounds = toBounds(zone.bbox);
   const center = [
     (zone.bbox[1] + zone.bbox[3]) / 2,
     (zone.bbox[0] + zone.bbox[2]) / 2,
   ];
+
+  const activeColor = selectedEvent?.color || "#FF5A5F";
 
   return (
     <div
@@ -531,7 +372,6 @@ export default function MapView(props) {
           width: "100%",
           height: "100%",
           background: "#070e1c",
-          cursor: "crosshair",
         }}
         zoomControl={false}
         scrollWheelZoom
@@ -539,33 +379,36 @@ export default function MapView(props) {
         <MapResizerAndFitBounds bounds={bounds} />
         <TileLayer url={BASEMAP_URL} maxZoom={18} />
 
-        {/* 1. Base classification overlay for end date */}
-        {endDate && zone.layers?.classification && (
-          <ImageOverlay
-            key={`class-${endDate}`}
-            url={fillTemplate(zone.layers.classification, endDate)}
-            bounds={bounds}
-            opacity={opacity}
-            className="pixelated"
-          />
-        )}
+        {/* Class layers (A4):
+            If individual class masks exist in manifest, mount/unmount each checked mask.
+            If only a full classification PNG exists, render it only when classes are active. */}
+        {hasMaskLayers
+          ? activeClasses?.map((clsId) => {
+              const maskTemplate = zone.layers?.[`mask_${clsId}`];
+              if (!maskTemplate || !endDate) return null;
+              return (
+                <ImageOverlay
+                  key={`mask-${clsId}-${endDate}`}
+                  url={fillTemplate(maskTemplate, endDate)}
+                  bounds={bounds}
+                  opacity={opacity}
+                  className="pixelated"
+                />
+              );
+            })
+          : activeClasses?.length > 0 &&
+            endDate &&
+            zone.layers?.classification && (
+              <ImageOverlay
+                key={`class-${endDate}`}
+                url={fillTemplate(zone.layers.classification, endDate)}
+                bounds={bounds}
+                opacity={opacity}
+                className="pixelated"
+              />
+            )}
 
-        {/* 2. Extra ImageOverlays per checked class mask (A4) */}
-        {activeClasses?.map((clsId) => {
-          const maskTemplate = zone.layers?.[`mask_${clsId}`];
-          if (!maskTemplate || !endDate) return null;
-          return (
-            <ImageOverlay
-              key={`mask-${clsId}-${endDate}`}
-              url={fillTemplate(maskTemplate, endDate)}
-              bounds={bounds}
-              opacity={opacity}
-              className="pixelated"
-            />
-          );
-        })}
-
-        {/* 3. Event layer overlay (A5) */}
+        {/* 3. Event layer ImageOverlay computed by eventMask.js */}
         {eventDataUrl && (
           <ImageOverlay
             key={`event-${selectedEvent?.id}-${startDate}-${endDate}`}
@@ -576,7 +419,7 @@ export default function MapView(props) {
           />
         )}
 
-        {/* AOI GeoJSON boundary */}
+        {/* 4. AOI GeoJSON boundary outline */}
         {aoi && (
           <GeoJSON
             data={aoi}
@@ -588,16 +431,6 @@ export default function MapView(props) {
             }}
           />
         )}
-
-        <MapInspector
-          zone={zone}
-          period={period}
-          eventId={eventId}
-          cachedPixels={cachedPixels}
-          confidenceCache={confidenceCache}
-          setTooltip={setTooltip}
-          setCoords={setCoords}
-        />
 
         <div className="leaflet-top leaflet-right">
           <ZoomButtons />
@@ -619,10 +452,81 @@ export default function MapView(props) {
         />
       )}
 
-      {/* Cartographic Legend */}
+      {/* Date Validation Alert */}
+      {isInvalidDateRange && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] px-4 py-2 rounded-xl bg-[#19202e]/95 border border-[#ffb4ab]/50 shadow-lg flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-[#ffb4ab]">
+            warning
+          </span>
+          <span className="text-xs font-medium text-[#ffb4ab]">
+            Pick a start date earlier than the end date
+          </span>
+        </div>
+      )}
+
+      {/* Loading & Error States */}
+      {loadingEvent && !isInvalidDateRange && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] px-3.5 py-1.5 rounded-full bg-[#151b2a]/95 border border-[#57f1db]/40 shadow-lg flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px] text-primary animate-spin">
+            progress_activity
+          </span>
+          <span className="text-xs font-mono text-on-surface">
+            Computing event change layer…
+          </span>
+        </div>
+      )}
+
+      {eventError && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] max-w-md px-4 py-2.5 rounded-xl bg-red-950/95 border border-red-500/50 shadow-xl flex items-start gap-2">
+          <span className="material-symbols-outlined text-[18px] text-red-400 mt-0.5 shrink-0">
+            error
+          </span>
+          <div className="text-xs text-red-200">
+            <span className="font-bold block">Event layer error</span>
+            <span className="font-mono text-[11px] break-all">{eventError}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Event Result Badge with event.color */}
+      {eventStats && selectedEvent && !isInvalidDateRange && (
+        <div
+          className="absolute top-4 left-5 z-[500] flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#151b2a]/95 border shadow-lg"
+          style={{ borderColor: `${activeColor}80` }}
+        >
+          {selectedEvent.id === "water_change" ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <span
+                className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_#38BDF8]"
+                style={{ backgroundColor: "#38BDF8" }}
+              />
+              <span
+                className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_#F59E0B]"
+                style={{ backgroundColor: "#F59E0B" }}
+              />
+            </div>
+          ) : (
+            <span
+              className="w-2.5 h-2.5 rounded-full shrink-0"
+              style={{
+                backgroundColor: activeColor,
+                boxShadow: `0 0 8px ${activeColor}`,
+              }}
+            />
+          )}
+
+          <span className="font-bold text-xs text-on-surface">
+            {selectedEvent.id === "water_change"
+              ? `Event: Water change (+${(eventStats.new_water_km2 || 0).toFixed(2)} km² / -${(eventStats.water_lost_km2 || 0).toFixed(2)} km²)`
+              : `Event: ${selectedEvent.label} - ${eventStats.km2.toFixed(2)} km²`}
+          </span>
+        </div>
+      )}
+
+      {/* Cartographic Legend with active event color */}
       <div className="absolute bottom-28 left-5 z-[500] flex items-end gap-3 pointer-events-none">
         <div
-          className="pointer-events-auto flex flex-col gap-2 p-3 rounded-xl min-w-[200px]"
+          className="pointer-events-auto flex flex-col gap-2 p-3 rounded-xl min-w-[220px]"
           style={{
             background: "rgba(21, 27, 42, 0.95)",
             backdropFilter: "blur(12px)",
@@ -634,19 +538,50 @@ export default function MapView(props) {
             <span className="font-mono text-[10px] text-outline font-bold uppercase tracking-wider">
               Classification Legend
             </span>
-            <span className="font-mono text-[9px] text-primary">
+            <span className="font-mono text-[9px] text-primary font-semibold">
               NISAR L-Band
             </span>
           </div>
 
+          {/* Active Event in Legend with its specific color */}
           {selectedEvent && (
-            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-[#19202e] border border-[#FF5A5F]/40 shadow-xs">
-              <span
-                className="w-3.5 h-3.5 rounded shadow-[0_0_8px_#FF5A5F]"
-                style={{ backgroundColor: "#FF5A5F", flexShrink: 0 }}
-              />
+            <div
+              className="flex items-center gap-2 p-1.5 rounded-lg bg-[#19202e] border shadow-xs"
+              style={{ borderColor: `${activeColor}60` }}
+            >
+              {selectedEvent.id === "water_change" ? (
+                <div className="flex items-center gap-1 shrink-0">
+                  <span
+                    className="w-3 h-3 rounded shadow-[0_0_8px_#38BDF8]"
+                    style={{ backgroundColor: "#38BDF8" }}
+                    title="Gained water (#38BDF8)"
+                  />
+                  <span
+                    className="w-3 h-3 rounded shadow-[0_0_8px_#F59E0B]"
+                    style={{ backgroundColor: "#F59E0B" }}
+                    title="Lost water (#F59E0B)"
+                  />
+                </div>
+              ) : (
+                <span
+                  className="w-3.5 h-3.5 rounded"
+                  style={{
+                    backgroundColor: activeColor,
+                    boxShadow: `0 0 8px ${activeColor}`,
+                    flexShrink: 0,
+                  }}
+                />
+              )}
               <span className="font-bold text-[12px] text-on-surface">
-                Event: {selectedEvent.label}
+                {selectedEvent.id === "water_change" ? (
+                  <span>
+                    Event: Water change (
+                    <span style={{ color: "#38BDF8" }}>+gain</span> /{" "}
+                    <span style={{ color: "#F59E0B" }}>-lost</span>)
+                  </span>
+                ) : (
+                  `Event: ${selectedEvent.label}`
+                )}
               </span>
             </div>
           )}
@@ -658,7 +593,7 @@ export default function MapView(props) {
                 <div
                   key={cls.id}
                   className="flex items-center gap-1.5 transition-opacity"
-                  style={{ opacity: isActive ? 1 : 0.4 }}
+                  style={{ opacity: isActive ? 1 : 0.35 }}
                 >
                   <span
                     className="w-2.5 h-2.5 rounded-xs"
@@ -692,77 +627,10 @@ export default function MapView(props) {
             </span>
           </div>
           <span className="font-mono text-[9px] text-outline">
-            {coords
-              ? `${coords.lat.toFixed(2)}°N ${Math.abs(coords.lng).toFixed(2)}°W`
-              : `${center[0].toFixed(2)}°N ${Math.abs(center[1]).toFixed(2)}°W`}{" "}
-            • WGS84
+            {center[0].toFixed(2)}°N {Math.abs(center[1]).toFixed(2)}°W • WGS84
           </span>
         </div>
       </div>
-
-      {/* Click Tooltip */}
-      {tooltip && (
-        <div
-          className="absolute z-[1000] pointer-events-none"
-          style={{
-            top: "40%",
-            left: "50%",
-            transform: "translate(-50%, -100%)",
-          }}
-        >
-          <div
-            className="w-64 p-3 rounded-xl pointer-events-auto"
-            style={{
-              background: "rgba(21, 27, 42, 0.97)",
-              backdropFilter: "blur(16px)",
-              border: "1px solid rgba(60, 74, 70, 0.5)",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
-            }}
-          >
-            <div className="flex items-start justify-between gap-1 mb-1.5">
-              <div className="flex flex-col">
-                <span className="text-[11px] font-bold text-on-surface">
-                  {zone.name} Point
-                </span>
-                <span className="font-mono text-[10px] text-outline">
-                  {tooltip.lat.toFixed(3)}°N, {Math.abs(tooltip.lng).toFixed(3)}°W
-                </span>
-              </div>
-              <button
-                className="text-on-surface-variant hover:text-on-surface"
-                onClick={() => setTooltip(null)}
-              >
-                <span className="material-symbols-outlined text-[14px]">
-                  close
-                </span>
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-[#19202e] mb-2">
-              <span
-                className="w-2.5 h-2.5 rounded-xs shrink-0"
-                style={{ backgroundColor: tooltip.isEvent ? "#FF5A5F" : tooltip.classColor }}
-              />
-              <span className="text-xs font-semibold text-on-surface">
-                {tooltip.isEvent ? `Event: ${tooltip.eventLabel}` : tooltip.className}
-              </span>
-              {tooltip.confidence !== null && (
-                <span className="ml-auto font-mono text-[11px] text-primary flex items-center gap-0.5">
-                  <span className="material-symbols-outlined text-[13px]">
-                    verified
-                  </span>
-                  {(tooltip.confidence * 100).toFixed(0)}% Conf.
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between text-[10px] font-mono text-on-surface-variant pt-1">
-              <span>Sensor: NISAR L-Band</span>
-              <span className="text-primary">{tooltip.date}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

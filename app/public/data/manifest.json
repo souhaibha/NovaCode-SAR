@@ -28,7 +28,7 @@
     {
      "id": "vegetation",
      "color": "#2f855a",
-     "label": "V\u00e9g\u00e9tation"
+     "label": "Végétation"
     },
     {
      "id": "sol_nu",
@@ -38,7 +38,7 @@
     {
      "id": "bati",
      "color": "#718096",
-     "label": "B\u00e2ti"
+     "label": "Bâti"
     }
    ],
    "layers": {
@@ -59,7 +59,8 @@
      ],
      "to": [
       "eau"
-     ]
+     ],
+     "color": "#38BDF8"
     },
     {
      "id": "water_lost",
@@ -69,7 +70,8 @@
      ],
      "to": [
       "sol_nu"
-     ]
+     ],
+     "color": "#F59E0B"
     },
     {
      "id": "veg_loss",
@@ -79,7 +81,8 @@
      ],
      "to": [
       "sol_nu"
-     ]
+     ],
+     "color": "#FF5A5F"
     },
     {
      "id": "veg_gain",
@@ -89,7 +92,8 @@
      ],
      "to": [
       "vegetation"
-     ]
+     ],
+     "color": "#A3E635"
     }
    ],
    "stats": "gharb/stats.json",

@@ -9,7 +9,11 @@ export default function MapControls({
   opacity,
   setOpacity,
 }) {
-  const events = zone?.events || [];
+  const baseEvents = zone?.events || [];
+  const events = [
+    ...baseEvents,
+    { id: "water_change", label: "Water change (Combined)" },
+  ];
   const classes = zone?.classes || [];
   const dates = zone?.dates || [];
 

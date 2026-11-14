@@ -12,7 +12,17 @@ export default function ControlsPanel({
   opacity,
   setOpacity,
 }) {
-  const events = zone?.events || manifest?.events || [];
+  const baseEvents = zone?.events || manifest?.events || [];
+  // Include "Water change" combined option
+  const events = [
+    ...baseEvents,
+    {
+      id: "water_change",
+      label: "Water change",
+      color: "#38BDF8",
+      subtitle: "Gain & loss",
+    },
+  ];
   const classes = zone?.classes || manifest?.classes || [];
 
   function toggleClass(id) {
@@ -94,17 +104,18 @@ export default function ControlsPanel({
           <div className="grid grid-cols-2 gap-2">
             {events.map((ev) => {
               const isSelected = eventId === ev.id;
+              const evColor = ev.color || "#FF5A5F";
               return (
                 <button
                   key={ev.id}
                   onClick={() => setEventId(isSelected ? null : ev.id)}
                   className="flex flex-col items-start p-2 rounded-xl text-left transition-all"
                   style={{
-                    background: isSelected ? "rgba(87,241,219,0.1)" : "#19202e",
+                    background: isSelected ? `${evColor}15` : "#19202e",
                     border: isSelected
-                      ? "1px solid #57f1db"
+                      ? `1px solid ${evColor}`
                       : "1px solid transparent",
-                    boxShadow: isSelected ? "0 0 15px rgba(87,241,219,0.15)" : "none",
+                    boxShadow: isSelected ? `0 0 15px ${evColor}25` : "none",
                     cursor: "pointer",
                   }}
                 >
@@ -114,7 +125,7 @@ export default function ControlsPanel({
                         fontFamily: "'Plus Jakarta Sans', sans-serif",
                         fontSize: 13,
                         fontWeight: isSelected ? 700 : 500,
-                        color: isSelected ? "#57f1db" : "#dce2f6",
+                        color: isSelected ? evColor : "#dce2f6",
                       }}
                     >
                       {ev.label}
@@ -123,17 +134,17 @@ export default function ControlsPanel({
                       <span className="relative flex h-2 w-2">
                         <span
                           className="animate-ping absolute inline-flex h-full w-full rounded-full"
-                          style={{ background: "#FF5A5F", opacity: 0.75 }}
+                          style={{ background: evColor, opacity: 0.75 }}
                         />
                         <span
                           className="relative inline-flex rounded-full h-2 w-2"
-                          style={{ background: "#FF5A5F" }}
+                          style={{ background: evColor }}
                         />
                       </span>
                     ) : (
                       <span
                         className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: "#3c4a46" }}
+                        style={{ background: `${evColor}60` }}
                       />
                     )}
                   </div>

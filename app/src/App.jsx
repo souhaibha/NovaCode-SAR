@@ -3,6 +3,7 @@ import TopBar from "./components/TopBar";
 import ControlsPanel from "./components/ControlsPanel";
 import MapView from "./components/MapView";
 import Timeline from "./components/Timeline";
+import SidebarRight from "./SidebarRight";
 import { useManifest } from "./hooks/useManifest";
 
 export default function App() {
@@ -115,6 +116,11 @@ export default function App() {
             <Timeline zone={zone} period={period} setPeriod={setPeriod} />
           </div>
         </section>
+
+        {/* Right sidebar — numbers, charts, explanation (Dev B) */}
+        <div className="hidden lg:flex shrink-0 h-full">
+          <SidebarRight />
+        </div>
       </div>
     </div>
   );
