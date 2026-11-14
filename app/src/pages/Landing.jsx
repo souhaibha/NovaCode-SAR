@@ -79,6 +79,7 @@ export default function Landing({ manifest, loading, error }) {
   const [hoveredZoneId, setHoveredZoneId] = useState(null);
   const [cardData, setCardData] = useState(null);
   const [hasWebGL] = useState(() => isWebGLAvailable());
+  const [geoError, setGeoError] = useState(null);
 
   const zones = manifest?.zones || [];
 
@@ -214,11 +215,20 @@ export default function Landing({ manifest, loading, error }) {
               onHoverZone={(z) => setHoveredZoneId(z?.id || null)}
               onGlobeClick={handleLocationClick}
               onPolygonClick={handlePolygonClick}
+              onGeoError={setGeoError}
             />
           </Suspense>
         </GlobeErrorBoundary>
       ) : (
         fallbackUI
+      )}
+
+      {/* Optional polygon loading warning */}
+      {geoError && (
+        <div className="absolute top-20 right-6 z-30 max-w-sm rounded-xl bg-surface-container-low/95 p-3 text-xs border border-error/40 text-error shadow-xl flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px]">warning</span>
+          <span className="font-mono text-[11px] leading-tight">{geoError}</span>
+        </div>
       )}
 
       {/* Top Header */}

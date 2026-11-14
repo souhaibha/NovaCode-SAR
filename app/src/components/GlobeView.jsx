@@ -18,6 +18,7 @@ const GlobeView = forwardRef(function GlobeView(
     onHoverZone,
     onGlobeClick,
     onPolygonClick,
+    onGeoError,
   },
   ref
 ) {
@@ -52,22 +53,30 @@ const GlobeView = forwardRef(function GlobeView(
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Fetch optional world.geojson for country outlines
+  // Fetch country polygons ONLY from public/data/world.geojson
   useEffect(() => {
     let active = true;
-    fetch(`${BASE}world.geojson`)
-      .then((r) => (r.ok ? r.json() : null))
+    const url = `${BASE}world.geojson`;
+    fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((geo) => {
         if (!active || !geo) return;
         setCountries(geo.features || []);
+        onGeoError?.(null);
       })
-      .catch(() => {
-        // Missing world.geojson: gracefully ignore, show coordinates only
+      .catch((err) => {
+        if (!active) return;
+        console.warn("Failed to load country outlines:", err);
+        setCountries([]);
+        onGeoError?.(`Could not load country polygons: public/data/world.geojson (${err.message})`);
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [onGeoError]);
 
   // Check prefers-reduced-motion
   const prefersReducedMotion = useMemo(() => {
@@ -177,15 +186,20 @@ const GlobeView = forwardRef(function GlobeView(
         }
         ringPropagationSpeed={2.2}
         ringRepeatPeriod={1200}
-        // Country polygons from world.geojson
+        // Country polygons from world.geojson (Natural Earth Morocco POV)
         polygonsData={countries}
+        polygonLabel={(feat) =>
+          feat?.properties?.NAME
+            ? `<div style="background: rgba(21, 27, 42, 0.95); color: #dce2f6; padding: 4px 8px; border-radius: 6px; font-family: sans-serif; font-size: 11px; border: 1px solid rgba(87, 241, 219, 0.3); font-weight: 600;">${feat.properties.NAME}</div>`
+            : ""
+        }
         polygonCapColor={(feat) =>
           feat === hoveredPolygon
-            ? "rgba(87, 241, 219, 0.22)"
-            : "rgba(21, 27, 42, 0.45)"
+            ? "rgba(87, 241, 219, 0.28)"
+            : "rgba(21, 27, 42, 0.6)"
         }
-        polygonSideColor={() => "rgba(7, 14, 28, 0.2)"}
-        polygonStrokeColor={() => "rgba(60, 74, 70, 0.35)"}
+        polygonSideColor={() => "rgba(7, 14, 28, 0.3)"}
+        polygonStrokeColor={() => "rgba(60, 74, 70, 0.45)"}
         polygonAltitude={0.006}
         onPolygonHover={(feat) => setHoveredPolygon(feat || null)}
         onPolygonClick={(feat, event, coords) => {
