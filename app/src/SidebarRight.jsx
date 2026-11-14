@@ -14,11 +14,17 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 export default function SidebarRight() {
   const [activeTab, setActiveTab] = useState('numbers');
   const [stats, setStats] = useState(null);
+  const [story, setStory] = useState(null);
 useEffect(() => {
     fetch('/data/stats.json')
       .then((res) => res.json())
       .then((data) => setStats(data))
-      .catch((err) => console.error("Erreur stats:", err));
+      .catch((err) => console.error("Error fetching stats:", err));
+
+    fetch('/data/story.json')
+      .then((res) => res.json())
+      .then((data) => setStory(data))
+      .catch((err) => console.error("Error fetching story:", err));
   }, []);
 
   const latestSeries = stats && stats.series && stats.series.length > 0 ? stats.series[stats.series.length - 1] : null;
@@ -167,16 +173,22 @@ useEffect(() => {
           </div>
         </div>
       )}
-
-      {/* Explanation Tab */}
+      {/* Story */}
       {activeTab === 'explain' && (
         <div className="text-xs text-slate-300 space-y-3 leading-relaxed">
-          <h3 className="font-semibold text-sm text-white">Why does radar see water?</h3>
-          <p>Calm water acts as a specular reflector (mirror) for radar signals emitted by NISAR. The signal reflects away from the sensor, creating dark areas (low backscatter).</p>
-          <div className="bg-slate-800/40 p-3 rounded border border-slate-700/40">
-            <span className="font-semibold text-sky-400 block mb-1">HH vs HV Polarization:</span>
-            HH polarization strongly highlights flooded areas and double-bounce scattering from inundated vegetation.
-          </div>
+          <h3 className="font-semibold text-sm text-white">
+            {story ? story.title : "Why does radar see water?"}
+          </h3>
+          <p>
+            {story ? story.summary : "Calm water acts as a specular reflector for radar signals emitted by NISAR."}
+          </p>
+
+          {story?.details?.map((item, idx) => (
+            <div key={idx} className="bg-slate-800/40 p-3 rounded border border-slate-700/40">
+              <span className="font-semibold text-sky-400 block mb-1">{item.heading}:</span>
+              {item.content}
+            </div>
+          ))}
         </div>
       )}
     </aside>
