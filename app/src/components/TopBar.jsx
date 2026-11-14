@@ -1,4 +1,4 @@
-export default function TopBar({ zone }) {
+export default function TopBar({ zone, manifest }) {
   return (
     <header
       className="shrink-0 h-14 flex items-center justify-between px-4 z-50"
@@ -8,30 +8,37 @@ export default function TopBar({ zone }) {
         borderBottom: "1px solid rgba(60,74,70,0.4)",
       }}
     >
-      {/* Left: logo */}
+      {/* Left: logo + back to globe */}
       <div className="flex items-center gap-3">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{
-            background: "#232a39",
-            boxShadow: "0 0 12px rgba(87,241,219,0.2)",
-          }}
+        <a
+          href="#/"
+          title="Back to 3D Globe"
+          className="flex items-center gap-2.5 text-inherit no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
         >
-          <span className="material-symbols-outlined text-[20px]" style={{ color: "#57f1db" }}>
-            radar
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
+            style={{
+              background: "#232a39",
+              boxShadow: "0 0 12px rgba(87,241,219,0.2)",
+            }}
+          >
+            <span className="material-symbols-outlined text-[20px]" style={{ color: "#57f1db" }}>
+              radar
+            </span>
+          </div>
+          <span
+            style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 700,
+              fontSize: 18,
+              color: "#dce2f6",
+              letterSpacing: "-0.5px",
+            }}
+          >
+            SARdance
           </span>
-        </div>
-        <span
-          style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 700,
-            fontSize: 18,
-            color: "#dce2f6",
-            letterSpacing: "-0.5px",
-          }}
-        >
-          SARdance
-        </span>
+        </a>
+
         <span
           className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full"
           style={{
@@ -47,6 +54,16 @@ export default function TopBar({ zone }) {
         >
           Radar Change Map
         </span>
+
+        {manifest?.fake && (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono text-amber-400 bg-amber-500/15 border border-amber-500/30"
+            title="Demonstration dataset"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            Demo data
+          </span>
+        )}
       </div>
 
       {/* Center: zone name */}
@@ -75,8 +92,24 @@ export default function TopBar({ zone }) {
         </span>
       </div>
 
-      {/* Right: live badge + nav + lang */}
+      {/* Right: back to globe link + live badge + lang */}
       <div className="flex items-center gap-4">
+        {/* Back to globe navigation link */}
+        <a
+          href="#/"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          style={{
+            background: "#151b2a",
+            color: "#57f1db",
+            border: "1px solid rgba(87,241,219,0.3)",
+            textDecoration: "none",
+          }}
+          aria-label="Back to 3D Globe landing page"
+        >
+          <span className="material-symbols-outlined text-[16px]">public</span>
+          <span>Back to globe</span>
+        </a>
+
         <div
           className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full"
           style={{
@@ -100,31 +133,6 @@ export default function TopBar({ zone }) {
           </span>
           NISAR L-BAND PASS
         </div>
-
-        <nav className="hidden lg:flex items-center gap-4">
-          <a
-            href="#"
-            style={{
-              color: "#57f1db",
-              fontWeight: 600,
-              fontSize: 13,
-              textDecoration: "none",
-            }}
-          >
-            Map View
-          </a>
-          <a
-            href="#"
-            style={{
-              color: "#bacac5",
-              fontWeight: 400,
-              fontSize: 13,
-              textDecoration: "none",
-            }}
-          >
-            About the data
-          </a>
-        </nav>
 
         <div
           className="flex items-center rounded-full p-0.5"
