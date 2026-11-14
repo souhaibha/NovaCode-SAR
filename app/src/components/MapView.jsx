@@ -712,10 +712,10 @@ export default function MapView(props) {
         </div>
       )}
 
-      {/* Cartographic Legend with active event color */}
-      <div className="absolute bottom-28 left-5 z-[500] flex items-end gap-3 pointer-events-none">
+      {/* Classification Legend (Bottom-Left, positioned cleanly above timeline) */}
+      <div className="absolute bottom-28 left-5 z-[500] pointer-events-none">
         <div
-          className="pointer-events-auto flex flex-col gap-2 p-3 rounded-xl min-w-[220px]"
+          className="pointer-events-auto flex flex-col gap-2 p-3 rounded-xl min-w-[210px]"
           style={{
             background: "rgba(21, 27, 42, 0.95)",
             backdropFilter: "blur(12px)",
@@ -796,29 +796,31 @@ export default function MapView(props) {
             })}
           </div>
         </div>
+      </div>
 
-        {/* Scale & Coordinate Datum */}
-        <div
-          className="pointer-events-auto flex flex-col gap-1 px-3 py-2 rounded-xl"
-          style={{
-            background: "rgba(21, 27, 42, 0.9)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(60, 74, 70, 0.3)",
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-14 h-1 bg-on-surface flex justify-between items-end">
-              <div className="w-0.5 h-2 bg-on-surface" />
-              <div className="w-0.5 h-2 bg-on-surface" />
-            </div>
-            <span className="font-mono text-[10px] text-on-surface font-semibold">
-              ~10 km
-            </span>
+      {/* Échelle / Scale & Coordinates (Far Right with lower opacity / discreet footprint) */}
+      <div
+        className="absolute bottom-28 right-5 z-[500] pointer-events-auto flex flex-col items-end gap-1 px-2.5 py-1.5 rounded-lg transition-opacity hover:opacity-100"
+        style={{
+          background: "rgba(15, 23, 42, 0.65)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(60, 74, 70, 0.25)",
+          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.25)",
+          opacity: 0.75,
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-12 h-0.5 bg-on-surface/80 flex justify-between items-end">
+            <div className="w-0.5 h-1.5 bg-on-surface/80" />
+            <div className="w-0.5 h-1.5 bg-on-surface/80" />
           </div>
-          <span className="font-mono text-[9px] text-outline">
-            {center[0].toFixed(2)}°N {Math.abs(center[1]).toFixed(2)}°W • WGS84
+          <span className="font-mono text-[9px] text-on-surface/90 font-medium">
+            ~10 km
           </span>
         </div>
+        <span className="font-mono text-[8.5px] text-outline/80">
+          {center[0].toFixed(2)}°N {Math.abs(center[1]).toFixed(2)}°W • WGS84
+        </span>
       </div>
     </div>
   );

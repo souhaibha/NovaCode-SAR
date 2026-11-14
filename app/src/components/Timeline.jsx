@@ -98,26 +98,27 @@ export default function Timeline({ zone, period, setPeriod }) {
 
   return (
     <div
-      className="flex flex-col gap-2.5 p-4 rounded-2xl"
+      className="flex flex-col gap-1 px-3.5 py-2 rounded-xl"
       style={{
-        background: "rgba(21,27,42,0.97)",
-        backdropFilter: "blur(20px)",
-        border: "1px solid rgba(60,74,70,0.4)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+        background: "rgba(15,23,42,0.92)",
+        backdropFilter: "blur(16px)",
+        border: "1px solid rgba(60,74,70,0.35)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
       }}
     >
-      <div className="flex items-center gap-4">
-        {/* Play button */}
+      <div className="flex items-center gap-3">
+        {/* Play button — sleek & compact */}
         <button
           onClick={togglePlay}
-          className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center transition-all hover:scale-105"
+          className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
           style={{
             background: "#57f1db",
             color: "#003731",
-            boxShadow: "0 4px 16px rgba(87,241,219,0.25)",
+            boxShadow: "0 2px 10px rgba(87,241,219,0.25)",
           }}
+          title={playing ? "Pause animation" : "Play timeline"}
         >
-          <span className="material-symbols-outlined text-[24px]">
+          <span className="material-symbols-outlined text-[19px]">
             {playing ? "pause" : "play_arrow"}
           </span>
         </button>
@@ -125,11 +126,11 @@ export default function Timeline({ zone, period, setPeriod }) {
         {/* Track */}
         <div
           className="flex-1 relative flex flex-col justify-center select-none"
-          style={{ paddingTop: 20, paddingBottom: 4 }}
+          style={{ paddingTop: 14, paddingBottom: 2 }}
         >
           {/* End bubble */}
           <div
-            className="absolute flex items-center gap-1 px-2.5 py-0.5 rounded-md"
+            className="absolute flex items-center gap-1 px-2 py-0.5 rounded"
             style={{
               top: -6,
               left: `${endPct}%`,
@@ -137,10 +138,10 @@ export default function Timeline({ zone, period, setPeriod }) {
               background: "#070e1c",
               border: "1px solid #57f1db",
               color: "#57f1db",
-              fontSize: 11,
+              fontSize: 10,
               fontFamily: "'JetBrains Mono', monospace",
               fontWeight: 700,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
               zIndex: 10,
               whiteSpace: "nowrap",
             }}
@@ -157,7 +158,7 @@ export default function Timeline({ zone, period, setPeriod }) {
             ref={trackRef}
             onClick={handleTrackClick}
             className="relative w-full rounded-full cursor-pointer"
-            style={{ height: 8, background: "#19202e" }}
+            style={{ height: 5, background: "#19202e" }}
           >
             {/* Active fill */}
             <div
@@ -166,7 +167,7 @@ export default function Timeline({ zone, period, setPeriod }) {
                 left: `${startPct}%`,
                 width: `${endPct - startPct}%`,
                 background: "#57f1db",
-                boxShadow: "0 0 12px rgba(87,241,219,0.5)",
+                boxShadow: "0 0 10px rgba(87,241,219,0.5)",
                 pointerEvents: "none",
               }}
             />
@@ -177,8 +178,8 @@ export default function Timeline({ zone, period, setPeriod }) {
               onTouchStart={makeDragHandler("start")}
               className="absolute rounded-full cursor-pointer hover:scale-110 transition-transform"
               style={{
-                width: 16,
-                height: 16,
+                width: 13,
+                height: 13,
                 top: "50%",
                 left: `${startPct}%`,
                 transform: "translate(-50%, -50%)",
@@ -194,26 +195,26 @@ export default function Timeline({ zone, period, setPeriod }) {
               onTouchStart={makeDragHandler("end")}
               className="absolute rounded-full cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
               style={{
-                width: 20,
-                height: 20,
+                width: 15,
+                height: 15,
                 top: "50%",
                 left: `${endPct}%`,
                 transform: "translate(-50%, -50%)",
                 background: "#57f1db",
                 border: "2px solid #070e1c",
-                boxShadow: "0 2px 8px rgba(87,241,219,0.4)",
+                boxShadow: "0 2px 6px rgba(87,241,219,0.4)",
                 zIndex: 6,
               }}
             >
               <span
                 className="rounded-full"
-                style={{ width: 6, height: 6, background: "#070e1c" }}
+                style={{ width: 5, height: 5, background: "#070e1c" }}
               />
             </div>
           </div>
 
           {/* Date ticks */}
-          <div className="relative w-full flex justify-between mt-2">
+          <div className="relative w-full flex justify-between mt-1">
             {dates.map((date, i) => {
               const pct = idxToPercent(i);
               const isStart = date === period.start;
@@ -235,17 +236,17 @@ export default function Timeline({ zone, period, setPeriod }) {
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = isActive ? "1" : "0.6")}
                 >
                   <span
-                    className="rounded-full mb-1"
+                    className="rounded-full mb-0.5"
                     style={{
-                      width: isEnd ? 8 : 6,
-                      height: isEnd ? 8 : 6,
+                      width: isEnd ? 7 : 5,
+                      height: isEnd ? 7 : 5,
                       background: isEnd ? "#FF5A5F" : isStart ? "#57f1db" : "#57f1db",
                       border: isEnd ? "2px solid #57f1db" : "none",
                     }}
                   />
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: 10,
                       fontFamily: "'JetBrains Mono', monospace",
                       fontWeight: isActive ? 700 : 400,
                       color: isActive ? "#57f1db" : "#bacac5",
@@ -261,19 +262,16 @@ export default function Timeline({ zone, period, setPeriod }) {
         </div>
       </div>
 
-      {/* Footer note */}
+      {/* Compact footer note */}
       <div
-        className="flex items-center justify-between"
-        style={{ fontSize: 11, color: "#bacac5", paddingTop: 4 }}
+        className="flex items-center gap-1.5 text-[9.5px] text-[#859490] pt-0.5 px-0.5"
       >
-        <div className="flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[15px]" style={{ color: "#859490" }}>
-            info
-          </span>
-          <span style={{ fontStyle: "italic" }}>
-            Ticks indicate actual NISAR acquisition dates. Animation between dates is visual only.
-          </span>
-        </div>
+        <span className="material-symbols-outlined text-[13px] text-[#859490] shrink-0">
+          info
+        </span>
+        <span className="italic truncate">
+          Ticks indicate actual NISAR acquisition dates. Animation between dates is visual only.
+        </span>
       </div>
     </div>
   );
