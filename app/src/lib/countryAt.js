@@ -1,33 +1,5 @@
-import { geoArea, geoBounds, geoContains } from "d3-geo";
-
-function normalizeFeature(feature) {
-  if (!feature || !feature.geometry) return feature;
-  // If the polygon ring is wound clockwise, d3-geo considers the rest of the sphere interior.
-  // In that case, geoArea > 2 * PI (hemisphere), so reverse coordinate rings to fix.
-  if (geoArea(feature) > 2 * Math.PI) {
-    const geom = feature.geometry;
-    if (geom.type === "Polygon") {
-      return {
-        ...feature,
-        geometry: {
-          ...geom,
-          coordinates: geom.coordinates.map((r) => r.slice().reverse()),
-        },
-      };
-    } else if (geom.type === "MultiPolygon") {
-      return {
-        ...feature,
-        geometry: {
-          ...geom,
-          coordinates: geom.coordinates.map((poly) =>
-            poly.map((r) => r.slice().reverse())
-          ),
-        },
-      };
-    }
-  }
-  return feature;
-}
+import { geoBounds, geoContains } from "d3-geo";
+import { normalizeFeature } from "./geoWinding";
 
 const cache = new WeakMap();
 

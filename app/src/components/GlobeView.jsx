@@ -10,6 +10,7 @@ import React, {
 import Globe from "react-globe.gl";
 import { buildWorldTexture } from "../lib/worldTexture";
 import { countryAt } from "../lib/countryAt";
+import { normalizeFeatures } from "../lib/geoWinding";
 
 const BASE = import.meta.env.BASE_URL + "data/";
 
@@ -177,7 +178,7 @@ const GlobeInner = forwardRef(function GlobeInner(
       .filter(Boolean);
   }, [zones]);
 
-  // Load world.geojson and bake 2048x1024 texture once
+  // Load world.geojson, normalize winding, and bake 2048x1024 texture once
   useEffect(() => {
     let active = true;
     fetch(`${BASE}world.geojson`)
@@ -187,10 +188,13 @@ const GlobeInner = forwardRef(function GlobeInner(
       })
       .then((data) => {
         if (!active || !data?.features) return;
-        rawFeaturesRef.current = data.features;
-        const bakedUrl = buildWorldTexture(data.features, {
+        const features = normalizeFeatures(data.features);
+        rawFeaturesRef.current = features;
+
+        const bakedUrl = buildWorldTexture(features, {
           zoneCountryNames,
         });
+
         if (active && bakedUrl) {
           setTextureUrl(bakedUrl);
         }

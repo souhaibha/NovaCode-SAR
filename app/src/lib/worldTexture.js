@@ -4,7 +4,10 @@ import { geoEquirectangular, geoPath } from "d3-geo";
  * Builds a 2048x1024 equirectangular texture canvas from GeoJSON country features.
  * Colors are resolved dynamically from theme CSS variables via getComputedStyle.
  *
- * @param {Array} features - Array of GeoJSON country features
+ * All fills are rendered in pass 1, followed by strokes in pass 2 (lineWidth = 2)
+ * so boundaries are never covered by adjacent polygon fills.
+ *
+ * @param {Array} features - Array of normalized GeoJSON country features
  * @param {Object} options
  * @param {Array<string>|Set<string>} options.zoneCountryNames - Names of countries with active SAR zones
  * @returns {string} - Data URL ("image/png") for the baked globe texture
@@ -19,9 +22,10 @@ export function buildWorldTexture(features, { zoneCountryNames = [] } = {}) {
   const ctx = canvas.getContext("2d");
 
   // Read theme tokens from documentElement
-  const computed = typeof window !== "undefined" && window.getComputedStyle
-    ? window.getComputedStyle(document.documentElement)
-    : null;
+  const computed =
+    typeof window !== "undefined" && window.getComputedStyle
+      ? window.getComputedStyle(document.documentElement)
+      : null;
 
   const getVar = (name, fallback) => {
     if (!computed) return fallback;
@@ -29,16 +33,21 @@ export function buildWorldTexture(features, { zoneCountryNames = [] } = {}) {
     return val || fallback;
   };
 
+  // Contrast hierarchy:
+  // Ocean: deep lowest surface container
+  // Land: elevated surface container (clearly lighter than ocean)
+  // Supported zone: bright surface container (one step lighter than other land)
+  // Stroke: prominent outline token with high visibility on the sphere
   const oceanColor = getVar("--color-surface-container-lowest", "#070e1c");
-  const landColor = getVar("--color-surface-container-low", "#151b2a");
-  const activeLandColor = getVar("--color-surface-container-high", "#232a39");
-  const strokeColor = getVar("--color-outline-variant", "#3c4a46");
+  const landColor = getVar("--color-surface-container-high", "#232a39");
+  const activeLandColor = getVar("--color-surface-bright", "#323949");
+  const strokeColor = getVar("--color-outline", "#859490");
 
   // 1. Fill ocean
   ctx.fillStyle = oceanColor;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Set up equirectangular projection (matches globe spherical UV mapping)
+  // 2. Set up equirectangular projection (maps to globe spherical UV coordinates)
   const projection = geoEquirectangular()
     .scale(width / (2 * Math.PI))
     .translate([width / 2, height / 2]);
@@ -49,11 +58,8 @@ export function buildWorldTexture(features, { zoneCountryNames = [] } = {}) {
     (zoneCountryNames || []).map((name) => String(name).toLowerCase())
   );
 
-  // 3. Draw country polygons onto texture
   if (features && Array.isArray(features)) {
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = strokeColor;
-
+    // Pass 1: Draw all country fills first
     for (const feature of features) {
       const name = feature?.properties?.NAME || "";
       const isSupported = activeCountries.has(name.toLowerCase());
@@ -62,6 +68,14 @@ export function buildWorldTexture(features, { zoneCountryNames = [] } = {}) {
       path(feature);
       ctx.fillStyle = isSupported ? activeLandColor : landColor;
       ctx.fill();
+    }
+
+    // Pass 2: Draw all country strokes on top at lineWidth = 2
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = strokeColor;
+    for (const feature of features) {
+      ctx.beginPath();
+      path(feature);
       ctx.stroke();
     }
   }
