@@ -722,12 +722,21 @@ export default function MapView(props) {
     );
   }
 
-  // Bounds for Leaflet (lat/lon swapped from manifest lon/lat bbox)
-  const bounds = toBounds(zone.bbox);
-  const center = [
-    (zone.bbox[1] + zone.bbox[3]) / 2,
-    (zone.bbox[0] + zone.bbox[2]) / 2,
-  ];
+  // Bounds for Leaflet (lat/lon swapped from manifest lon/lat bbox).
+  // Memoized on the four numeric values so the reference stays stable across
+  // re-renders triggered by scale-bar / zoom state updates.
+  // Without this, every setScale() re-render creates a new array → MapResizerAndFitBounds
+  // sees a changed dep → calls fitBounds() again → map snaps back.
+  const [bx0, bx1, bx2, bx3] = zone.bbox;
+  const bounds = useMemo(
+    () => toBounds(zone.bbox),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bx0, bx1, bx2, bx3]
+  );
+  const center = useMemo(
+    () => [(bx1 + bx3) / 2, (bx0 + bx2) / 2],
+    [bx0, bx1, bx2, bx3]
+  );
 
   const activeColor = selectedEvent?.color || "#FF5A5F";
 
