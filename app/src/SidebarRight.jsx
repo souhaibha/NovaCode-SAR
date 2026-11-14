@@ -27,10 +27,14 @@ useEffect(() => {
     ? (classesData.eau_km2 + classesData.vegetation_km2 + classesData.sol_nu_km2 + classesData.bati_km2) 
     : 100;
 
-  const pctEau = classesData ? ((classesData.eau_km2 / totalKm2) * 100).toFixed(0) : 0;
-  const pctVeg = classesData ? ((classesData.vegetation_km2 / totalKm2) * 100).toFixed(0) : 0;
-  const pctSol = classesData ? ((classesData.sol_nu_km2 / totalKm2) * 100).toFixed(0) : 0;
-  const pctBati = classesData ? ((classesData.bati_km2 / totalKm2) * 100).toFixed(0) : 0;
+  const getPct = (val) => (classesData && val !== undefined ? ((val / totalKm2) * 100).toFixed(0) : 0);
+
+  const landClasses = [
+    { key: 'eau', label: 'Water', color: 'text-blue-400', bg: 'bg-blue-500', val: classesData?.eau_km2 },
+    { key: 'veg', label: 'Vegetation', color: 'text-emerald-400', bg: 'bg-emerald-500', val: classesData?.vegetation_km2 },
+    { key: 'sol', label: 'Bare Soil', color: 'text-amber-400', bg: 'bg-amber-600', val: classesData?.sol_nu_km2 },
+    { key: 'bati', label: 'Built-up', color: 'text-gray-400', bg: 'bg-gray-500', val: classesData?.bati_km2 },
+  ];
 
   const chartData = {
     labels: stats && stats.series ? stats.series.map((s) => s.date) : [],
@@ -48,69 +52,88 @@ useEffect(() => {
   };
   const chartOptions = {
     responsive: true,
-    plugins: { legend: { display: false } },
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0f172a',
+        borderColor: '#334155',
+        borderWidth: 1,
+      },
+    },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#9ca3af' } },
-      y: { grid: { color: '#1f293d' }, ticks: { color: '#9ca3af' } },
+      x: {
+        grid: { display: false },
+        ticks: { color: '#94a3b8', font: { size: 11 } },
+      },
+      y: {
+        grid: { color: '#1e293b' },
+        ticks: { color: '#94a3b8', font: { size: 11 } },
+      },
     },
   };
   return (
-    <aside className="w-80 h-full bg-[#111c2e] text-white p-4 flex flex-col border-l border-gray-800 overflow-y-auto">
-      {/* Tab Navigation */}
-      <div className="flex border-b border-gray-700 pb-2 mb-4 text-sm font-medium">
+    <aside className="w-80 h-full bg-slate-900 text-slate-100 p-4 flex flex-col border-l border-slate-800 overflow-y-auto">
+      {/* Navigation */}
+      <div className="flex border-b border-slate-800 pb-2 mb-4 text-xs font-semibold uppercase tracking-wider">
         <button
           onClick={() => setActiveTab('numbers')}
-          className={`flex-1 py-1 text-center ${activeTab === 'numbers' ? 'text-[#38edf6] border-b-2 border-[#38edf6] font-bold' : 'text-gray-400'}`}
+          className={`flex-1 py-1 text-center ${
+            activeTab === 'numbers' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-slate-400'
+          }`}
         >
           Numbers
         </button>
         <button
           onClick={() => setActiveTab('explain')}
-          className={`flex-1 py-1 text-center ${activeTab === 'explain' ? 'text-[#38edf6] border-b-2 border-[#38edf6] font-bold' : 'text-gray-400'}`}
+          className={`flex-1 py-1 text-center ${
+            activeTab === 'explain' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-slate-400'
+          }`}
         >
           What am I seeing?
         </button>
       </div>
 
       {activeTab === 'numbers' && (
-        <div className="space-y-6">
-          {/* Main Quantification Metric */}
-          <div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs uppercase text-gray-400 font-semibold tracking-wider">Change Quantification</span>
-              <span className="text-xs text-red-400 bg-red-950/50 px-2 py-0.5 rounded border border-red-800/50">Active</span>
+        <div className="space-y-5">
+          {/* Main Quantification */}
+          <div className="bg-slate-800/50 p-3 rounded border border-slate-700/50">
+            <div className="flex justify-between items-center text-xs text-slate-400 font-semibold uppercase">
+              <span>Change Quantification</span>
+              <span className="text-red-400 bg-red-950/80 px-1.5 py-0.5 rounded text-[10px] border border-red-800/50">Active</span>
             </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-white">
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="text-3xl font-bold text-white">
                 {classesData ? classesData.eau_km2 : '--'}
               </span>
-              <span className="text-lg text-gray-400 font-medium">km²</span>
+              <span className="text-sm font-semibold text-slate-400">km²</span>
             </div>
-            <p className="text-xs text-gray-400 mt-1">Total detected water surface ({latestSeries ? latestSeries.date : ''}).</p>
+            <p className="text-xs text-slate-400 mt-1">Total detected water surface ({latestSeries ? latestSeries.date : ''}).</p>
           </div>
 
           {/* Area by Land Class */}
           <div className="space-y-2">
-            <span className="text-xs uppercase text-gray-400 font-semibold">Area by Land Class</span>
+            <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Area by Land Class</span>
             
-            {/* Dynamic Progress Bar */}
-            <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden flex">
+            <div className="w-full bg-slate-800 h-2 rounded overflow-hidden flex">
               {landClasses.map((item) => (
                 <div 
                   key={item.key} 
                   style={{ width: `${getPct(item.val)}%` }} 
                   className={`${item.bg} h-full`} 
-                  title={item.label}
+                  title={`${item.label}: ${item.val} km²`}
                 />
               ))}
             </div>
 
-            {/* Factorized 2x2 Grid */}
-            <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
               {landClasses.map((item) => (
-                <div key={item.key} className="bg-[#18263e] p-2 rounded flex justify-between">
-                  <span className={`${item.color} font-semibold`}>• {item.label}</span>
-                  <span>{item.val !== undefined ? `${item.val} km² (${getPct(item.val)}%)` : '--'}</span>
+                <div key={item.key} className="bg-slate-800/40 p-2 rounded border border-slate-700/40">
+                  <div className={`font-semibold ${item.color}`}>• {item.label}</div>
+                  <div className="text-slate-200 mt-0.5">
+                    {item.val !== undefined ? `${item.val} km²` : '--'}
+                    <span className="text-slate-400 text-[11px] ml-1">({getPct(item.val)}%)</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -118,40 +141,40 @@ useEffect(() => {
 
           {/* Transition Matrix */}
           <div className="space-y-2">
-            <span className="text-xs uppercase text-gray-400 font-semibold">Transition Matrix</span>
-            <div className="bg-[#18263e] rounded p-3 text-xs space-y-2">
-              <div className="flex justify-between border-b border-gray-700 pb-1">
-                <span className="text-gray-300">Bare soil → Water</span>
-                <span className="text-[#38edf6] font-bold">
+            <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Transition Matrix</span>
+            <div className="bg-slate-800/40 rounded p-3 text-xs border border-slate-700/40 space-y-2">
+              <div className="flex justify-between border-b border-slate-700/60 pb-1.5">
+                <span className="text-slate-300">Bare soil → Water</span>
+                <span className="text-sky-400 font-bold">
                   {stats?.transitions?.[0] ? `${stats.transitions[0].sol_nu_to_eau_km2} km²` : '--'}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-300">Vegetation → Water</span>
-                <span className="text-[#38edf6] font-bold">
+              <div className="flex justify-between pt-0.5">
+                <span className="text-slate-300">Vegetation → Water</span>
+                <span className="text-sky-400 font-bold">
                   {stats?.transitions?.[0] ? `${stats.transitions[0].vegetation_to_eau_km2} km²` : '--'}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Trend Chart */}
+          {/* Water Extent Trend */}
           <div className="space-y-2">
-            <span className="text-xs uppercase text-gray-400 font-semibold">Water Extent Trend</span>
-            <div className="bg-[#18263e] p-3 rounded">
+            <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Water Extent Trend</span>
+            <div className="bg-slate-800/40 p-2.5 rounded border border-slate-700/40 h-44">
               <Line data={chartData} options={chartOptions} />
             </div>
           </div>
         </div>
       )}
 
-      {/* Tab: What am I seeing? */}
+      {/* Explanation Tab */}
       {activeTab === 'explain' && (
-        <div className="text-xs text-gray-300 space-y-4">
-          <h3 className="font-bold text-sm text-white">Why does radar see water?</h3>
+        <div className="text-xs text-slate-300 space-y-3 leading-relaxed">
+          <h3 className="font-semibold text-sm text-white">Why does radar see water?</h3>
           <p>Calm water acts as a specular reflector (mirror) for radar signals emitted by NISAR. The signal reflects away from the sensor, creating dark areas (low backscatter).</p>
-          <div className="bg-[#18263e] p-3 rounded border border-gray-700">
-            <span className="font-bold text-[#38edf6] block mb-1">HH vs HV Polarization:</span>
+          <div className="bg-slate-800/40 p-3 rounded border border-slate-700/40">
+            <span className="font-semibold text-sky-400 block mb-1">HH vs HV Polarization:</span>
             HH polarization strongly highlights flooded areas and double-bounce scattering from inundated vegetation.
           </div>
         </div>
@@ -159,4 +182,3 @@ useEffect(() => {
     </aside>
   );
 }
-
