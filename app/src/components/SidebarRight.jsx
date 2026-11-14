@@ -11,14 +11,20 @@ import {
   Legend,
 } from 'chart.js';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
-export default function SidebarRight() {
+export default function SidebarRight({ selectedZone }) {
   const [activeTab, setActiveTab] = useState('numbers');
   const [stats, setStats] = useState(null);
+  const [story, setStory] = useState(null);
 useEffect(() => {
     fetch('/data/stats.json')
       .then((res) => res.json())
       .then((data) => setStats(data))
-      .catch((err) => console.error("Erreur stats:", err));
+      .catch((err) => console.error("Error fetching stats:", err));
+
+    fetch('/data/story.json')
+      .then((res) => res.json())
+      .then((data) => setStory(data))
+      .catch((err) => console.error("Error fetching story:", err));
   }, []);
 
   const latestSeries = stats && stats.series && stats.series.length > 0 ? stats.series[stats.series.length - 1] : null;
@@ -41,39 +47,65 @@ useEffect(() => {
     datasets: [
       {
         label: 'Surface en Eau (km²)',
-        data: stats && stats.series ? stats.series.map((s) => s.classes ? s.classes.eau_km2 : 0) : [],
-        borderColor: '#38edf6',
-        backgroundColor: 'rgba(56, 237, 246, 0.2)',
-        tension: 0.4,
-        pointBackgroundColor: '#ff5353',
-        pointRadius: 5,
+        data: stats && stats.series ? stats.series.map((s) => (s.classes ? s.classes.eau_km2 : 0)) : [],
+        borderColor: '#0ea5e9', // Sky-500 pour matcher Tailwind
+        borderWidth: 2,
+        tension: 0.3,
+        fill: true,
+        backgroundColor: (context) => {
+          const ctx = context.chart.ctx;
+          const gradient = ctx.createLinearGradient(0, 0, 0, 160);
+          gradient.addColorStop(0, 'rgba(14, 165, 233, 0.35)');
+          gradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
+          return gradient;
+        },
+        pointBackgroundColor: '#38bdf8',
+        pointBorderColor: '#0f172a',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
       },
     ],
   };
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#0f172a',
+        backgroundColor: '#1e293b',
+        titleColor: '#f8fafc',
+        bodyColor: '#38bdf8',
         borderColor: '#334155',
         borderWidth: 1,
+        padding: 8,
+        displayColors: false,
+        callbacks: {
+          label: (context) => `${context.parsed.y} km²`,
+        },
       },
     },
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#94a3b8', font: { size: 11 } },
+        ticks: { color: '#64748b', font: { size: 10 } },
       },
       y: {
-        grid: { color: '#1e293b' },
-        ticks: { color: '#94a3b8', font: { size: 11 } },
+        grid: { color: '#1e293b', drawBorder: false },
+        ticks: { 
+          color: '#64748b', 
+          font: { size: 10 },
+          callback: (value) => `${value} km²`
+        },
       },
     },
   };
   return (
-    <aside className="w-80 h-full bg-slate-900 text-slate-100 p-4 flex flex-col border-l border-slate-800 overflow-y-auto">
+    <aside className="w-full md:w-80 h-auto md:h-full h-full bg-slate-900 text-slate-100 p-4 flex flex-col border-l border-slate-800 overflow-y-auto">
       {/* Navigation */}
       <div className="flex border-b border-slate-800 pb-2 mb-4 text-xs font-semibold uppercase tracking-wider">
         <button
@@ -129,7 +161,7 @@ useEffect(() => {
             <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
               {landClasses.map((item) => (
                 <div key={item.key} className="bg-slate-800/40 p-2 rounded border border-slate-700/40">
-                  <div className={`font-semibold ${item.color}`}>• {item.label}</div>
+                    <div className={`font-semibold ${item.color}`}>• {item.label}</div>
                   <div className="text-slate-200 mt-0.5">
                     {item.val !== undefined ? `${item.val} km²` : '--'}
                     <span className="text-slate-400 text-[11px] ml-1">({getPct(item.val)}%)</span>
@@ -159,24 +191,30 @@ useEffect(() => {
           </div>
 
           {/* Water Extent Trend */}
-          <div className="space-y-2">
-            <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Water Extent Trend</span>
-            <div className="bg-slate-800/40 p-2.5 rounded border border-slate-700/40 h-44">
-              <Line data={chartData} options={chartOptions} />
-            </div>
-          </div>
+<div className="space-y-2">
+  <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Water Extent Trend</span>
+  <div className="bg-slate-800/40 p-3 rounded-lg border border-slate-700/40 h-52">
+    <Line data={chartData} options={chartOptions} />
+  </div>
+</div>
         </div>
       )}
-
-      {/* Explanation Tab */}
+      {/* Story */}
       {activeTab === 'explain' && (
         <div className="text-xs text-slate-300 space-y-3 leading-relaxed">
-          <h3 className="font-semibold text-sm text-white">Why does radar see water?</h3>
-          <p>Calm water acts as a specular reflector (mirror) for radar signals emitted by NISAR. The signal reflects away from the sensor, creating dark areas (low backscatter).</p>
-          <div className="bg-slate-800/40 p-3 rounded border border-slate-700/40">
-            <span className="font-semibold text-sky-400 block mb-1">HH vs HV Polarization:</span>
-            HH polarization strongly highlights flooded areas and double-bounce scattering from inundated vegetation.
-          </div>
+          <h3 className="font-semibold text-sm text-white">
+            {story ? story.title : "Why does radar see water?"}
+          </h3>
+          <p>
+            {story ? story.summary : "Calm water acts as a specular reflector for radar signals emitted by NISAR."}
+          </p>
+
+          {story?.details?.map((item, idx) => (
+            <div key={idx} className="bg-slate-800/40 p-3 rounded border border-slate-700/40">
+              <span className="font-semibold text-sky-400 block mb-1">{item.heading}:</span>
+              {item.content}
+            </div>
+          ))}
         </div>
       )}
     </aside>
