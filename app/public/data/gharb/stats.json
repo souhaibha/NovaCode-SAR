@@ -1,31 +1,112 @@
 {
-  "zone": "gharb",
-  "series": [
-    {
-      "date": "2026-08-19",
-      "water_km2": 12.4,
-      "mean_hh_db": -9.8,
-      "mean_hv_db": -16.2
-    },
-    {
-      "date": "2026-08-31",
-      "water_km2": 15.6,
-      "mean_hh_db": -10.2,
-      "mean_hv_db": -16.5
-    },
-    {
-      "date": "2026-09-12",
-      "water_km2": 18.9,
-      "mean_hh_db": -10.5,
-      "mean_hv_db": -16.9
-    }
-  ],
-  "changes": [
-    {
-      "from": "2026-08-19",
-      "to": "2026-09-12",
-      "new_water_km2": 7.1,
-      "lost_water_km2": 0.6
-    }
-  ]
+ "zone": "gharb",
+ "fake": true,
+ "series": [
+  {
+   "date": "2026-08-19",
+   "classes": {
+    "eau_km2": 188.13,
+    "vegetation_km2": 725.42,
+    "sol_nu_km2": 1577.17,
+    "bati_km2": 49.81
+   }
+  },
+  {
+   "date": "2026-08-31",
+   "classes": {
+    "eau_km2": 310.01,
+    "vegetation_km2": 621.68,
+    "sol_nu_km2": 1559.03,
+    "bati_km2": 49.81
+   }
+  },
+  {
+   "date": "2026-09-12",
+   "classes": {
+    "eau_km2": 549.3,
+    "vegetation_km2": 564.66,
+    "sol_nu_km2": 1376.75,
+    "bati_km2": 49.81
+   }
+  },
+  {
+   "date": "2026-09-24",
+   "classes": {
+    "eau_km2": 343.89,
+    "vegetation_km2": 608.38,
+    "sol_nu_km2": 1538.44,
+    "bati_km2": 49.81
+   }
+  },
+  {
+   "date": "2026-10-06",
+   "classes": {
+    "eau_km2": 214.6,
+    "vegetation_km2": 677.04,
+    "sol_nu_km2": 1599.07,
+    "bati_km2": 49.81
+   }
+  },
+  {
+   "date": "2026-10-18",
+   "classes": {
+    "eau_km2": 149.01,
+    "vegetation_km2": 740.42,
+    "sol_nu_km2": 1601.28,
+    "bati_km2": 49.81
+   }
+  }
+ ],
+ "transitions": [
+  {
+   "from": "2026-08-19",
+   "to": "2026-08-31",
+   "eau_to_vegetation_km2": 4.92,
+   "eau_to_sol_nu_km2": 10.43,
+   "vegetation_to_eau_km2": 108.66,
+   "sol_nu_to_eau_km2": 28.57
+  },
+  {
+   "from": "2026-08-31",
+   "to": "2026-09-12",
+   "eau_to_vegetation_km2": 2.71,
+   "eau_to_sol_nu_km2": 8.76,
+   "vegetation_to_eau_km2": 59.74,
+   "sol_nu_to_eau_km2": 191.04
+  },
+  {
+   "from": "2026-09-12",
+   "to": "2026-09-24",
+   "eau_to_vegetation_km2": 36.75,
+   "eau_to_sol_nu_km2": 168.67,
+   "sol_nu_to_vegetation_km2": 6.98
+  },
+  {
+   "from": "2026-09-24",
+   "to": "2026-10-06",
+   "eau_to_vegetation_km2": 68.65,
+   "eau_to_sol_nu_km2": 60.63
+  },
+  {
+   "from": "2026-10-06",
+   "to": "2026-10-18",
+   "eau_to_vegetation_km2": 63.38,
+   "eau_to_sol_nu_km2": 2.21
+  },
+  {
+   "from": "2026-08-19",
+   "to": "2026-09-12",
+   "eau_to_vegetation_km2": 7.64,
+   "eau_to_sol_nu_km2": 19.19,
+   "vegetation_to_eau_km2": 168.4,
+   "sol_nu_to_eau_km2": 219.61
+  },
+  {
+   "from": "2026-08-19",
+   "to": "2026-10-18",
+   "eau_to_vegetation_km2": 8.02,
+   "eau_to_sol_nu_km2": 31.09,
+   "sol_nu_to_vegetation_km2": 6.98
+  }
+ ]
 }
