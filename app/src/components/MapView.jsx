@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import L from "leaflet";
 import {
   MapContainer,
   TileLayer,
@@ -84,11 +85,91 @@ function MapResizerAndFitBounds({ bounds }) {
   return null;
 }
 
-// Custom map zoom/nav buttons
-function ZoomButtons() {
+// Custom map zoom/nav buttons — rendered inside MapContainer so useMap() works
+function ZoomButtons({ bounds }) {
   const map = useMap();
+  const containerRef = useRef(null);
+
+  // Track zoom level to disable +/- at limits
+  const [zoom, setZoom] = useState(() => map.getZoom());
+  const minZoom = map.getMinZoom();
+  const maxZoom = map.getMaxZoom();
+
+  // Track fullscreen state for icon toggle
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+  const fsSupported = !!document.documentElement.requestFullscreen;
+
+  useEffect(() => {
+    // Sync zoom level on every zoomend
+    const onZoom = () => setZoom(map.getZoom());
+    map.on("zoomend", onZoom);
+    return () => map.off("zoomend", onZoom);
+  }, [map]);
+
+  useEffect(() => {
+    // Sync fullscreen icon and call invalidateSize after the transition
+    const onFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      setTimeout(() => map.invalidateSize(), 200);
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, [map]);
+
+  // Prevent clicks/scroll on the button panel from reaching the map
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    L.DomEvent.disableClickPropagation(el);
+    L.DomEvent.disableScrollPropagation(el);
+  }, []);
+
+  const buttons = [
+    {
+      icon: "add",
+      ariaLabel: "Zoom in",
+      title: "Zoom in",
+      disabled: zoom >= maxZoom,
+      fn: () => map.zoomIn(),
+    },
+    {
+      icon: "remove",
+      ariaLabel: "Zoom out",
+      title: "Zoom out",
+      disabled: zoom <= minZoom,
+      fn: () => map.zoomOut(),
+    },
+    {
+      icon: "my_location",
+      ariaLabel: "Recenter on zone",
+      title: "Recenter on zone",
+      disabled: false,
+      fn: () => {
+        if (bounds) map.fitBounds(bounds, { padding: [20, 20] });
+        else map.setView(map.getCenter(), 10);
+      },
+    },
+    // Fullscreen button — only shown when API is supported
+    ...(fsSupported
+      ? [
+          {
+            icon: isFullscreen ? "fullscreen_exit" : "fullscreen",
+            ariaLabel: "Toggle fullscreen",
+            title: "Toggle fullscreen",
+            disabled: false,
+            fn: () => {
+              if (!document.fullscreenElement)
+                document.documentElement.requestFullscreen();
+              else document.exitFullscreen();
+            },
+          },
+        ]
+      : []),
+  ];
+
   return (
     <div
+      ref={containerRef}
       className="absolute top-4 right-4 z-[1000] flex flex-col gap-1.5 p-1 rounded-xl"
       style={{
         background: "rgba(21, 27, 42, 0.92)",
@@ -97,33 +178,15 @@ function ZoomButtons() {
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.3)",
       }}
     >
-      {[
-        { icon: "add", title: "Zoom In", fn: () => map.zoomIn() },
-        { icon: "remove", title: "Zoom Out", fn: () => map.zoomOut() },
-        {
-          icon: "my_location",
-          title: "Center",
-          fn: () => {
-            const bounds = map.options?._bounds;
-            if (bounds) map.fitBounds(bounds, { padding: [30, 30] });
-            else map.setView(map.getCenter(), 10);
-          },
-        },
-        {
-          icon: "fullscreen",
-          title: "Fullscreen",
-          fn: () => {
-            const el = document.documentElement;
-            if (!document.fullscreenElement) el.requestFullscreen?.();
-            else document.exitFullscreen?.();
-          },
-        },
-      ].map(({ icon, title, fn }) => (
+      {buttons.map(({ icon, ariaLabel, title, disabled, fn }) => (
         <button
           key={icon}
+          type="button"
+          aria-label={ariaLabel}
           title={title}
+          disabled={disabled}
           onClick={fn}
-          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-surface-container-high"
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-surface-container-high focus:outline-none focus-visible:ring-2 focus-visible:ring-[#57f1db] disabled:opacity-30 disabled:cursor-not-allowed"
           style={{ color: "#dce2f6" }}
         >
           <span className="material-symbols-outlined text-[20px]">{icon}</span>
@@ -709,7 +772,7 @@ export default function MapView(props) {
         )}
 
         <div className="leaflet-top leaflet-right">
-          <ZoomButtons />
+          <ZoomButtons bounds={bounds} />
         </div>
       </MapContainer>
 

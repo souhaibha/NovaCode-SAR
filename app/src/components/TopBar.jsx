@@ -150,15 +150,6 @@ export default function TopBar({ zone }) {
             EN
           </button>
         </div>
-
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: "#57f1db" }}
-        >
-          <span className="material-symbols-outlined text-[18px]" style={{ color: "#003731" }}>
-            person
-          </span>
-        </div>
       </div>
     </header>
   );
