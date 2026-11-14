@@ -1,0 +1,36 @@
+{
+  "zones": [
+    {
+      "id": "gharb",
+      "name": "Plaine du Gharb",
+      "bbox": [
+        -6.4,
+        34.1,
+        -5.9,
+        34.6
+      ],
+      "dates": [
+        "2026-08-19",
+        "2026-08-31",
+        "2026-09-12"
+      ],
+      "layers": {
+        "HH": "gharb/{date}_HH_db.png",
+        "HV": "gharb/{date}_HV_db.png",
+        "water": "gharb/{date}_water.png"
+      },
+      "changes": [
+        {
+          "from": "2026-08-19",
+          "to": "2026-09-12",
+          "file": "gharb/change_2026-08-19_2026-09-12.png"
+        }
+      ],
+      "legend": {
+        "db_min": -25,
+        "db_max": 0,
+        "colormap": "gray"
+      }
+    }
+  ]
+}

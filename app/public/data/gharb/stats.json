@@ -1,0 +1,31 @@
+{
+  "zone": "gharb",
+  "series": [
+    {
+      "date": "2026-08-19",
+      "water_km2": 12.4,
+      "mean_hh_db": -9.8,
+      "mean_hv_db": -16.2
+    },
+    {
+      "date": "2026-08-31",
+      "water_km2": 15.6,
+      "mean_hh_db": -10.2,
+      "mean_hv_db": -16.5
+    },
+    {
+      "date": "2026-09-12",
+      "water_km2": 18.9,
+      "mean_hh_db": -10.5,
+      "mean_hv_db": -16.9
+    }
+  ],
+  "changes": [
+    {
+      "from": "2026-08-19",
+      "to": "2026-09-12",
+      "new_water_km2": 7.1,
+      "lost_water_km2": 0.6
+    }
+  ]
+}
