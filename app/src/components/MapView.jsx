@@ -85,6 +85,56 @@ function MapResizerAndFitBounds({ bounds }) {
   return null;
 }
 
+// ── Live scale bar ────────────────────────────────────────────────────────
+// Web Mercator meters-per-pixel at zoom Z and latitude φ (WGS-84):
+//   m/px = 156543.034 × cos(φ × π/180) / 2^Z
+// We pick a 80-px target, round to a "nice" km value, then back-compute
+// the exact pixel width so the bar always represents a clean distance.
+
+const NICE_KM = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500];
+
+function metersPerPixel(zoom, latDeg) {
+  return (156543.034 * Math.cos((latDeg * Math.PI) / 180)) / Math.pow(2, zoom);
+}
+
+function computeScale(zoom, latDeg, targetPx = 80) {
+  const mpp = metersPerPixel(zoom, latDeg);
+  const rawKm = (mpp * targetPx) / 1000;
+  // find the largest "nice" value that fits within rawKm
+  const niceKm = NICE_KM.reduce((best, v) => (v <= rawKm ? v : best), NICE_KM[0]);
+  const barPx = (niceKm * 1000) / mpp;
+  const label = niceKm >= 1 ? `${niceKm} km` : `${niceKm * 1000} m`;
+  return { barPx: Math.round(barPx), label };
+}
+
+/** Hook: returns live { barPx, label } updated on zoomend + moveend */
+function useScaleBar(mapRef, fallbackLat) {
+  const [scale, setScale] = useState(() =>
+    computeScale(10, fallbackLat)
+  );
+
+  useEffect(() => {
+    let raf;
+    const trySubscribe = () => {
+      const map = mapRef.current;
+      if (!map) { raf = requestAnimationFrame(trySubscribe); return; }
+
+      const sync = () => {
+        const z = map.getZoom();
+        const lat = map.getCenter().lat;
+        setScale(computeScale(z, lat));
+      };
+      sync(); // immediate read once map is ready
+      map.on("zoomend moveend", sync);
+      return () => map.off("zoomend moveend", sync);
+    };
+    let cleanup = trySubscribe();
+    return () => { cancelAnimationFrame(raf); cleanup?.(); };
+  }, [mapRef, fallbackLat]);
+
+  return scale;
+}
+
 // Custom map zoom/nav buttons.
 // Rendered OUTSIDE MapContainer — receives mapRef from parent.
 // mapRef.current is the Leaflet map instance (react-leaflet v4 MapContainer ref).
@@ -681,6 +731,9 @@ export default function MapView(props) {
 
   const activeColor = selectedEvent?.color || "#FF5A5F";
 
+  // Live scale bar — updates on every zoomend + moveend
+  const scaleBar = useScaleBar(mapRef, center[0]);
+
   return (
     <div
       ref={mapContainerRef}
@@ -1024,12 +1077,15 @@ export default function MapView(props) {
         }}
       >
         <div className="flex items-center gap-2">
-          <div className="w-12 h-0.5 bg-on-surface/80 flex justify-between items-end">
-            <div className="w-0.5 h-1.5 bg-on-surface/80" />
-            <div className="w-0.5 h-1.5 bg-on-surface/80" />
+          {/* Bar width is driven by scaleBar.barPx — the exact pixel count for scaleBar.label */}
+          <div
+            style={{ width: scaleBar.barPx, height: 2, background: "rgba(220,226,246,0.8)", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}
+          >
+            <div style={{ width: 2, height: 6, background: "rgba(220,226,246,0.8)" }} />
+            <div style={{ width: 2, height: 6, background: "rgba(220,226,246,0.8)" }} />
           </div>
           <span className="font-mono text-[9px] text-on-surface/90 font-medium">
-            ~10 km
+            {scaleBar.label}
           </span>
         </div>
         <span className="font-mono text-[8.5px] text-outline/80">
