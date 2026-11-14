@@ -79,7 +79,7 @@ useEffect(() => {
     },
   };
   return (
-    <aside className="w-80 h-full bg-slate-900 text-slate-100 p-4 flex flex-col border-l border-slate-800 overflow-y-auto">
+    <aside className="w-full md:w-80 h-auto md:h-full h-full bg-slate-900 text-slate-100 p-4 flex flex-col border-l border-slate-800 overflow-y-auto">
       {/* Navigation */}
       <div className="flex border-b border-slate-800 pb-2 mb-4 text-xs font-semibold uppercase tracking-wider">
         <button
@@ -135,7 +135,7 @@ useEffect(() => {
             <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
               {landClasses.map((item) => (
                 <div key={item.key} className="bg-slate-800/40 p-2 rounded border border-slate-700/40">
-                  <div className={`font-semibold ${item.color}`}>• {item.label}</div>
+                    <div className={`font-semibold ${item.color}`}>• {item.label}</div>
                   <div className="text-slate-200 mt-0.5">
                     {item.val !== undefined ? `${item.val} km²` : '--'}
                     <span className="text-slate-400 text-[11px] ml-1">({getPct(item.val)}%)</span>
