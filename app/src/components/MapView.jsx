@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -10,6 +10,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import MapControls from "./MapControls";
 import ClickTooltip from "./ClickTooltip";
+import SwipeDivider from "./SwipeDivider";
 import { loadImageData, eventMask, buildColorToClass } from "../lib/eventMask";
 import {
   latLngToPixel,
@@ -270,6 +271,21 @@ function MapClickHandler({
   return null;
 }
 
+/**
+ * SwipeClipHandler — subscribes to Leaflet map events and re-runs clip math
+ * on every move/zoom so the clip-path stays locked to the raster image.
+ */
+function SwipeClipHandler({ applyClip }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    const events = ["move", "zoom", "zoomend", "moveend", "resize"];
+    events.forEach((e) => map.on(e, applyClip));
+    return () => events.forEach((e) => map.off(e, applyClip));
+  }, [map, applyClip]);
+  return null;
+}
+
 export default function MapView(props) {
   // If props are missing, MapView maintains its own internal state (standalone mode)
   const isStandalone =
@@ -284,6 +300,15 @@ export default function MapView(props) {
   const [internalPeriod, setInternalPeriod] = useState({ start: null, end: null });
   const [internalActiveClasses, setInternalActiveClasses] = useState([]);
   const [internalOpacity, setInternalOpacity] = useState(0.85);
+
+  // A7: Swipe mode — effective mode from props or internal fallback
+  const mode = props.mode !== undefined ? props.mode : "period";
+
+  // A7: Swipe divider position (0..1) and overlay refs
+  const [split, setSplit] = useState(0.5);
+  const startOverlayRef = useRef(null);
+  const endOverlayRef = useRef(null);
+  const mapContainerRef = useRef(null);
 
   // If zone prop is missing, fetch manifest.json automatically
   useEffect(() => {
@@ -368,6 +393,42 @@ export default function MapView(props) {
     setClickedPoint(null);
     setPointError(null);
   }, [zone?.id, startDate, endDate, eventId]);
+
+  // ── A7: Clip math ──────────────────────────────────────────────────────
+  // dividerX = left edge of map container + split fraction of its width (screen px).
+  // Start image: clip its right side so only pixels left of dividerX show.
+  // End   image: clip its left  side so only pixels right of dividerX show.
+  const applyClip = useCallback(() => {
+    const startEl = startOverlayRef.current?.getElement?.();
+    const endEl   = endOverlayRef.current?.getElement?.();
+    const mapEl   = mapContainerRef.current;
+    if (!startEl || !endEl || !mapEl) return;
+
+    const mapRect  = mapEl.getBoundingClientRect();
+    const dividerX = mapRect.left + split * mapRect.width;
+
+    const sr = startEl.getBoundingClientRect();
+    startEl.style.clipPath = `inset(0 ${Math.max(0, sr.right  - dividerX)}px 0 0)`;
+
+    const er = endEl.getBoundingClientRect();
+    endEl.style.clipPath   = `inset(0 0 0 ${Math.max(0, dividerX - er.left)}px)`;
+  }, [split]);
+
+  // Re-apply clip whenever split changes (while in swipe mode)
+  useEffect(() => {
+    if (mode === "swipe") applyClip();
+  }, [split, mode, applyClip]);
+
+  // Clean up clipPath on both overlays when leaving swipe mode
+  useEffect(() => {
+    if (mode !== "swipe") {
+      startOverlayRef.current?.getElement?.()
+        && (startOverlayRef.current.getElement().style.clipPath = "");
+      endOverlayRef.current?.getElement?.()
+        && (endOverlayRef.current.getElement().style.clipPath = "");
+    }
+  }, [mode]);
+  // ─────────────────────────────────────────────────────────────────────────
 
   // Compute event layer mask and transitions via eventMask.js
   useEffect(() => {
@@ -518,6 +579,7 @@ export default function MapView(props) {
 
   return (
     <div
+      ref={mapContainerRef}
       style={{
         position: "relative",
         width: "100%",
@@ -532,7 +594,7 @@ export default function MapView(props) {
           width: "100%",
           height: "100%",
           background: "#070e1c",
-          cursor: "crosshair",
+          cursor: mode === "swipe" ? "ew-resize" : "crosshair",
         }}
         zoomControl={false}
         scrollWheelZoom
@@ -540,10 +602,40 @@ export default function MapView(props) {
         <MapResizerAndFitBounds bounds={bounds} />
         <TileLayer url={BASEMAP_URL} maxZoom={18} />
 
-        {/* Class layers (A4):
-            If individual class masks exist in manifest, mount/unmount each checked mask.
-            If only a full classification PNG exists, render it only when classes are active. */}
-        {hasMaskLayers
+        {/* A7: Swipe mode — two classification overlays clipped around the divider.
+            Hidden in period mode; period layers hidden in swipe mode. */}
+        {mode === "swipe" && !isInvalidDateRange && zone.layers?.classification && (
+          <>
+            <SwipeClipHandler applyClip={applyClip} />
+            {/* Start-date image: clipped on the right → shows LEFT of divider */}
+            <ImageOverlay
+              ref={startOverlayRef}
+              key={`swipe-start-${startDate}`}
+              url={fillTemplate(zone.layers.classification, startDate)}
+              bounds={bounds}
+              opacity={opacity}
+              className="pixelated"
+              eventHandlers={{
+                add: () => requestAnimationFrame(applyClip),
+              }}
+            />
+            {/* End-date image: clipped on the left → shows RIGHT of divider */}
+            <ImageOverlay
+              ref={endOverlayRef}
+              key={`swipe-end-${endDate}`}
+              url={fillTemplate(zone.layers.classification, endDate)}
+              bounds={bounds}
+              opacity={opacity}
+              className="pixelated"
+              eventHandlers={{
+                add: () => requestAnimationFrame(applyClip),
+              }}
+            />
+          </>
+        )}
+
+        {/* Class layers — hidden in swipe mode (A4) */}
+        {mode !== "swipe" && (hasMaskLayers
           ? activeClasses?.map((clsId) => {
               const maskTemplate = zone.layers?.[`mask_${clsId}`];
               if (!maskTemplate || !endDate) return null;
@@ -567,10 +659,10 @@ export default function MapView(props) {
                 opacity={opacity}
                 className="pixelated"
               />
-            )}
+            ))}
 
-        {/* 3. Event layer ImageOverlay computed by eventMask.js */}
-        {eventDataUrl && (
+        {/* Event layer — hidden in swipe mode */}
+        {mode !== "swipe" && eventDataUrl && (
           <ImageOverlay
             key={`event-${selectedEvent?.id}-${startDate}-${endDate}`}
             url={eventDataUrl}
@@ -593,29 +685,44 @@ export default function MapView(props) {
           />
         )}
 
-        {/* A6: Map Click Inspector */}
-        <MapClickHandler
-          zone={zone}
-          startDate={startDate}
-          endDate={endDate}
-          selectedEvent={selectedEvent}
-          classes={classes}
-          colorToClass={colorToClass}
-          onPointSelect={onPointSelect}
-          setClickedPoint={setClickedPoint}
-          setPointError={setPointError}
-        />
+        {/* A6: Map Click Inspector — disabled in swipe mode */}
+        {mode !== "swipe" && (
+          <MapClickHandler
+            zone={zone}
+            startDate={startDate}
+            endDate={endDate}
+            selectedEvent={selectedEvent}
+            classes={classes}
+            colorToClass={colorToClass}
+            onPointSelect={onPointSelect}
+            setClickedPoint={setClickedPoint}
+            setPointError={setPointError}
+          />
+        )}
 
-        {/* A6: Click Tooltip Popup */}
-        <ClickTooltip
-          point={clickedPoint}
-          onClose={() => setClickedPoint(null)}
-        />
+        {/* A6: Click Tooltip Popup — disabled in swipe mode */}
+        {mode !== "swipe" && (
+          <ClickTooltip
+            point={clickedPoint}
+            onClose={() => setClickedPoint(null)}
+          />
+        )}
 
         <div className="leaflet-top leaflet-right">
           <ZoomButtons />
         </div>
       </MapContainer>
+
+      {/* A7: Swipe Divider — rendered outside MapContainer so it overlays the full map area */}
+      {mode === "swipe" && !isInvalidDateRange && (
+        <SwipeDivider
+          split={split}
+          onSplitChange={setSplit}
+          mapContainerRef={mapContainerRef}
+          startDate={startDate}
+          endDate={endDate}
+        />
+      )}
 
       {/* Standalone Control Box (shown when any prop is missing) */}
       {isStandalone && (

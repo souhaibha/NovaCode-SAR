@@ -108,6 +108,8 @@ export default function App() {
             activeClasses={activeClasses}
             opacity={opacity}
             onEventResult={setEventResult}
+            mode={mode}
+            onModeChange={setMode}
           />
 
           {/* Timeline overlaid at the bottom */}
