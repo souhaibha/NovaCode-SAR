@@ -39,7 +39,7 @@ const STYLES = {
 export default function ClickTooltip({ point, onClose }) {
   if (!point || !point.latlng) return null;
 
-  const { latlng, endClass, startClass, inEvent, confidence, eventLabel } = point;
+  const { latlng, endClass, startClass, inEvent, confidence, eventLabel, date, radarReflection } = point;
   const latStr = `${latlng.lat.toFixed(3)}°N`;
   const lngStr = `${Math.abs(latlng.lng).toFixed(3)}°W`;
 
@@ -54,7 +54,7 @@ export default function ClickTooltip({ point, onClose }) {
         {/* Header row with coordinates and accessible close button */}
         <div className={STYLES.header}>
           <span className={STYLES.coords}>
-            {latStr}, {lngStr}
+            {latStr}, {lngStr} {date ? `• ${date}` : ""}
           </span>
           <button
             type="button"
@@ -66,7 +66,7 @@ export default function ClickTooltip({ point, onClose }) {
           </button>
         </div>
 
-        {/* End date classification and confidence */}
+        {/* Classification */}
         {endClass ? (
           <div className={STYLES.classRow}>
             <span
@@ -74,11 +74,15 @@ export default function ClickTooltip({ point, onClose }) {
               style={{ backgroundColor: endClass.color }}
             />
             <span className={STYLES.classLabel}>{endClass.label}</span>
-            {typeof confidence === "number" && (
+            {endClass.hectares ? (
+              <span className="font-mono text-[10px] text-[#bacac5] ml-auto">
+                {endClass.hectares} ha
+              </span>
+            ) : typeof confidence === "number" ? (
               <span className={STYLES.confidence}>
                 {Math.round(confidence * 100)}% conf.
               </span>
-            )}
+            ) : null}
           </div>
         ) : (
           <div className="pt-2 text-[11px] text-[#bacac5] italic">
@@ -86,8 +90,21 @@ export default function ClickTooltip({ point, onClose }) {
           </div>
         )}
 
+        {/* Radar reflection analysis */}
+        {radarReflection && (
+          <div className="mt-2 pt-2 border-t border-[#3c4a46]/40 flex flex-col gap-1 text-[10px] font-mono">
+            <div className="flex justify-between text-[#859490]">
+              <span>Rétrodiffusion radar:</span>
+              <span className="text-[#57f1db]">HV: {radarReflection.hv} / 255</span>
+            </div>
+            <div className="text-[10px] text-[#bacac5] leading-tight font-sans italic">
+              {radarReflection.desc}
+            </div>
+          </div>
+        )}
+
         {/* Event transition status (shown only when an event is active) */}
-        {eventLabel && (
+        {eventLabel && !radarReflection && (
           <div className={STYLES.eventSection}>
             <div className={STYLES.eventRow}>
               <span className={STYLES.eventLabel}>{eventLabel}:</span>

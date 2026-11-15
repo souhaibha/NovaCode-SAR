@@ -287,6 +287,9 @@ function ZoomButtons({ mapRef, bounds }) {
 // A6: Map click handler for pixel class and confidence inspection
 function MapClickHandler({
   zone,
+  siteBase,
+  currentRadarFrame,
+  effectiveBbox,
   startDate,
   endDate,
   selectedEvent,
@@ -299,13 +302,99 @@ function MapClickHandler({
   useMapEvents({
     click: async (e) => {
       const { lat, lng } = e.latlng;
-      const bbox = zone?.bbox;
+      const bbox = effectiveBbox || zone?.bbox || (zone?.bounds && zone.bounds.length >= 2 ? [zone.bounds[0][1], zone.bounds[0][0], zone.bounds[1][1], zone.bounds[1][0]] : null);
       if (!bbox) return;
 
       const [west, south, east, north] = bbox;
       // Ignore clicks outside the zone bounding box
       if (lat < south || lat > north || lng < west || lng > east) {
         return;
+      }
+
+      setPointError?.(null);
+
+      // Support for real NISAR site (changemap + radar frame)
+      if (zone?.changemap) {
+        try {
+          const changemapUrl = siteBase + zone.changemap;
+          const changeImg = await loadImageData(changemapUrl);
+          const px = latLngToPixel(lat, lng, bbox, changeImg.width, changeImg.height);
+          if (!px) return;
+
+          // Sample color from changemap
+          const idx = (px.y * changeImg.width + px.x) * 4;
+          const d = changeImg.data;
+          const a = d[idx + 3];
+          const r = d[idx];
+          const g = d[idx + 1];
+          const b = d[idx + 2];
+
+          // Match with zone.legend
+          let matchedClass = null;
+          if (a > 30) {
+            const legend = zone.legend || [];
+            for (const item of legend) {
+              if (!item.color) continue;
+              const c = item.color;
+              if (Math.abs(r - c[0]) < 35 && Math.abs(g - c[1]) < 35 && Math.abs(b - c[2]) < 35) {
+                matchedClass = {
+                  id: item.cls,
+                  label: item.name,
+                  color: `rgb(${c[0]},${c[1]},${c[2]})`,
+                  hectares: item.hectares,
+                };
+                break;
+              }
+            }
+          }
+
+          if (!matchedClass) {
+            matchedClass = {
+              id: "stable",
+              label: "Stable (aucun changement)",
+              color: "#859490",
+            };
+          }
+
+          // Sample radar pixel for reflection (HH/HV)
+          let radarReflection = null;
+          if (currentRadarFrame) {
+            try {
+              const radarImg = await loadImageData(siteBase + currentRadarFrame);
+              const rpx = latLngToPixel(lat, lng, bbox, radarImg.width, radarImg.height);
+              if (rpx) {
+                const ridx = (rpx.y * radarImg.width + rpx.x) * 4;
+                const rd = radarImg.data;
+                const hh = rd[ridx];      // Red channel
+                const hv = rd[ridx + 1];  // Green channel = vegetation volume scattering
+                radarReflection = {
+                  hh,
+                  hv,
+                  desc: hv < 85 
+                    ? "Faible rétrodiffusion HV (végétation coupée/absente ou sol nu)"
+                    : hv > 150 
+                    ? "Forte rétrodiffusion HV (végétation dense et active)"
+                    : "Rétrodiffusion HV modérée",
+                };
+              }
+            } catch (_) {}
+          }
+
+          const pointResult = {
+            latlng: { lat, lng },
+            endClass: matchedClass,
+            date: endDate,
+            radarReflection,
+            inEvent: matchedClass.id !== "stable",
+            eventLabel: matchedClass.id !== "stable" ? matchedClass.label : null,
+          };
+
+          setClickedPoint(pointResult);
+          onPointSelect?.(pointResult);
+          return;
+        } catch (err) {
+          console.error("Error sampling NISAR changemap:", err);
+        }
       }
 
       if (!endDate || !zone?.layers?.classification) return;
@@ -1055,6 +1144,9 @@ export default function MapView(props) {
         {mode !== "swipe" && (
           <MapClickHandler
             zone={zone}
+            siteBase={siteBase}
+            currentRadarFrame={currentRadarFrame}
+            effectiveBbox={effectiveBbox}
             startDate={startDate}
             endDate={endDate}
             selectedEvent={selectedEvent}
