@@ -1,6 +1,6 @@
 {
- "site": "test_niger",
- "name": "test_niger",
+ "site": "custom",
+ "name": "Zone personnalisée",
  "story": "Automatic analysis from 2026-06-15 to 2026-11-15. Detected (ha): vegetation gain 7013, vegetation loss 3.",
  "event": "unknown",
  "event_date": "2026-08-30",

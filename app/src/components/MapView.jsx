@@ -52,7 +52,15 @@ const SmartImageOverlay = forwardRef(function SmartImageOverlay(
       bounds={bounds}
       opacity={opacity}
       className={className}
-      eventHandlers={eventHandlers}
+      eventHandlers={{
+        ...eventHandlers,
+        error: (e) => {
+          if (e.target) {
+            e.target.style.display = "none";
+          }
+          eventHandlers?.error?.(e);
+        },
+      }}
       {...rest}
     />
   );
