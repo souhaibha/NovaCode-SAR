@@ -1,277 +1,314 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
-export default function Timeline({ zone, period, setPeriod }) {
-  const dates = zone.dates || [];
-  const trackRef = useRef(null);
-  const [playing, setPlaying] = useState(false);
-  const playRef = useRef(null);
+function formatDate(str) {
+  if (!str) return "";
+  const parts = str.split("-");
+  if (parts.length !== 3) return str;
+  const [y, m, d] = parts;
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1] || m} ${y}`;
+}
 
-  const startIdx = dates.indexOf(period.start);
-  const endIdx = dates.indexOf(period.end);
-  const safeStart = startIdx >= 0 ? startIdx : 0;
-  const safeEnd = endIdx >= 0 ? endIdx : dates.length - 1;
-
-  const totalDates = dates.length;
-
-  function idxToPercent(idx) {
-    if (totalDates <= 1) return 0;
-    return (idx / (totalDates - 1)) * 100;
-  }
-
-  function percentToIdx(pct) {
-    if (totalDates <= 1) return 0;
-    return Math.round((pct / 100) * (totalDates - 1));
-  }
-
-  function getClickIdx(e) {
-    const rect = trackRef.current.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    return percentToIdx(pct);
-  }
-
-  function handleTrackClick(e) {
-    const idx = getClickIdx(e);
-    // Move whichever handle is closer
-    const dStart = Math.abs(idx - safeStart);
-    const dEnd = Math.abs(idx - safeEnd);
-    if (dStart <= dEnd) {
-      setPeriod((p) => ({ ...p, start: dates[Math.min(idx, safeEnd)] }));
-    } else {
-      setPeriod((p) => ({ ...p, end: dates[Math.max(idx, safeStart)] }));
+function findNearestIndex(targetDateStr, dates) {
+  if (!targetDateStr || !dates?.length) return 0;
+  const targetTime = new Date(targetDateStr + "T00:00:00Z").getTime();
+  let bestIdx = 0;
+  let minDiff = Infinity;
+  dates.forEach((d, idx) => {
+    const time = new Date(d + "T00:00:00Z").getTime();
+    const diff = Math.abs(time - targetTime);
+    if (diff < minDiff) {
+      minDiff = diff;
+      bestIdx = idx;
     }
+  });
+  return bestIdx;
+}
+
+function getDayDiff(d1, d2) {
+  if (!d1 || !d2) return 0;
+  const t1 = new Date(d1 + "T00:00:00Z").getTime();
+  const t2 = new Date(d2 + "T00:00:00Z").getTime();
+  return Math.round(Math.abs(t1 - t2) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Timeline — P2 radar frames timeline and date picker.
+ *
+ * Requirements:
+ *  - Slider over frames (0 .. frames.length - 1)
+ *  - <input type="date"> with min = first date, max = last date, synced both ways with slider
+ *  - Snapped notice: "Showing radar of <date>" and "nearest to <picked> (±n days)" when snapped
+ *  - Play/pause (1s per frame, stops at end, respects prefers-reduced-motion, no looping animation)
+ *  - Hides completely when site has fewer than 2 frames
+ *  - No backdrop-blur, no glows
+ */
+export default function Timeline({
+  dates = [],
+  selectedIndex = 0,
+  onSelectIndex,
+  pickedDate,
+  onPickedDateChange,
+}) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const playTimerRef = useRef(null);
+
+  // Requirement 6: Hide timeline controls when site has fewer than 2 frames
+  if (!dates || dates.length < 2) {
+    return null;
   }
 
-  function makeDragHandler(which) {
-    return (e) => {
-      e.preventDefault();
-      const onMove = (ev) => {
-        const rect = trackRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
-        const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-        const idx = percentToIdx(pct);
-        if (which === "start") {
-          setPeriod((p) => ({ ...p, start: dates[Math.min(idx, safeEnd)] }));
-        } else {
-          setPeriod((p) => ({ ...p, end: dates[Math.max(idx, safeStart)] }));
+  const firstDate = dates[0];
+  const lastDate = dates[dates.length - 1];
+  const currentDate = dates[selectedIndex] || firstDate;
+
+  // Snapping logic
+  const isSnapped = Boolean(pickedDate && pickedDate !== currentDate);
+  const dayDiff = isSnapped ? getDayDiff(currentDate, pickedDate) : 0;
+
+  // Play / Pause timer
+  useEffect(() => {
+    if (!isPlaying) {
+      if (playTimerRef.current) clearInterval(playTimerRef.current);
+      return;
+    }
+
+    playTimerRef.current = setInterval(() => {
+      onSelectIndex((prev) => {
+        if (prev >= dates.length - 1) {
+          setIsPlaying(false);
+          return prev;
         }
-      };
-      const onUp = () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-        window.removeEventListener("touchmove", onMove);
-        window.removeEventListener("touchend", onUp);
-      };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-      window.addEventListener("touchmove", onMove, { passive: false });
-      window.addEventListener("touchend", onUp);
-    };
-  }
+        const next = prev + 1;
+        onPickedDateChange?.(dates[next]);
+        return next;
+      });
+    }, 1000);
 
-  // Play animation
-  function togglePlay() {
-    if (playing) {
-      clearInterval(playRef.current);
-      setPlaying(false);
+    return () => {
+      if (playTimerRef.current) clearInterval(playTimerRef.current);
+    };
+  }, [isPlaying, dates, onSelectIndex, onPickedDateChange]);
+
+  // Stop play if zone changes or selectedIndex hits end
+  useEffect(() => {
+    if (selectedIndex >= dates.length - 1 && isPlaying) {
+      setIsPlaying(false);
+    }
+  }, [selectedIndex, dates.length, isPlaying]);
+
+  function handlePlayToggle() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    if (isPlaying) {
+      setIsPlaying(false);
     } else {
-      setPlaying(true);
-      let idx = safeEnd;
-      playRef.current = setInterval(() => {
-        idx = idx >= totalDates - 1 ? 0 : idx + 1;
-        setPeriod((p) => ({ ...p, end: dates[idx] }));
-      }, 1000);
+      if (selectedIndex >= dates.length - 1) {
+        onSelectIndex(0);
+        onPickedDateChange?.(dates[0]);
+      }
+      setIsPlaying(true);
     }
   }
 
-  useEffect(() => () => clearInterval(playRef.current), []);
+  function handleSliderChange(e) {
+    const idx = parseInt(e.target.value, 10);
+    onSelectIndex(idx);
+    onPickedDateChange?.(dates[idx]);
+  }
 
-  const startPct = idxToPercent(safeStart);
-  const endPct = idxToPercent(safeEnd);
+  function handleDatePickerChange(e) {
+    const val = e.target.value;
+    if (!val) return;
+    onPickedDateChange?.(val);
+    const nearestIdx = findNearestIndex(val, dates);
+    onSelectIndex(nearestIdx);
+  }
 
-  function formatDate(d) {
-    if (!d) return "—";
-    const [y, m, day] = d.split("-");
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
+  function handleStep(delta) {
+    const next = Math.max(0, Math.min(dates.length - 1, selectedIndex + delta));
+    onSelectIndex(next);
+    onPickedDateChange?.(dates[next]);
   }
 
   return (
     <div
-      className="flex flex-col gap-1 px-3.5 py-2 rounded-xl"
       style={{
-        background: "rgba(15,23,42,0.92)",
-        backdropFilter: "blur(16px)",
-        border: "1px solid rgba(60,74,70,0.35)",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        padding: "10px 16px",
+        borderRadius: 14,
+        background: "rgba(21,27,42,0.96)",
+        border: "1px solid rgba(60,74,70,0.5)",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+        userSelect: "none",
       }}
     >
-      <div className="flex items-center gap-3">
-        {/* Play button — sleek & compact */}
+      {/* Top row: controls, slider, date picker */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        {/* Play/pause button */}
         <button
-          onClick={togglePlay}
-          className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
+          type="button"
+          onClick={handlePlayToggle}
+          title={isPlaying ? "Pause timeline" : "Play timeline"}
+          aria-label={isPlaying ? "Pause timeline" : "Play timeline"}
           style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            border: "none",
             background: "#57f1db",
             color: "#003731",
-            boxShadow: "0 2px 10px rgba(87,241,219,0.25)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            flexShrink: 0,
+            transition: "background 0.15s",
           }}
-          title={playing ? "Pause animation" : "Play timeline"}
         >
-          <span className="material-symbols-outlined text-[19px]">
-            {playing ? "pause" : "play_arrow"}
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+            {isPlaying ? "pause" : "play_arrow"}
           </span>
         </button>
 
-        {/* Track */}
-        <div
-          className="flex-1 relative flex flex-col justify-center select-none"
-          style={{ paddingTop: 14, paddingBottom: 2 }}
+        {/* Previous step */}
+        <button
+          type="button"
+          onClick={() => handleStep(-1)}
+          disabled={selectedIndex === 0}
+          title="Previous frame"
+          aria-label="Previous frame"
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            border: "1px solid rgba(60,74,70,0.4)",
+            background: selectedIndex === 0 ? "transparent" : "#19202e",
+            color: selectedIndex === 0 ? "#3d4a5e" : "#dce2f6",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: selectedIndex === 0 ? "not-allowed" : "pointer",
+            flexShrink: 0,
+          }}
         >
-          {/* End bubble */}
-          <div
-            className="absolute flex items-center gap-1 px-2 py-0.5 rounded"
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            chevron_left
+          </span>
+        </button>
+
+        {/* Slider over frames */}
+        <div style={{ flex: 1, minWidth: 140, display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="range"
+            min={0}
+            max={dates.length - 1}
+            step={1}
+            value={selectedIndex}
+            onChange={handleSliderChange}
+            aria-label="Frame index slider"
             style={{
-              top: -6,
-              left: `${endPct}%`,
-              transform: "translateX(-50%)",
-              background: "#070e1c",
-              border: "1px solid #57f1db",
-              color: "#57f1db",
-              fontSize: 10,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontWeight: 700,
-              boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
-              zIndex: 10,
-              whiteSpace: "nowrap",
+              width: "100%",
+              accentColor: "#57f1db",
+              cursor: "pointer",
             }}
-          >
-            <span>{formatDate(period.end)}</span>
-            <span
-              className="w-1.5 h-1.5 rounded-full animate-pulse"
-              style={{ background: "#ffb95f" }}
-            />
-          </div>
+          />
+        </div>
 
-          {/* Rail */}
-          <div
-            ref={trackRef}
-            onClick={handleTrackClick}
-            className="relative w-full rounded-full cursor-pointer"
-            style={{ height: 5, background: "#19202e" }}
-          >
-            {/* Active fill */}
-            <div
-              className="absolute top-0 bottom-0 rounded-full"
-              style={{
-                left: `${startPct}%`,
-                width: `${endPct - startPct}%`,
-                background: "#57f1db",
-                boxShadow: "0 0 10px rgba(87,241,219,0.5)",
-                pointerEvents: "none",
-              }}
-            />
+        {/* Next step */}
+        <button
+          type="button"
+          onClick={() => handleStep(1)}
+          disabled={selectedIndex === dates.length - 1}
+          title="Next frame"
+          aria-label="Next frame"
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            border: "1px solid rgba(60,74,70,0.4)",
+            background: selectedIndex === dates.length - 1 ? "transparent" : "#19202e",
+            color: selectedIndex === dates.length - 1 ? "#3d4a5e" : "#dce2f6",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: selectedIndex === dates.length - 1 ? "not-allowed" : "pointer",
+            flexShrink: 0,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            chevron_right
+          </span>
+        </button>
 
-            {/* Start handle */}
-            <div
-              onMouseDown={makeDragHandler("start")}
-              onTouchStart={makeDragHandler("start")}
-              className="absolute rounded-full cursor-pointer hover:scale-110 transition-transform"
-              style={{
-                width: 13,
-                height: 13,
-                top: "50%",
-                left: `${startPct}%`,
-                transform: "translate(-50%, -50%)",
-                background: "#070e1c",
-                border: "2px solid #57f1db",
-                zIndex: 5,
-              }}
-            />
+        {/* Frame index badge */}
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono',monospace",
+            fontSize: 11,
+            color: "#bacac5",
+            background: "#0c1321",
+            padding: "4px 8px",
+            borderRadius: 6,
+            border: "1px solid rgba(60,74,70,0.3)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Pass {selectedIndex + 1}/{dates.length}
+        </span>
 
-            {/* End handle */}
-            <div
-              onMouseDown={makeDragHandler("end")}
-              onTouchStart={makeDragHandler("end")}
-              className="absolute rounded-full cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
-              style={{
-                width: 15,
-                height: 15,
-                top: "50%",
-                left: `${endPct}%`,
-                transform: "translate(-50%, -50%)",
-                background: "#57f1db",
-                border: "2px solid #070e1c",
-                boxShadow: "0 2px 6px rgba(87,241,219,0.4)",
-                zIndex: 6,
-              }}
-            >
-              <span
-                className="rounded-full"
-                style={{ width: 5, height: 5, background: "#070e1c" }}
-              />
-            </div>
-          </div>
-
-          {/* Date ticks */}
-          <div className="relative w-full flex justify-between mt-1">
-            {dates.map((date, i) => {
-              const pct = idxToPercent(i);
-              const isStart = date === period.start;
-              const isEnd = date === period.end;
-              const isActive = isStart || isEnd;
-              return (
-                <div
-                  key={date}
-                  onClick={() => setPeriod((p) => ({ ...p, end: date }))}
-                  className="flex flex-col items-center cursor-pointer"
-                  style={{
-                    position: "absolute",
-                    left: `${pct}%`,
-                    transform: "translateX(-50%)",
-                    opacity: isActive ? 1 : 0.6,
-                    transition: "opacity 0.2s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = isActive ? "1" : "0.6")}
-                >
-                  <span
-                    className="rounded-full mb-0.5"
-                    style={{
-                      width: isEnd ? 7 : 5,
-                      height: isEnd ? 7 : 5,
-                      background: isEnd ? "#FF5A5F" : isStart ? "#57f1db" : "#57f1db",
-                      border: isEnd ? "2px solid #57f1db" : "none",
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontWeight: isActive ? 700 : 400,
-                      color: isActive ? "#57f1db" : "#bacac5",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {formatDate(date).split(" ").slice(0, 2).join(" ")}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+        {/* Date picker: synced both ways */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 11, color: "#859490", fontFamily: "'JetBrains Mono',monospace" }}>
+            Date:
+          </span>
+          <input
+            type="date"
+            min={firstDate}
+            max={lastDate}
+            value={pickedDate || currentDate}
+            onChange={handleDatePickerChange}
+            aria-label="Select radar date"
+            style={{
+              background: "#070e1c",
+              color: "#57f1db",
+              border: "1px solid rgba(60,74,70,0.5)",
+              borderRadius: 6,
+              padding: "4px 8px",
+              fontSize: 11,
+              fontFamily: "'JetBrains Mono',monospace",
+              colorScheme: "dark",
+              cursor: "pointer",
+            }}
+          />
         </div>
       </div>
 
-      {/* Compact footer note */}
+      {/* Bottom row: Snapping information */}
       <div
-        className="flex items-center gap-1.5 text-[9.5px] text-[#859490] pt-0.5 px-0.5"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          fontSize: 11,
+          fontFamily: "'JetBrains Mono',monospace",
+          borderTop: "1px solid rgba(60,74,70,0.2)",
+          paddingTop: 6,
+        }}
       >
-        <span className="material-symbols-outlined text-[13px] text-[#859490] shrink-0">
-          info
-        </span>
-        <span className="italic truncate">
-          Ticks indicate actual NISAR acquisition dates. Animation between dates is visual only.
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#dce2f6" }}>
+          <span style={{ color: "#859490" }}>Showing radar of</span>
+          <strong style={{ color: "#57f1db", fontWeight: 700 }}>{formatDate(currentDate)}</strong>
+        </div>
+
+        {isSnapped && (
+          <div style={{ color: "#ffb95f", fontSize: 11 }}>
+            nearest to {formatDate(pickedDate)} (±{dayDiff} {dayDiff === 1 ? "day" : "days"})
+          </div>
+        )}
       </div>
     </div>
   );

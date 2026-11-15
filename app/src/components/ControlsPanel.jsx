@@ -1,15 +1,18 @@
 /**
- * ControlsPanel — P1 dashboard left panel.
+ * ControlsPanel — P2 dashboard left panel.
  *
  * Shows:
  *  - Sensor badge
  *  - Metadata card (name, event, event_date, period, frames count,
  *    model_version, track/frame, event_share_of_land_percent — only present fields)
+ *  - Optional layers toggles (ONLY if listed in zone.layers) with scale captions
  *  - Class filter checkboxes from visibleLegend() with colour swatch + area in ha
  *  - Changemap opacity slider
- *
- * No Events section, no Mode section, no Basemap toggle (all removed per P1 spec).
- * Props kept backward-compatible: unused ones are silently ignored.
+ *  - Radar layer controls:
+ *    - Opacity slider (separate from changemap)
+ *    - Filter select: Composite (default), HH (red channel), HV (green channel)
+ *    - Brightness and Contrast sliders (CSS filter)
+ *    - Display preview note (uncalibrated radiometric values)
  */
 import { visibleLegend } from "../lib/siteAdapter";
 
@@ -19,7 +22,7 @@ function formatDate(str) {
   if (parts.length !== 3) return str;
   const [y, m, d] = parts;
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return `${d} ${months[parseInt(m, 10) - 1] || m} ${y}`;
+  return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1] || m} ${y}`;
 }
 
 function toRgbString(color) {
@@ -46,6 +49,16 @@ export default function ControlsPanel({
   setActiveClasses,
   opacity,
   setOpacity,
+  radarOpacity = 1.0,
+  setRadarOpacity,
+  radarFilter = "composite",
+  setRadarFilter,
+  brightness = 100,
+  setBrightness,
+  contrast = 100,
+  setContrast,
+  extraLayersVisible = {},
+  setExtraLayersVisible,
   siteBase,
   // Legacy props silently ignored:
   manifest, eventId, setEventId, mode, setMode, basemap, setBasemap,
@@ -58,6 +71,13 @@ export default function ControlsPanel({
     setActiveClasses((prev) =>
       prev.includes(cls) ? prev.filter((c) => c !== cls) : [...prev, cls]
     );
+  }
+
+  function toggleExtraLayer(key) {
+    setExtraLayersVisible?.((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   }
 
   // Metadata derivations
@@ -97,7 +117,7 @@ export default function ControlsPanel({
     display: "flex",
     flexDirection: "column",
     gap: 14,
-    padding: "14px 14px 0",
+    padding: "14px 14px 18px",
   };
   const labelStyle = {
     fontSize: 10,
@@ -110,7 +130,7 @@ export default function ControlsPanel({
   const boxStyle = {
     display: "flex",
     flexDirection: "column",
-    gap: 2,
+    gap: 6,
     padding: "10px 10px",
     borderRadius: 10,
     background: "#0c1321",
@@ -140,7 +160,7 @@ export default function ControlsPanel({
         {/* Metadata card */}
         <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
           <span style={labelStyle}>Site Info</span>
-          <div style={boxStyle}>
+          <div style={{ ...boxStyle, gap: 2 }}>
             <MetaRow label="Site" value={zone.name} />
             {zone.event && (
               <MetaRow label="Event type" value={zone.event} />
@@ -167,6 +187,58 @@ export default function ControlsPanel({
           </div>
         </div>
 
+        {/* Optional layers (Requirement 5: show toggle ONLY if listed in summary.layers) */}
+        {Array.isArray(zone.layers) && zone.layers.length > 0 && (
+          <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+            <span style={labelStyle}>Optional layers</span>
+            <div style={boxStyle}>
+              {zone.layers.map((layer) => {
+                const isOn = Boolean(extraLayersVisible[layer.key]);
+                let caption = null;
+                if (Array.isArray(layer.scale_cm) && layer.scale_cm.length > 0) {
+                  const maxCm = Math.round(Math.max(...layer.scale_cm.map(Math.abs)));
+                  caption = `ground moved by up to about ${maxCm} cm`;
+                }
+                return (
+                  <div
+                    key={layer.key}
+                    style={{
+                      display:"flex",
+                      flexDirection:"column",
+                      gap:3,
+                      padding:"5px 4px",
+                      borderRadius:6,
+                      background: isOn ? "rgba(87,241,219,0.06)" : "transparent",
+                    }}
+                  >
+                    <label style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }}>
+                      <span style={{ fontSize:12, fontWeight:600, color: isOn ? "#57f1db" : "#dce2f6", textTransform:"capitalize" }}>
+                        {layer.key}
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={isOn}
+                        onChange={() => toggleExtraLayer(layer.key)}
+                        style={{ accentColor:"#57f1db", width:15, height:15, cursor:"pointer" }}
+                      />
+                    </label>
+                    {caption && (
+                      <span style={{ fontSize:10.5, color:"#bacac5", fontStyle:"italic", lineHeight:1.3 }}>
+                        {caption}
+                      </span>
+                    )}
+                    {layer.meaning && (
+                      <span style={{ fontSize:9.5, color:"#859490", lineHeight:1.3 }}>
+                        {layer.meaning}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Class filters */}
         <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
@@ -175,7 +247,7 @@ export default function ControlsPanel({
               {activeClasses.length} / {legendItems.length} active
             </span>
           </div>
-          <div style={boxStyle}>
+          <div style={{ ...boxStyle, gap: 2 }}>
             {legendItems.length === 0 ? (
               <span style={{ fontSize:11, color:"#859490" }}>No classes in legend.</span>
             ) : (
@@ -214,8 +286,8 @@ export default function ControlsPanel({
           </div>
         </div>
 
-        {/* Opacity slider */}
-        <div style={{ display:"flex", flexDirection:"column", gap:4, paddingBottom:14 }}>
+        {/* Changemap opacity slider */}
+        <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
           <span style={labelStyle}>Changemap opacity</span>
           <div style={{ ...boxStyle, gap:4 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -228,9 +300,100 @@ export default function ControlsPanel({
               type="range"
               min="0" max="1" step="0.01"
               value={opacity}
-              onChange={(e) => setOpacity(Number(e.target.value))}
-              style={{ width:"100%", accentColor:"#57f1db" }}
+              onChange={(e) => setOpacity?.(Number(e.target.value))}
+              style={{ width:"100%", accentColor:"#57f1db", cursor:"pointer" }}
             />
+          </div>
+        </div>
+
+        {/* Radar layer controls (Requirements 3 & 4) */}
+        <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+          <span style={labelStyle}>Radar layer</span>
+          <div style={{ ...boxStyle, gap:8 }}>
+
+            {/* Radar Opacity slider */}
+            <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontSize:11, color:"#dce2f6" }}>Radar opacity</span>
+                <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11, fontWeight:700, color:"#57f1db" }}>
+                  {Math.round(radarOpacity * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0" max="1" step="0.01"
+                value={radarOpacity}
+                onChange={(e) => setRadarOpacity?.(Number(e.target.value))}
+                style={{ width:"100%", accentColor:"#57f1db", cursor:"pointer" }}
+              />
+            </div>
+
+            {/* Radar Filter Select */}
+            <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+              <label htmlFor="radar-filter-select" style={{ fontSize:11, color:"#dce2f6" }}>
+                Polarization filter
+              </label>
+              <select
+                id="radar-filter-select"
+                value={radarFilter}
+                onChange={(e) => setRadarFilter?.(e.target.value)}
+                style={{
+                  background:"#070e1c",
+                  color:"#dce2f6",
+                  border:"1px solid rgba(60,74,70,0.5)",
+                  borderRadius:6,
+                  padding:"5px 8px",
+                  fontSize:11,
+                  fontFamily:"'JetBrains Mono',monospace",
+                  cursor:"pointer",
+                  outline:"none",
+                }}
+              >
+                <option value="composite">Composite (default)</option>
+                <option value="hh">HH (red channel)</option>
+                <option value="hv">HV (green channel)</option>
+              </select>
+            </div>
+
+            {/* Brightness slider */}
+            <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontSize:11, color:"#dce2f6" }}>Brightness</span>
+                <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11, color:"#bacac5" }}>
+                  {brightness}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="50" max="200" step="5"
+                value={brightness}
+                onChange={(e) => setBrightness?.(Number(e.target.value))}
+                style={{ width:"100%", accentColor:"#57f1db", cursor:"pointer" }}
+              />
+            </div>
+
+            {/* Contrast slider */}
+            <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontSize:11, color:"#dce2f6" }}>Contrast</span>
+                <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11, color:"#bacac5" }}>
+                  {contrast}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="50" max="200" step="5"
+                value={contrast}
+                onChange={(e) => setContrast?.(Number(e.target.value))}
+                style={{ width:"100%", accentColor:"#57f1db", cursor:"pointer" }}
+              />
+            </div>
+
+            {/* Disclaimer notice (Requirement 3) */}
+            <span style={{ fontSize:9.5, color:"#859490", fontStyle:"italic", lineHeight:1.3 }}>
+              The JPG is a display preview: claim no calibrated values.
+            </span>
+
           </div>
         </div>
 

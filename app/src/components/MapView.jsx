@@ -1,25 +1,31 @@
 /**
- * MapView — P1 dashboard map.
+ * MapView — P2 dashboard map.
  *
  * Renders:
  *  - Leaflet basemap (satellite)
- *  - Changemap overlay (class-filtered via offscreen canvas)
- *  - Credit line
+ *  - Radar frame overlay (bottom, with SVG filter for HH/HV and CSS brightness/contrast)
+ *  - Optional extra layers (middle, lazy-loaded on toggle)
+ *  - Changemap overlay (top, class-filtered via offscreen canvas)
  *  - Zoom / recenter / fullscreen buttons
  *  - Live scale bar
+ *  - Credit line
  *
  * Props:
- *  zone        — normalized summary from useSiteSummary (has .bounds, .changemapUrl, .legend, etc.)
- *  activeClasses — array of cls values (integers) that should be visible
- *  opacity     — changemap ImageOverlay opacity (0..1)
- *  siteBase    — base URL string for the site's assets (e.g. "/data/web/<folder>/")
- *  teamName    — string for credit line
- *
- * Not in this task: radar frames, date picker, swipe mode, tooltip, event mask.
+ *  zone               — normalized summary from useSiteSummary
+ *  selectedFrameIndex — index into zone.frames / zone.dates
+ *  radarOpacity       — opacity for radar ImageOverlay (0..1)
+ *  radarFilter        — 'composite' | 'hh' | 'hv'
+ *  brightness         — CSS brightness % (50..200)
+ *  contrast           — CSS contrast % (50..200)
+ *  extraLayersVisible — { [layerKey]: boolean }
+ *  activeClasses      — array of cls values (integers)
+ *  opacity            — changemap ImageOverlay opacity (0..1)
+ *  siteBase           — base URL string for site's assets
+ *  teamName           — string for credit line
  */
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, ImageOverlay, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, ImageOverlay, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { visibleLegend } from "../lib/siteAdapter";
 
@@ -27,7 +33,6 @@ const BASEMAP_URL =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
 // ── Coordinate helpers ──────────────────────────────────────────────────────
-// bounds from siteAdapter: [[south,west],[north,east]] (Leaflet order already)
 function leafletBounds(bounds) {
   if (!bounds || !Array.isArray(bounds) || bounds.length < 2) return null;
   return bounds; // already Leaflet order
@@ -140,13 +145,43 @@ function ZoomButtons({ mapRef, bounds }) {
   );
 }
 
-// ── Canvas recolor (changemap pixel filter) ─────────────────────────────────
-// Loads changemap.png once per URL into an offscreen canvas cache.
-// On activeClasses change, zeroes alpha on pixels whose RGB matches a hidden class.
-// Water class (always last visually) is semi-transparent at 180/255.
-// Debounced 60 ms. Revokes previous object URL to free memory.
+// ── Radar Image Overlay with SVG / CSS filters ─────────────────────────────
+function RadarImageOverlay({ url, bounds, opacity, filterId, brightness, contrast }) {
+  const overlayRef = useRef(null);
 
-const imageDataCache = new Map(); // url → ImageData (original, never mutated)
+  const applyFilter = useCallback(() => {
+    const el = overlayRef.current?.getElement();
+    if (!el) return;
+    let filterVal = "";
+    if (filterId) {
+      filterVal += `url(#${filterId}) `;
+    }
+    filterVal += `brightness(${brightness}%) contrast(${contrast}%)`;
+    el.style.filter = filterVal.trim();
+  }, [filterId, brightness, contrast]);
+
+  useEffect(() => {
+    applyFilter();
+    const el = overlayRef.current?.getElement();
+    if (el) {
+      el.addEventListener("load", applyFilter);
+      return () => el.removeEventListener("load", applyFilter);
+    }
+  }, [url, applyFilter]);
+
+  return (
+    <ImageOverlay
+      ref={overlayRef}
+      url={url}
+      bounds={bounds}
+      opacity={opacity}
+      className="pixelated"
+    />
+  );
+}
+
+// ── Canvas recolor (changemap pixel filter) ─────────────────────────────────
+const imageDataCache = new Map();
 
 async function loadOriginalImageData(url) {
   if (imageDataCache.has(url)) return imageDataCache.get(url);
@@ -193,7 +228,7 @@ function useFilteredChangemap(changemapUrl, legend, activeClasses) {
       const visItems = visibleLegend(legend);
       if (!visItems.length) { setBlobUrl(null); return; }
 
-      // If all classes active → use raw URL directly (no canvas needed)
+      // If all classes active → use raw URL directly
       const allActive = visItems.every((item) => activeClasses.includes(item.cls));
       if (allActive) {
         if (prevBlobRef.current) { URL.revokeObjectURL(prevBlobRef.current); prevBlobRef.current = null; }
@@ -215,11 +250,10 @@ function useFilteredChangemap(changemapUrl, legend, activeClasses) {
         original = await loadOriginalImageData(changemapUrl);
       } catch {
         setBlocked(true);
-        setBlobUrl(changemapUrl); // show unfiltered
+        setBlobUrl(changemapUrl);
         return;
       }
 
-      // Copy the original pixel data
       const copy = new ImageData(
         new Uint8ClampedArray(original.data),
         original.width,
@@ -234,8 +268,6 @@ function useFilteredChangemap(changemapUrl, legend, activeClasses) {
         if (!activeKeys.has(key)) {
           d[i + 3] = 0;
         }
-        // Note: water semi-transparency is baked into the original PNG;
-        // we keep whatever alpha the source has.
       }
 
       const tmpCanvas = document.createElement("canvas");
@@ -255,14 +287,25 @@ function useFilteredChangemap(changemapUrl, legend, activeClasses) {
     return () => clearTimeout(timerRef.current);
   }, [changemapUrl, legend, activeClasses]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Revoke on unmount
   useEffect(() => () => { if (prevBlobRef.current) URL.revokeObjectURL(prevBlobRef.current); }, []);
 
   return { blobUrl, canvasBlocked };
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
-export default function MapView({ zone, activeClasses, opacity, siteBase, teamName }) {
+// ── Main MapView component ────────────────────────────────────────────────────
+export default function MapView({
+  zone,
+  selectedFrameIndex = 0,
+  radarOpacity = 1.0,
+  radarFilter = "composite",
+  brightness = 100,
+  contrast = 100,
+  extraLayersVisible = {},
+  activeClasses,
+  opacity,
+  siteBase,
+  teamName,
+}) {
   const mapRef = useRef(null);
 
   if (!zone) {
@@ -281,10 +324,24 @@ export default function MapView({ zone, activeClasses, opacity, siteBase, teamNa
   const east  = zone.bounds?.[1]?.[1] ?? 0;
   const center = useMemo(() => [(south + north) / 2, (west + east) / 2], [south, north, west, east]);
 
-  // changemapUrl: siteBase + changemap filename
+  // Current radar frame
+  const currentRadarFrame = useMemo(() => {
+    if (!Array.isArray(zone.frames) || zone.frames.length === 0) return null;
+    const safeIdx = Math.max(0, Math.min(zone.frames.length - 1, selectedFrameIndex));
+    return zone.frames[safeIdx];
+  }, [zone.frames, selectedFrameIndex]);
+
+  // Preload neighbouring radar frames (Requirement 1)
+  useEffect(() => {
+    if (!Array.isArray(zone.frames) || zone.frames.length === 0) return;
+    const prevUrl = zone.frames[selectedFrameIndex - 1]?.url;
+    const nextUrl = zone.frames[selectedFrameIndex + 1]?.url;
+    if (prevUrl) { const img = new Image(); img.src = prevUrl; }
+    if (nextUrl) { const img = new Image(); img.src = nextUrl; }
+  }, [zone.frames, selectedFrameIndex]);
+
   const changemapUrl = useMemo(() => {
     if (!zone.changemapUrl) return null;
-    // normalized summary already has changemapUrl as full URL
     return zone.changemapUrl;
   }, [zone.changemapUrl]);
 
@@ -298,6 +355,36 @@ export default function MapView({ zone, activeClasses, opacity, siteBase, teamNa
 
   return (
     <div style={{ position:"relative", width:"100%", height:"100%", overflow:"hidden" }}>
+
+      {/* SVG filters for HH and HV monochrome channels (Requirement 3) */}
+      <svg
+        style={{ position:"absolute", width:0, height:0, pointerEvents:"none", overflow:"hidden" }}
+        aria-hidden="true"
+      >
+        <defs>
+          {/* HH copies red channel to all channels */}
+          <filter id="radar-filter-hh" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              type="matrix"
+              values="1 0 0 0 0
+                      1 0 0 0 0
+                      1 0 0 0 0
+                      0 0 0 1 0"
+            />
+          </filter>
+          {/* HV copies green channel to all channels */}
+          <filter id="radar-filter-hv" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              type="matrix"
+              values="0 1 0 0 0
+                      0 1 0 0 0
+                      0 1 0 0 0
+                      0 0 0 1 0"
+            />
+          </filter>
+        </defs>
+      </svg>
+
       <MapContainer
         key={zone.id || zone.site || "map"}
         ref={mapRef}
@@ -310,7 +397,40 @@ export default function MapView({ zone, activeClasses, opacity, siteBase, teamNa
         <MapFitBounds bounds={bounds} />
         <TileLayer url={BASEMAP_URL} maxZoom={18} />
 
-        {/* Changemap overlay */}
+        {/* 1. Radar Overlay (Requirement 1: below changemap) */}
+        {currentRadarFrame && bounds && radarOpacity > 0 && (
+          <RadarImageOverlay
+            url={currentRadarFrame.url}
+            bounds={bounds}
+            opacity={radarOpacity}
+            filterId={
+              radarFilter === "hh"
+                ? "radar-filter-hh"
+                : radarFilter === "hv"
+                ? "radar-filter-hv"
+                : null
+            }
+            brightness={brightness}
+            contrast={contrast}
+          />
+        )}
+
+        {/* 2. Optional Extra Layers (Requirement 5: lazy-loaded on toggle) */}
+        {bounds && Array.isArray(zone.layers) &&
+          zone.layers.map((layer) => {
+            if (!extraLayersVisible?.[layer.key]) return null;
+            return (
+              <ImageOverlay
+                key={`extra-${layer.key}`}
+                url={layer.url}
+                bounds={bounds}
+                opacity={0.85}
+                className="pixelated"
+              />
+            );
+          })}
+
+        {/* 3. Changemap overlay (top) */}
         {filteredUrl && bounds && (
           <ImageOverlay
             key={`changemap-${zone.id || zone.site}`}
@@ -333,7 +453,7 @@ export default function MapView({ zone, activeClasses, opacity, siteBase, teamNa
       )}
 
       {/* Scale bar */}
-      <div style={{ position:"absolute", bottom:20, right:16, zIndex:500, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3, padding:"5px 10px", borderRadius:8, background:"rgba(15,23,42,0.65)", border:"1px solid rgba(60,74,70,0.25)", opacity:0.8 }}>
+      <div style={{ position:"absolute", bottom:24, right:16, zIndex:500, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3, padding:"5px 10px", borderRadius:8, background:"rgba(15,23,42,0.65)", border:"1px solid rgba(60,74,70,0.25)", opacity:0.8 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <div style={{ width:scaleBar.barPx, height:2, background:"rgba(220,226,246,0.8)", display:"flex", justifyContent:"space-between", alignItems:"flex-end" }}>
             <div style={{ width:2, height:6, background:"rgba(220,226,246,0.8)" }} />

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import TopBar from "./components/TopBar";
 import ControlsPanel from "./components/ControlsPanel";
 import MapView from "./components/MapView";
+import Timeline from "./components/Timeline";
 import Landing from "./pages/Landing";
 import RightPanel from "./components/RightPanel";
 import SiteViewerRoute from "./components/SiteViewerRoute";
@@ -21,6 +22,15 @@ export default function App() {
   const [activeClasses, setActiveClasses] = useState([]);
   const [opacity, setOpacity] = useState(0.85);
 
+  // P2 radar & timeline states
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState(0);
+  const [pickedDate, setPickedDate] = useState(null);
+  const [radarOpacity, setRadarOpacity] = useState(1.0);
+  const [radarFilter, setRadarFilter] = useState("composite");
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [extraLayersVisible, setExtraLayersVisible] = useState({});
+
   // ── Route parsing ───────────────────────────────────────────────────────────
   const isSiteRoute = route.startsWith("/site/");
   const routeSiteId = isSiteRoute ? route.replace("/site/", "").trim() : null;
@@ -36,11 +46,14 @@ export default function App() {
   // ── Load full summary.json ──────────────────────────────────────────────────
   const { summary: matchedZone, loading: summaryLoading, error: summaryError } = useSiteSummary(matchedEntry);
 
-  // ── Sync activeClasses when zone changes ───────────────────────────────────
+  // ── Sync activeClasses, reset frame and layers when zone changes ─────────────
   useEffect(() => {
     if (!matchedZone) return;
     const vis = visibleLegend(matchedZone.legend || []);
     setActiveClasses(vis.map((e) => e.cls));
+    setSelectedFrameIndex(0);
+    setPickedDate(null);
+    setExtraLayersVisible({});
   }, [matchedZone?.id]);
 
   // ── Global loading gate ─────────────────────────────────────────────────────
@@ -92,7 +105,7 @@ export default function App() {
   }
 
   // ── 2. #/map/<id> — not found or summary error ─────────────────────────────
-  const notFound = !matchedZone && (summaryError || sitesStatus === "success");
+  const notFound = !matchedZone && (Boolean(summaryError) || sitesStatus === "success");
   if (notFound) {
     return (
       <div style={{ display:"flex", height:"100vh", width:"100vw", alignItems:"center", justifyContent:"center", background:"#070e1c", color:"#dce2f6" }}>
@@ -130,7 +143,7 @@ export default function App() {
       {/* Body row */}
       <div style={{ display:"flex", flexDirection:"row", height:MAP_AREA_H, width:"100vw", flex:1, minHeight:0, overflow:"hidden" }}>
 
-        {/* Left panel — class filters, opacity */}
+        {/* Left panel — class filters, opacity, radar layer controls */}
         <aside style={{ width:300, flexShrink:0, display:"flex", flexDirection:"column", height:"100%", background:"#151b2a", overflowY:"auto", zIndex:20, borderRight:"1px solid rgba(60,74,70,0.3)" }} className="hidden lg:flex">
           <ControlsPanel
             zone={matchedZone}
@@ -138,6 +151,16 @@ export default function App() {
             setActiveClasses={setActiveClasses}
             opacity={opacity}
             setOpacity={setOpacity}
+            radarOpacity={radarOpacity}
+            setRadarOpacity={setRadarOpacity}
+            radarFilter={radarFilter}
+            setRadarFilter={setRadarFilter}
+            brightness={brightness}
+            setBrightness={setBrightness}
+            contrast={contrast}
+            setContrast={setContrast}
+            extraLayersVisible={extraLayersVisible}
+            setExtraLayersVisible={setExtraLayersVisible}
             siteBase={base}
           />
         </aside>
@@ -146,11 +169,39 @@ export default function App() {
         <section style={{ flex:1, position:"relative", height:"100%", minWidth:0, minHeight:0, overflow:"hidden", background:"#070e1c" }}>
           <MapView
             zone={matchedZone}
+            selectedFrameIndex={selectedFrameIndex}
+            radarOpacity={radarOpacity}
+            radarFilter={radarFilter}
+            brightness={brightness}
+            contrast={contrast}
+            extraLayersVisible={extraLayersVisible}
             activeClasses={activeClasses}
             opacity={opacity}
             siteBase={base}
             teamName={TEAM_NAME}
           />
+
+          {/* Timeline bar overlaid at bottom of map (hidden if < 2 frames) */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 24,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 600,
+              width: "calc(100% - 32px)",
+              maxWidth: 740,
+              pointerEvents: "auto",
+            }}
+          >
+            <Timeline
+              dates={matchedZone?.dates || []}
+              selectedIndex={selectedFrameIndex}
+              onSelectIndex={setSelectedFrameIndex}
+              pickedDate={pickedDate}
+              onPickedDateChange={setPickedDate}
+            />
+          </div>
         </section>
 
         {/* Right panel */}
