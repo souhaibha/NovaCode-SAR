@@ -25,7 +25,19 @@ export default function useSiteSummary(siteId) {
         return res.json();
       })
       .then((data) => {
-        setSummary(data);
+        let bbox = data.bbox;
+        if (!bbox && data.bounds && data.bounds.length >= 2) {
+          const south = data.bounds[0][0];
+          const west = data.bounds[0][1];
+          const north = data.bounds[1][0];
+          const east = data.bounds[1][1];
+          bbox = [west, south, east, north];
+        }
+        setSummary({
+          ...data,
+          id: data.site || data.id,
+          bbox,
+        });
         setLoading(false);
       })
       .catch((err) => {

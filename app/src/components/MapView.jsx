@@ -727,9 +727,10 @@ export default function MapView(props) {
   // re-renders triggered by scale-bar / zoom state updates.
   // Without this, every setScale() re-render creates a new array → MapResizerAndFitBounds
   // sees a changed dep → calls fitBounds() again → map snaps back.
-  const [bx0, bx1, bx2, bx3] = zone.bbox;
+  const effectiveBbox = zone.bbox || (zone.bounds && zone.bounds.length >= 2 ? [zone.bounds[0][1], zone.bounds[0][0], zone.bounds[1][1], zone.bounds[1][0]] : [-10, 30, -7, 31]);
+  const [bx0, bx1, bx2, bx3] = effectiveBbox;
   const bounds = useMemo(
-    () => toBounds(zone.bbox),
+    () => toBounds(effectiveBbox),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [bx0, bx1, bx2, bx3]
   );
@@ -742,6 +743,14 @@ export default function MapView(props) {
 
   // Live scale bar — updates on every zoomend + moveend
   const scaleBar = useScaleBar(mapRef, center[0]);
+
+  // Support for real NISAR site data (summary.json with frames and changemap)
+  const siteBase = `${import.meta.env.BASE_URL}data/sites/${zone.site || zone.id}/`;
+  const dateIdx = zone.dates ? zone.dates.indexOf(endDate) : -1;
+  const currentRadarFrame =
+    dateIdx >= 0 && zone.frames?.[dateIdx]
+      ? zone.frames[dateIdx]
+      : zone.frames?.[0];
 
   return (
     <div
@@ -837,6 +846,28 @@ export default function MapView(props) {
             opacity={0.92}
             className="pixelated"
           />
+        )}
+
+        {/* Real NISAR site changemap & radar frame */}
+        {zone.changemap && mode !== "swipe" && (
+          <>
+            {currentRadarFrame && (
+              <ImageOverlay
+                key={`radar-${currentRadarFrame}`}
+                url={siteBase + currentRadarFrame}
+                bounds={bounds}
+                opacity={1}
+                className="pixelated"
+              />
+            )}
+            <ImageOverlay
+              key={`changemap-${zone.site || zone.id}`}
+              url={siteBase + zone.changemap}
+              bounds={bounds}
+              opacity={opacity}
+              className="pixelated"
+            />
+          </>
         )}
 
         {/* 4. AOI GeoJSON boundary outline */}
