@@ -1533,45 +1533,12 @@ export default function MapView(props) {
         }
       />
 
-      {/* Floating badge for custom unanalyzed zone */}
-      {zone?.isCustom && !isDrawingZone && (
-        <div
-          style={{
-            position: "absolute",
-            top: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 999,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: "rgba(15, 23, 42, 0.94)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(87, 241, 219, 0.4)",
-            borderRadius: 12,
-            padding: "7px 16px",
-            boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
-            color: "#dce2f6",
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ color: "#57f1db", fontSize: 18 }}>
-            travel_explore
-          </span>
-          <span>
-            <strong>{zone.name}</strong> • Zone sélectionnée (35 × 35 km)
-            {activeSpecialLayer === "satellite" ? " — Fond satellite réel" : " — Aperçu simulation démo"}
-          </span>
-        </div>
-      )}
-
       {/* Floating banner when Draw Zone mode is active */}
       {isDrawingZone && (
         <div
           style={{
             position: "absolute",
-            top: 20,
+            top: 16,
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 1000,
@@ -1618,169 +1585,212 @@ export default function MapView(props) {
         </div>
       )}
 
-      {/* Layer Switcher Pill: allows toggling between Satellite seul, Radar + IA, Radar seul, and Changements IA */}
+      {/* Unified Top-Left Controls Stack (Layer Switcher + Custom Zone Badge) */}
       {(zone?.changemap || (zone?.layers && (zone.layers.displacement || zone.layers.fringes)) || zone?.isCustom) && (
         <div
           style={{
             position: "absolute",
-            top: 16,
-            left: 16,
+            top: 12,
+            left: 12,
             zIndex: 1000,
+            maxWidth: "calc(100% - 64px)",
             display: "flex",
-            alignItems: "center",
-            gap: 4,
-            background: "rgba(21, 27, 42, 0.94)",
-            backdropFilter: "blur(12px)",
-            padding: "5px 10px",
-            borderRadius: 12,
-            border: "1px solid rgba(87, 241, 219, 0.4)",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: 6,
+            pointerEvents: "none",
           }}
         >
-          <span
+          {/* Layer Switcher Pill */}
+          <div
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 10,
-              color: "#57f1db",
-              fontWeight: 700,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              marginRight: 6,
+              pointerEvents: "auto",
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 4,
+              background: "rgba(21, 27, 42, 0.94)",
+              backdropFilter: "blur(12px)",
+              padding: "4px 8px",
+              borderRadius: 12,
+              border: "1px solid rgba(87, 241, 219, 0.4)",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+              maxWidth: "100%",
             }}
           >
-            Affichage :
-          </span>
-          <button
-            type="button"
-            onClick={() => setActiveSpecialLayer("satellite")}
-            style={{
-              padding: "4px 9px",
-              borderRadius: 6,
-              fontSize: 11,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontWeight: activeSpecialLayer === "satellite" ? 700 : 500,
-              border: "none",
-              cursor: "pointer",
-              background: activeSpecialLayer === "satellite" ? "#57f1db" : "transparent",
-              color: activeSpecialLayer === "satellite" ? "#003731" : "#bacac5",
-              transition: "all 0.15s",
-            }}
-            title="Afficher uniquement l'image satellite optique haute résolution du sol réel"
-          >
-            Satellite seul
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSpecialLayer("both")}
-            style={{
-              padding: "4px 9px",
-              borderRadius: 6,
-              fontSize: 11,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontWeight: activeSpecialLayer === "both" ? 700 : 500,
-              border: "none",
-              cursor: "pointer",
-              background: activeSpecialLayer === "both" ? "#57f1db" : "transparent",
-              color: activeSpecialLayer === "both" ? "#003731" : "#bacac5",
-              transition: "all 0.15s",
-            }}
-            title="Superposer le radar SAR et la classification IA"
-          >
-            Radar + IA
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSpecialLayer("radar")}
-            style={{
-              padding: "4px 9px",
-              borderRadius: 6,
-              fontSize: 11,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontWeight: activeSpecialLayer === "radar" ? 700 : 500,
-              border: "none",
-              cursor: "pointer",
-              background: activeSpecialLayer === "radar" ? "#57f1db" : "transparent",
-              color: activeSpecialLayer === "radar" ? "#003731" : "#bacac5",
-              transition: "all 0.15s",
-            }}
-            title="Rétrodiffusion radar SAR seule (polarimétrie HH/HV)"
-          >
-            Radar seul
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSpecialLayer("changemap")}
-            style={{
-              padding: "4px 9px",
-              borderRadius: 6,
-              fontSize: 11,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontWeight: activeSpecialLayer === "changemap" ? 700 : 500,
-              border: "none",
-              cursor: "pointer",
-              background: activeSpecialLayer === "changemap" ? "#57f1db" : "transparent",
-              color: activeSpecialLayer === "changemap" ? "#003731" : "#bacac5",
-              transition: "all 0.15s",
-            }}
-            title="Classification des changements détectés par IA"
-          >
-            Changements IA
-          </button>
-          {zone?.isCustom && (
             <span
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9.5,
-                color: activeSpecialLayer === "satellite" ? "#57f1db" : "#ffb95f",
-                marginLeft: 4,
-                padding: "2px 6px",
-                borderRadius: 4,
-                background: activeSpecialLayer === "satellite" ? "rgba(87,241,219,0.12)" : "rgba(255,185,95,0.15)",
-                border: activeSpecialLayer === "satellite" ? "1px solid rgba(87,241,219,0.25)" : "1px solid rgba(255,185,95,0.3)",
+                fontSize: 10,
+                color: "#57f1db",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                marginRight: 4,
               }}
             >
-              {activeSpecialLayer === "satellite" ? "✓ Fond satellite réel" : "⚠️ Aperçu simulation"}
+              Affichage :
             </span>
-          )}
-          {zone?.layers?.displacement && (
             <button
               type="button"
-              onClick={() => setActiveSpecialLayer("displacement")}
+              onClick={() => setActiveSpecialLayer("satellite")}
               style={{
-                padding: "4px 10px",
+                padding: "3px 8px",
                 borderRadius: 6,
                 fontSize: 11,
                 fontFamily: "'JetBrains Mono', monospace",
-                fontWeight: activeSpecialLayer === "displacement" ? 700 : 500,
+                fontWeight: activeSpecialLayer === "satellite" ? 700 : 500,
                 border: "none",
                 cursor: "pointer",
-                background: activeSpecialLayer === "displacement" ? "#57f1db" : "transparent",
-                color: activeSpecialLayer === "displacement" ? "#003731" : "#bacac5",
+                background: activeSpecialLayer === "satellite" ? "#57f1db" : "transparent",
+                color: activeSpecialLayer === "satellite" ? "#003731" : "#bacac5",
                 transition: "all 0.15s",
               }}
+              title="Afficher uniquement l'image satellite optique haute résolution du sol réel"
             >
-              Displacement (cm)
+              Satellite seul
             </button>
-          )}
-          {zone?.layers?.fringes && (
             <button
               type="button"
-              onClick={() => setActiveSpecialLayer("fringes")}
+              onClick={() => setActiveSpecialLayer("both")}
               style={{
-                padding: "4px 10px",
+                padding: "3px 8px",
                 borderRadius: 6,
                 fontSize: 11,
                 fontFamily: "'JetBrains Mono', monospace",
-                fontWeight: activeSpecialLayer === "fringes" ? 700 : 500,
+                fontWeight: activeSpecialLayer === "both" ? 700 : 500,
                 border: "none",
                 cursor: "pointer",
-                background: activeSpecialLayer === "fringes" ? "#57f1db" : "transparent",
-                color: activeSpecialLayer === "fringes" ? "#003731" : "#bacac5",
+                background: activeSpecialLayer === "both" ? "#57f1db" : "transparent",
+                color: activeSpecialLayer === "both" ? "#003731" : "#bacac5",
                 transition: "all 0.15s",
               }}
+              title="Superposer le radar SAR et la classification IA"
             >
-              Fringes (12 cm)
+              Radar + IA
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveSpecialLayer("radar")}
+              style={{
+                padding: "3px 8px",
+                borderRadius: 6,
+                fontSize: 11,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: activeSpecialLayer === "radar" ? 700 : 500,
+                border: "none",
+                cursor: "pointer",
+                background: activeSpecialLayer === "radar" ? "#57f1db" : "transparent",
+                color: activeSpecialLayer === "radar" ? "#003731" : "#bacac5",
+                transition: "all 0.15s",
+              }}
+              title="Rétrodiffusion radar SAR seule (polarimétrie HH/HV)"
+            >
+              Radar seul
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSpecialLayer("changemap")}
+              style={{
+                padding: "3px 8px",
+                borderRadius: 6,
+                fontSize: 11,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: activeSpecialLayer === "changemap" ? 700 : 500,
+                border: "none",
+                cursor: "pointer",
+                background: activeSpecialLayer === "changemap" ? "#57f1db" : "transparent",
+                color: activeSpecialLayer === "changemap" ? "#003731" : "#bacac5",
+                transition: "all 0.15s",
+              }}
+              title="Classification des changements détectés par IA"
+            >
+              Changements IA
+            </button>
+            {zone?.isCustom && (
+              <span
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 9.5,
+                  color: activeSpecialLayer === "satellite" ? "#57f1db" : "#ffb95f",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                  background: activeSpecialLayer === "satellite" ? "rgba(87,241,219,0.12)" : "rgba(255,185,95,0.15)",
+                  border: activeSpecialLayer === "satellite" ? "1px solid rgba(87,241,219,0.25)" : "1px solid rgba(255,185,95,0.3)",
+                }}
+              >
+                {activeSpecialLayer === "satellite" ? "✓ Fond satellite réel" : "⚠️ Aperçu simulation"}
+              </span>
+            )}
+            {zone?.layers?.displacement && (
+              <button
+                type="button"
+                onClick={() => setActiveSpecialLayer("displacement")}
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: activeSpecialLayer === "displacement" ? 700 : 500,
+                  border: "none",
+                  cursor: "pointer",
+                  background: activeSpecialLayer === "displacement" ? "#57f1db" : "transparent",
+                  color: activeSpecialLayer === "displacement" ? "#003731" : "#bacac5",
+                  transition: "all 0.15s",
+                }}
+              >
+                Displacement (cm)
+              </button>
+            )}
+            {zone?.layers?.fringes && (
+              <button
+                type="button"
+                onClick={() => setActiveSpecialLayer("fringes")}
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: activeSpecialLayer === "fringes" ? 700 : 500,
+                  border: "none",
+                  cursor: "pointer",
+                  background: activeSpecialLayer === "fringes" ? "#57f1db" : "transparent",
+                  color: activeSpecialLayer === "fringes" ? "#003731" : "#bacac5",
+                  transition: "all 0.15s",
+                }}
+              >
+                Fringes (12 cm)
+              </button>
+            )}
+          </div>
+
+          {/* Sub-badge: Custom zone info */}
+          {zone?.isCustom && !isDrawingZone && (
+            <div
+              style={{
+                pointerEvents: "auto",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "rgba(15, 23, 42, 0.94)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(87, 241, 219, 0.35)",
+                borderRadius: 8,
+                padding: "3px 10px",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+                color: "#dce2f6",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 10,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ color: "#57f1db", fontSize: 14 }}>
+                travel_explore
+              </span>
+              <span>
+                <strong>{zone.name}</strong> • 35 × 35 km
+                {activeSpecialLayer === "satellite" ? " (Fond satellite réel)" : " (Aperçu simulation)"}
+              </span>
+            </div>
           )}
         </div>
       )}
@@ -1978,9 +1988,9 @@ export default function MapView(props) {
         </div>
       </div>
 
-      {/* Échelle / Scale & Coordinates (Top Right HUD, cleanly aligned with map controls) */}
+      {/* Échelle / Scale & Coordinates (Bottom Right HUD, cleanly aligned above timeline) */}
       <div
-        className="absolute top-4 right-16 z-[1000] pointer-events-auto flex flex-col items-end gap-0.5 px-2.5 py-1.5 rounded-xl transition-opacity hover:opacity-100"
+        className="absolute bottom-24 right-5 z-[1000] pointer-events-auto flex flex-col items-end gap-0.5 px-2.5 py-1.5 rounded-xl transition-opacity hover:opacity-100"
         style={{
           background: "rgba(15, 23, 42, 0.88)",
           backdropFilter: "blur(12px)",
