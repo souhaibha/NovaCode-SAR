@@ -40,16 +40,23 @@ export default function Landing({ manifest, onNavigateToZone, onNavigateToCustom
   const sensor = manifest?.sensor || null;
   const isDemo = Boolean(manifest?.fake);
 
+  const prefetchSite = useCallback((zoneId) => {
+    if (!zoneId || zoneId === "custom") return;
+    const url = `${import.meta.env.BASE_URL}data/sites/${zoneId}/summary.json`;
+    fetch(url, { cache: "force-cache" }).catch(() => {});
+  }, []);
+
   // User selects zone from combobox
   const handlePickerSelect = useCallback(
     (zone) => {
       setSelectedZone(zone);
       setClickInfo(null);
+      prefetchSite(zone?.site || zone?.id);
       if (globeRef.current) {
         globeRef.current.flyTo(zone);
       }
     },
-    []
+    [prefetchSite]
   );
 
   // User clicks directly on a zone marker
@@ -57,11 +64,12 @@ export default function Landing({ manifest, onNavigateToZone, onNavigateToCustom
     (zone) => {
       setSelectedZone(zone);
       setClickInfo(null);
+      prefetchSite(zone?.site || zone?.id);
       if (globeRef.current) {
         globeRef.current.flyTo(zone);
       }
     },
-    []
+    [prefetchSite]
   );
 
   // User clicks anywhere on globe / polygon

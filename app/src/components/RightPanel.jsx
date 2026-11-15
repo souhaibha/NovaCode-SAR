@@ -23,6 +23,8 @@ export default function RightPanel({
   zone,
   period,
   eventResult,
+  activeClasses,
+  setActiveClasses,
   onJobResult,
   isDrawing = false,
   onStartDrawZone,
@@ -109,6 +111,8 @@ export default function RightPanel({
             dates={zone?.dates}
             period={period}
             eventResult={eventResult}
+            activeClasses={activeClasses}
+            setActiveClasses={setActiveClasses}
           />
         )}
 

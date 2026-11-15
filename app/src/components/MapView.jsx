@@ -22,6 +22,10 @@ import {
   fetchConfidence,
 } from "../lib/pixelInfo";
 
+// High-performance image caches to eliminate UI freezing and enable instant rendering
+const processedRadarCache = new Map();
+const changemapBlobCache = new Map();
+
 /**
  * SmartImageOverlay — ImageOverlay wrapper that reliably applies opacity changes
  * to both Leaflet's internal layer instance and the HTML img DOM element.
@@ -803,7 +807,8 @@ export default function MapView(props) {
   // Start image: clip its right side so only pixels left of dividerX show.
   // End   image: clip its left  side so only pixels right of dividerX show.
   // Changemap:   clip its left  side so only pixels right of dividerX show.
-  const applyClip = useCallback(() => {
+  const applyClip = useCallback((customSplit) => {
+    const s = typeof customSplit === "number" ? customSplit : split;
     const startEl  = startOverlayRef.current?.getElement?.();
     const endEl    = endOverlayRef.current?.getElement?.();
     const changeEl = changemapOverlayRef.current?.getElement?.();
@@ -811,7 +816,7 @@ export default function MapView(props) {
     if (!mapEl) return;
 
     const mapRect  = mapEl.getBoundingClientRect();
-    const dividerX = mapRect.left + split * mapRect.width;
+    const dividerX = mapRect.left + s * mapRect.width;
 
     if (startEl) {
       const sr = startEl.getBoundingClientRect();
@@ -1055,16 +1060,33 @@ export default function MapView(props) {
   const [filteredStartRadarUrl, setFilteredStartRadarUrl] = useState(null);
   const [filteredEndRadarUrl, setFilteredEndRadarUrl] = useState(null);
 
-  // Helper to remove pitch-black swath edges from radar JPGs
+  // Preload all radar frames of the site for instantaneous timeline scrubbing
+  useEffect(() => {
+    if (zone?.frames?.length && siteBase) {
+      zone.frames.forEach((f) => {
+        const pre = new Image();
+        pre.src = siteBase + f;
+      });
+    }
+  }, [zone?.frames, siteBase]);
+
+  // High-performance helper to remove pitch-black swath edges from radar JPGs with caching
   const stripBlackEdges = useCallback((url, onResult) => {
     if (!url) {
       onResult(null);
       return;
     }
+    if (processedRadarCache.has(url)) {
+      onResult(processedRadarCache.get(url));
+      return;
+    }
+    // Show base image immediately - zero wait time
+    onResult(url);
+
+    let cancelled = false;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = url;
-    let cancelled = false;
 
     img.onload = () => {
       if (cancelled) return;
@@ -1084,7 +1106,12 @@ export default function MapView(props) {
       }
 
       ctx.putImageData(imgData, 0, 0);
-      if (!cancelled) onResult(canvas.toDataURL("image/png"));
+      canvas.toBlob((blob) => {
+        if (cancelled || !blob) return;
+        const blobUrl = URL.createObjectURL(blob);
+        processedRadarCache.set(url, blobUrl);
+        onResult(blobUrl);
+      }, "image/png");
     };
 
     img.onerror = () => {
@@ -1150,6 +1177,12 @@ export default function MapView(props) {
       return;
     }
 
+    const cacheKey = `${changemapRawUrl}_${activeClasses.slice().sort().join("_")}`;
+    if (changemapBlobCache.has(cacheKey)) {
+      setFilteredChangemapUrl(changemapBlobCache.get(cacheKey));
+      return;
+    }
+
     let isCancelled = false;
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -1199,9 +1232,12 @@ export default function MapView(props) {
       }
 
       ctx.putImageData(imgData, 0, 0);
-      if (!isCancelled) {
-        setFilteredChangemapUrl(canvas.toDataURL("image/png"));
-      }
+      canvas.toBlob((blob) => {
+        if (isCancelled || !blob) return;
+        const blobUrl = URL.createObjectURL(blob);
+        changemapBlobCache.set(cacheKey, blobUrl);
+        setFilteredChangemapUrl(blobUrl);
+      }, "image/png");
     };
 
     return () => {
@@ -1307,14 +1343,14 @@ export default function MapView(props) {
                 }}
               />
             )}
-            {/* AI Changemap: clipped on left → shows RIGHT of divider over end-date radar */}
+            {/* AI Changemap: clipped on left → shows RIGHT of divider with transparent overlay over end-date radar */}
             {filteredChangemapUrl && (
               <SmartImageOverlay
                 ref={changemapOverlayRef}
                 key={`swipe-changemap-${zone.site || zone.id}`}
                 url={filteredChangemapUrl}
                 bounds={bounds}
-                opacity={opacity}
+                opacity={Math.min(opacity, 0.52)}
                 className="pixelated"
                 eventHandlers={{
                   add: () => requestAnimationFrame(applyClip),
@@ -1645,6 +1681,7 @@ export default function MapView(props) {
         <SwipeDivider
           split={split}
           onSplitChange={setSplit}
+          onDragDirect={applyClip}
           mapContainerRef={mapContainerRef}
           startDate={effectiveStartDate}
           endDate={effectiveEndDate}

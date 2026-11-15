@@ -1,105 +1,122 @@
 /**
  * SwipeDivider.jsx
  * Presentation + drag/keyboard logic for the before/after swipe handle.
- * All styling is in STYLES — no scattered inline colors (a redesign only edits here).
+ * Butter-smooth dragging with pointer capture and full-height interactive hitbox.
  */
 import { useEffect, useRef, useCallback } from "react";
 import L from "leaflet";
 
-// ─── Single styling constant ───────────────────────────────────────────────
 const STYLES = {
-  // The full-height column that holds the line + handle, centered on the split
   container:
-    "absolute inset-y-0 z-[1000] flex flex-col items-center pointer-events-none select-none",
-  // Thin vertical white line
-  line: "flex-1 w-0.5 pointer-events-none",
-  lineStyle: { background: "rgba(255,255,255,0.75)", boxShadow: "0 0 6px rgba(0,0,0,0.5)" },
-  // Circular drag handle
-  handle:
-    "w-9 h-9 rounded-full flex items-center justify-center cursor-ew-resize pointer-events-auto focus:outline-none shrink-0",
-  handleStyle: {
-    background: "rgba(255,255,255,0.95)",
-    boxShadow: "0 2px 12px rgba(0,0,0,0.5)",
-    border: "2px solid rgba(87,241,219,0.7)",
+    "absolute inset-y-0 z-[1000] flex flex-col items-center select-none cursor-ew-resize",
+  line: "flex-1 w-0.5 pointer-events-none transition-colors",
+  lineStyle: {
+    background: "rgba(87,241,219,0.85)",
+    boxShadow: "0 0 8px rgba(87,241,219,0.6)",
   },
-  handleFocusRing: "focus:ring-2 focus:ring-[#57f1db] focus:ring-offset-1",
-  // Date labels pinned to the top of the map
+  handle:
+    "w-10 h-10 rounded-full flex items-center justify-center cursor-ew-resize pointer-events-auto focus:outline-none shrink-0 transition-transform hover:scale-110 active:scale-95",
+  handleStyle: {
+    background: "#0c1321",
+    boxShadow: "0 2px 16px rgba(0,0,0,0.7), 0 0 12px rgba(87,241,219,0.5)",
+    border: "2px solid #57f1db",
+  },
+  handleFocusRing: "focus:ring-2 focus:ring-[#57f1db] focus:ring-offset-2",
   labelsRow:
-    "absolute top-0 left-0 right-0 flex justify-between items-start pointer-events-none z-[1001]",
+    "absolute top-3 left-4 right-4 flex justify-between items-start pointer-events-none z-[1001]",
   labelLeft:
-    "px-2 py-1 rounded-br-lg text-[11px] font-mono font-semibold pointer-events-none",
+    "px-3 py-1.5 rounded-lg text-xs font-mono font-semibold pointer-events-none shadow-lg flex items-center gap-1.5",
   labelStyle: {
-    background: "rgba(21,27,42,0.88)",
+    background: "rgba(15,23,42,0.92)",
     color: "#dce2f6",
-    backdropFilter: "blur(6px)",
-    border: "1px solid rgba(87,241,219,0.25)",
+    backdropFilter: "blur(8px)",
+    border: "1px solid rgba(87,241,219,0.35)",
   },
   labelRight:
-    "px-2 py-1 rounded-bl-lg text-[11px] font-mono font-semibold pointer-events-none",
+    "px-3 py-1.5 rounded-lg text-xs font-mono font-semibold pointer-events-none shadow-lg flex items-center gap-1.5",
 };
 
-/** Format a date string "2026-08-19" → "19 Aug 2026" */
 function formatDate(dateStr) {
   if (!dateStr) return "";
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const parts = dateStr.split("-").map(Number);
+  if (parts.length !== 3) return dateStr;
+  const [y, m, d] = parts;
+  const months = ["Janv","Févr","Mars","Avr","Mai","Juin","Juil","Août","Sept","Oct","Nov","Déc"];
   return `${d} ${months[m - 1]} ${y}`;
 }
 
-/**
- * SwipeDivider
- * Props:
- *   split            {number}   0..1 position of the divider
- *   onSplitChange    {fn}       called with new 0..1 value while dragging
- *   mapContainerRef  {ref}      ref to the outer map wrapper div
- *   startDate        {string}   e.g. "2026-08-19"
- *   endDate          {string}
- */
-export default function SwipeDivider({ split, onSplitChange, mapContainerRef, startDate, endDate }) {
-  const handleRef = useRef(null);
+export default function SwipeDivider({
+  split,
+  onSplitChange,
+  onDragDirect,
+  mapContainerRef,
+  startDate,
+  endDate,
+}) {
+  const containerRef = useRef(null);
   const isDragging = useRef(false);
+  const rafId = useRef(null);
 
-  // ── Disable Leaflet event propagation so dragging doesn't pan the map ──
+  // Disable Leaflet map dragging when interacting with swipe column
   useEffect(() => {
-    const el = handleRef.current;
+    const el = containerRef.current;
     if (!el) return;
     L.DomEvent.disableClickPropagation(el);
     L.DomEvent.disableScrollPropagation(el);
   }, []);
 
-  // ── Pointer drag ───────────────────────────────────────────────────────
   const onPointerDown = useCallback((e) => {
     e.preventDefault();
+    e.stopPropagation();
     isDragging.current = true;
 
-    const onMove = (ev) => {
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    } catch (_) {}
+
+    const updateFromClientX = (clientX) => {
       const mapEl = mapContainerRef.current;
       if (!mapEl) return;
       const rect = mapEl.getBoundingClientRect();
-      const raw = (ev.clientX - rect.left) / rect.width;
-      onSplitChange(Math.min(0.98, Math.max(0.02, raw)));
+      const raw = Math.min(0.98, Math.max(0.02, (clientX - rect.left) / rect.width));
+      onSplitChange(raw);
+      onDragDirect?.(raw);
     };
 
-    const onUp = () => {
+    updateFromClientX(e.clientX);
+
+    const onPointerMove = (ev) => {
+      if (!isDragging.current) return;
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+      rafId.current = requestAnimationFrame(() => {
+        updateFromClientX(ev.clientX);
+      });
+    };
+
+    const onPointerUp = (ev) => {
       isDragging.current = false;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+      try {
+        ev.currentTarget?.releasePointerCapture?.(ev.pointerId);
+      } catch (_) {}
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
     };
 
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-  }, [mapContainerRef, onSplitChange]);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+  }, [mapContainerRef, onSplitChange, onDragDirect]);
 
-  // ── Keyboard: left/right arrow ±2% ────────────────────────────────────
+  // Keyboard navigation: arrow keys
   const onKeyDown = useCallback((e) => {
     if (e.key === "ArrowLeft") {
       e.preventDefault();
-      onSplitChange(Math.max(0, split - 0.02));
+      onSplitChange(Math.max(0.02, split - 0.02));
     } else if (e.key === "ArrowRight") {
       e.preventDefault();
-      onSplitChange(Math.min(1, split + 0.02));
+      onSplitChange(Math.min(0.98, split + 0.02));
     }
   }, [split, onSplitChange]);
 
@@ -108,46 +125,69 @@ export default function SwipeDivider({ split, onSplitChange, mapContainerRef, st
 
   return (
     <>
-      {/* Date labels row: start on left, end on right, always visible */}
+      {/* Floating comparison labels at the top */}
       <div className={STYLES.labelsRow}>
-        <span className={STYLES.labelLeft} style={STYLES.labelStyle}>
-          ◀ {formatDate(startDate)} {startDate === endDate ? "(Radar brut)" : "(Avant)"}
-        </span>
-        <span className={STYLES.labelRight} style={STYLES.labelStyle}>
-          {formatDate(endDate)} {startDate === endDate ? "(+ Détection IA)" : "(Après + IA)"} ▶
-        </span>
+        <div className={STYLES.labelLeft} style={STYLES.labelStyle}>
+          <span style={{ color: "#57f1db", fontSize: 13 }}>◀</span>
+          <span>AVANT :</span>
+          <span style={{ color: "#57f1db", fontWeight: 700 }}>{formatDate(startDate)}</span>
+          <span style={{ color: "#859490", fontSize: 10 }}>({startDate === endDate ? "Radar brut" : "Passage radar initial"})</span>
+        </div>
+        <div className={STYLES.labelRight} style={STYLES.labelStyle}>
+          <span style={{ color: "#859490", fontSize: 10 }}>({startDate === endDate ? "+ Détection IA" : "Passage récent + IA"})</span>
+          <span>APRÈS :</span>
+          <span style={{ color: "#57f1db", fontWeight: 700 }}>{formatDate(endDate)}</span>
+          <span style={{ color: "#57f1db", fontSize: 13 }}>▶</span>
+        </div>
       </div>
 
-      {/* Divider column: positioned at split% from left */}
+      {/* Full-height draggable column: generous 32px hitbox centered on divider */}
       <div
+        ref={containerRef}
+        role="slider"
+        aria-label="Séparateur de comparaison avant / après"
+        aria-valuenow={ariaVal}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        tabIndex={0}
         className={STYLES.container}
-        style={{ left: leftPct, transform: "translateX(-50%)" }}
+        style={{
+          left: leftPct,
+          transform: "translateX(-50%)",
+          width: 36,
+          touchAction: "none",
+        }}
+        onPointerDown={onPointerDown}
+        onKeyDown={onKeyDown}
       >
-        {/* Top half-line */}
+        {/* Top line */}
         <div className={STYLES.line} style={STYLES.lineStyle} />
 
-        {/* Drag handle */}
+        {/* Central drag handle */}
         <div
-          ref={handleRef}
-          role="slider"
-          aria-label="Swipe divider"
-          aria-valuenow={ariaVal}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          tabIndex={0}
           className={`${STYLES.handle} ${STYLES.handleFocusRing}`}
           style={STYLES.handleStyle}
-          onPointerDown={onPointerDown}
-          onKeyDown={onKeyDown}
         >
-          {/* Double-arrow icon */}
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-            <path d="M5 8H2m0 0l2-2M2 8l2 2" stroke="#0c1321" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M11 8h3m0 0l-2-2m2 2l-2 2" stroke="#0c1321" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          {/* Double horizontal arrow icon */}
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path
+              d="M5 8H2m0 0l2-2M2 8l2 2"
+              stroke="#57f1db"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M11 8h3m0 0l-2-2m2 2l-2 2"
+              stroke="#57f1db"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
 
-        {/* Bottom half-line */}
+        {/* Bottom line */}
         <div className={STYLES.line} style={STYLES.lineStyle} />
       </div>
     </>

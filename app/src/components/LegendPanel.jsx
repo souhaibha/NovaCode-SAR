@@ -1,5 +1,6 @@
 // LegendPanel.jsx
-// Displays the change legend with dynamic real-time surface areas updating as the timeline moves.
+// Displays the change legend with dynamic real-time surface areas updating as the timeline moves,
+// with full interactive sync with soil classification (Classification du sol).
 
 import { useMemo } from 'react';
 
@@ -117,7 +118,14 @@ function computeDynamicHectares(entry, dates, period, eventResult) {
   return Math.round(totalHectares * delta);
 }
 
-export default function LegendPanel({ legend, dates, period, eventResult }) {
+export default function LegendPanel({
+  legend,
+  dates,
+  period,
+  eventResult,
+  activeClasses = [],
+  setActiveClasses,
+}) {
   if (!legend || legend.length === 0) {
     return (
       <div style={{ padding: '12px 0', color: '#859490', fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>
@@ -138,6 +146,23 @@ export default function LegendPanel({ legend, dates, period, eventResult }) {
     );
   }
 
+  const isClassActive = (clsId) => {
+    if (!activeClasses || activeClasses.length === 0) return false;
+    return activeClasses.some((c) => c == clsId || String(c) === String(clsId));
+  };
+
+  const toggleClass = (clsId) => {
+    if (!setActiveClasses) return;
+    setActiveClasses((prev) => {
+      const active = prev.some((c) => c == clsId || String(c) === String(clsId));
+      if (active) {
+        return prev.filter((c) => c != clsId && String(c) !== String(clsId));
+      } else {
+        return [...prev, clsId];
+      }
+    });
+  };
+
   const startDate = period?.start;
   const endDate = period?.end;
   const hasDynamicPeriod = Boolean(startDate && endDate && dates && dates.length > 1);
@@ -155,29 +180,40 @@ export default function LegendPanel({ legend, dates, period, eventResult }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={LABEL_STYLE}>Classes de changement</span>
-        {hasDynamicPeriod && (
-          <span
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            type="button"
+            onClick={() => setActiveClasses && setActiveClasses(filtered.map((e) => e.cls))}
             style={{
+              background: 'none',
+              border: 'none',
+              color: '#57f1db',
               fontSize: 10,
               fontFamily: "'JetBrains Mono', monospace",
-              color: '#57f1db',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
+              cursor: 'pointer',
+              padding: '0 2px',
+              textDecoration: 'underline',
             }}
           >
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: '#57f1db',
-                boxShadow: '0 0 6px #57f1db',
-              }}
-            />
-            Dynamique
-          </span>
-        )}
+            Tout voir
+          </button>
+          <span style={{ color: '#859490', fontSize: 10 }}>|</span>
+          <button
+            type="button"
+            onClick={() => setActiveClasses && setActiveClasses([])}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#859490',
+              fontSize: 10,
+              fontFamily: "'JetBrains Mono', monospace",
+              cursor: 'pointer',
+              padding: '0 2px',
+            }}
+          >
+            Masquer
+          </button>
+        </div>
       </div>
 
       {/* Active period dynamic banner */}
@@ -224,10 +260,10 @@ export default function LegendPanel({ legend, dates, period, eventResult }) {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 4,
+          gap: 3,
           background: '#19202e',
           borderRadius: 12,
-          padding: '10px 12px',
+          padding: '8px 10px',
           boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)',
         }}
       >
@@ -238,36 +274,51 @@ export default function LegendPanel({ legend, dates, period, eventResult }) {
           const ratioPercent = entry.hectares > 0
             ? Math.min(100, Math.round((activeHectares / entry.hectares) * 100))
             : 100;
+          const isActive = isClassActive(entry.cls);
 
           return (
             <div
               key={entry.cls}
+              onClick={() => toggleClass(entry.cls)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '6px 2px',
+                padding: '6px 6px',
+                borderRadius: 8,
+                cursor: 'pointer',
+                opacity: isActive ? 1 : 0.42,
+                background: isActive ? 'transparent' : 'rgba(255,255,255,0.02)',
                 borderBottom: '1px solid rgba(220,226,246,0.05)',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.15s ease',
               }}
+              title={isActive ? 'Cliquer pour masquer sur la carte' : 'Cliquer pour afficher sur la carte'}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <span
                   style={{
-                    width: 12,
-                    height: 12,
+                    width: 13,
+                    height: 13,
                     borderRadius: 3,
-                    background: colorHex,
+                    background: isActive ? colorHex : '#4b5563',
                     flexShrink: 0,
-                    border: '1px solid rgba(255,255,255,0.18)',
-                    boxShadow: `0 0 6px ${colorHex}55`,
+                    border: `1px solid ${isActive ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)'}`,
+                    boxShadow: isActive ? `0 0 6px ${colorHex}55` : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                />
+                >
+                  {!isActive && (
+                    <span style={{ fontSize: 9, color: '#fff', fontWeight: 900 }}>✕</span>
+                  )}
+                </span>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span
                     style={{
                       fontSize: 12,
-                      color: '#dce2f6',
+                      color: isActive ? '#dce2f6' : '#859490',
+                      textDecoration: isActive ? 'none' : 'line-through',
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
                       fontWeight: 500,
                       whiteSpace: 'nowrap',
@@ -286,33 +337,49 @@ export default function LegendPanel({ legend, dates, period, eventResult }) {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                {hasDynamicPeriod && entry.cls !== 5 && entry.hectares > 0 && (
+                {!isActive ? (
                   <span
                     style={{
                       fontSize: 9,
                       fontFamily: "'JetBrains Mono', monospace",
                       color: '#859490',
-                      background: 'rgba(255,255,255,0.04)',
-                      padding: '1px 4px',
-                      borderRadius: 3,
+                      background: 'rgba(255,255,255,0.05)',
+                      padding: '2px 5px',
+                      borderRadius: 4,
                     }}
                   >
-                    {ratioPercent}%
+                    Masqué
                   </span>
+                ) : (
+                  <>
+                    {hasDynamicPeriod && entry.cls !== 5 && entry.hectares > 0 && (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontFamily: "'JetBrains Mono', monospace",
+                          color: '#859490',
+                          background: 'rgba(255,255,255,0.04)',
+                          padding: '1px 4px',
+                          borderRadius: 3,
+                        }}
+                      >
+                        {ratioPercent}%
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        color: activeHectares > 0 ? '#57f1db' : '#859490',
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        textShadow: activeHectares > 0 ? '0 0 8px rgba(87,241,219,0.25)' : 'none',
+                      }}
+                    >
+                      {formatArea(activeHectares)}
+                    </span>
+                  </>
                 )}
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontFamily: "'JetBrains Mono', monospace",
-                    color: activeHectares > 0 ? '#57f1db' : '#859490',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    textShadow: activeHectares > 0 ? '0 0 8px rgba(87,241,219,0.25)' : 'none',
-                    transition: 'color 0.2s ease',
-                  }}
-                >
-                  {formatArea(activeHectares)}
-                </span>
               </div>
             </div>
           );
@@ -328,7 +395,7 @@ export default function LegendPanel({ legend, dates, period, eventResult }) {
           padding: '2px 4px',
         }}
       >
-        💡 Les superficies se recalculent instantanément selon l'intervalle sélectionné sur la timeline temporelle NISAR.
+        💡 Cliquez sur une classe pour l'activer/masquer sur la carte. Les superficies s'adaptent en temps réel à la timeline.
       </div>
     </div>
   );

@@ -41,6 +41,7 @@ export default function ControlsPanel({
         : e.name === "burned" ? "zone brûlée"
         : e.name === "flooded" ? "zone inondée"
         : e.name === "water" ? "plans d'eau"
+        : e.name === "earthquake ground displacement" ? "déplacement de sol"
         : e.name,
       color: Array.isArray(e.color)
         ? `rgb(${e.color[0]},${e.color[1]},${e.color[2]})`
@@ -201,15 +202,33 @@ export default function ControlsPanel({
             >
               Classification du sol
             </span>
-            <span
-              style={{
-                fontSize: 10,
-                fontFamily: "'JetBrains Mono', monospace",
-                color: "#859490",
-              }}
-            >
-              {classes.filter((c) => isClassChecked(c.id)).length} Actifs
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveClasses(classes.map((c) => c.id))}
+                className="text-[10px] font-mono text-[#57f1db] hover:underline cursor-pointer"
+              >
+                Tout
+              </button>
+              <span style={{ color: "#859490", fontSize: 10 }}>|</span>
+              <button
+                type="button"
+                onClick={() => setActiveClasses([])}
+                className="text-[10px] font-mono text-[#859490] hover:text-[#dce2f6] cursor-pointer"
+              >
+                Aucun
+              </button>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  color: "#859490",
+                  marginLeft: 4,
+                }}
+              >
+                ({classes.filter((c) => isClassChecked(c.id)).length}/{classes.length})
+              </span>
+            </div>
           </div>
 
           <div

@@ -451,6 +451,8 @@ export default function App() {
             zone={matchedZone}
             period={period}
             eventResult={eventResult}
+            activeClasses={activeClasses}
+            setActiveClasses={setActiveClasses}
             isDrawing={isDrawingZone}
             onStartDrawZone={() => setIsDrawingZone(true)}
             onCancelDrawZone={() => setIsDrawingZone(false)}
