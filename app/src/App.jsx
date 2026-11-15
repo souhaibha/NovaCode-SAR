@@ -122,7 +122,7 @@ export default function App() {
   );
 
   const rawMatchedZone = isCustomRoute
-    ? (fetchedZone ? { ...fetchedZone, bounds: customZone.bounds, bbox: customZone.bbox, name: customZone.name } : customZone)
+    ? (fetchedZone ? { ...fetchedZone, bounds: customZone.bounds, bbox: customZone.bbox, name: customZone.name, isCustom: true } : customZone)
     : fetchedZone;
   const matchedZone = drawnZone
     ? {
@@ -411,6 +411,7 @@ export default function App() {
             onEventResult={setEventResult}
             mode={mode}
             onModeChange={setMode}
+            basemap={basemap}
             isDrawingZone={isDrawingZone}
             onStartDrawZone={() => setIsDrawingZone(true)}
             onCancelDrawZone={() => setIsDrawingZone(false)}

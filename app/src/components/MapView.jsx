@@ -170,8 +170,11 @@ function MapDrawZoneHandler({ isDrawing, onZoneDrawn, onCancel }) {
 
 const BASE = import.meta.env.BASE_URL + "data/";
 
-const BASEMAP_URL =
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const BASEMAP_TILES = {
+  sat: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  street: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+};
+const BASEMAP_URL = BASEMAP_TILES.sat;
 
 /**
  * Coordinate order:
@@ -759,13 +762,19 @@ export default function MapView(props) {
   const [clickedPoint, setClickedPoint] = useState(null);
   const [pointError, setPointError] = useState(null);
 
-  // Fetch AOI GeoJSON boundary
+  // Fetch AOI GeoJSON boundary (or use object directly if already parsed)
   useEffect(() => {
     if (zone?.aoi) {
-      fetch(`${BASE}${zone.aoi}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then(setAoi)
-        .catch(() => {});
+      if (typeof zone.aoi === "object") {
+        setAoi(zone.aoi);
+      } else {
+        fetch(`${BASE}${zone.aoi}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then(setAoi)
+          .catch(() => {});
+      }
+    } else {
+      setAoi(null);
     }
   }, [zone?.aoi]);
 
@@ -1059,10 +1068,15 @@ export default function MapView(props) {
 
   // Dynamic filter for changemap based on activeClasses
   const [filteredChangemapUrl, setFilteredChangemapUrl] = useState(null);
-  const [activeSpecialLayer, setActiveSpecialLayer] = useState("both");
+  const [activeSpecialLayer, setActiveSpecialLayer] = useState(() => (zone?.isCustom ? "satellite" : "both"));
   const [filteredRadarUrl, setFilteredRadarUrl] = useState(null);
   const [filteredStartRadarUrl, setFilteredStartRadarUrl] = useState(null);
   const [filteredEndRadarUrl, setFilteredEndRadarUrl] = useState(null);
+
+  // Sync default layer when switching zones: unanalyzed custom zone defaults to real satellite view
+  useEffect(() => {
+    setActiveSpecialLayer(zone?.isCustom ? "satellite" : "both");
+  }, [zone?.site, zone?.id, zone?.isCustom]);
 
   // Preload all radar frames of the site for instantaneous timeline scrubbing
   useEffect(() => {
@@ -1274,7 +1288,11 @@ export default function MapView(props) {
         scrollWheelZoom
       >
         <MapResizerAndFitBounds bounds={bounds} />
-        <TileLayer url={BASEMAP_URL} maxZoom={18} />
+        <TileLayer
+          key={props.basemap || "sat"}
+          url={BASEMAP_TILES[props.basemap] || BASEMAP_TILES.sat}
+          maxZoom={18}
+        />
 
         {/* Draw zone interactive handler */}
         <MapDrawZoneHandler
@@ -1403,7 +1421,7 @@ export default function MapView(props) {
         )}
 
         {/* Real NISAR site changemap & radar frame */}
-        {zone.changemap && mode !== "swipe" && (
+        {zone.changemap && mode !== "swipe" && activeSpecialLayer !== "satellite" && (
           <>
             {currentRadarFrame && (activeSpecialLayer === "radar" || activeSpecialLayer === "both" || activeSpecialLayer === "changemap") && (
               <SmartImageOverlay
@@ -1447,12 +1465,28 @@ export default function MapView(props) {
         {/* 4. AOI GeoJSON boundary outline */}
         {aoi && (
           <GeoJSON
+            key={JSON.stringify(aoi)}
             data={aoi}
             style={{
               color: "#2DD4BF",
               weight: 2,
-              fillOpacity: 0,
+              fillOpacity: activeSpecialLayer === "satellite" ? 0.06 : 0,
+              fillColor: "#2DD4BF",
               dashArray: "4 3",
+            }}
+          />
+        )}
+
+        {/* Fallback Selection Rectangle for custom zone when aoi GeoJSON is not loaded */}
+        {zone?.isCustom && bounds && !aoi && (
+          <Rectangle
+            bounds={bounds}
+            pathOptions={{
+              color: "#2DD4BF",
+              weight: 2,
+              dashArray: "6 4",
+              fillColor: "#2DD4BF",
+              fillOpacity: activeSpecialLayer === "satellite" ? 0.06 : 0,
             }}
           />
         )}
@@ -1498,6 +1532,39 @@ export default function MapView(props) {
             : undefined
         }
       />
+
+      {/* Floating badge for custom unanalyzed zone */}
+      {zone?.isCustom && !isDrawingZone && (
+        <div
+          style={{
+            position: "absolute",
+            top: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 999,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            background: "rgba(15, 23, 42, 0.94)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(87, 241, 219, 0.4)",
+            borderRadius: 12,
+            padding: "7px 16px",
+            boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+            color: "#dce2f6",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ color: "#57f1db", fontSize: 18 }}>
+            travel_explore
+          </span>
+          <span>
+            <strong>{zone.name}</strong> • Zone sélectionnée (35 × 35 km)
+            {activeSpecialLayer === "satellite" ? " — Fond satellite réel" : " — Aperçu simulation démo"}
+          </span>
+        </div>
+      )}
 
       {/* Floating banner when Draw Zone mode is active */}
       {isDrawingZone && (
@@ -1551,8 +1618,8 @@ export default function MapView(props) {
         </div>
       )}
 
-      {/* Layer Switcher Pill: allows toggling between Radar + IA, Radar seul, and Changements IA on all sites */}
-      {(zone?.changemap || (zone?.layers && (zone.layers.displacement || zone.layers.fringes))) && (
+      {/* Layer Switcher Pill: allows toggling between Satellite seul, Radar + IA, Radar seul, and Changements IA */}
+      {(zone?.changemap || (zone?.layers && (zone.layers.displacement || zone.layers.fringes)) || zone?.isCustom) && (
         <div
           style={{
             position: "absolute",
@@ -1585,6 +1652,25 @@ export default function MapView(props) {
           </span>
           <button
             type="button"
+            onClick={() => setActiveSpecialLayer("satellite")}
+            style={{
+              padding: "4px 9px",
+              borderRadius: 6,
+              fontSize: 11,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: activeSpecialLayer === "satellite" ? 700 : 500,
+              border: "none",
+              cursor: "pointer",
+              background: activeSpecialLayer === "satellite" ? "#57f1db" : "transparent",
+              color: activeSpecialLayer === "satellite" ? "#003731" : "#bacac5",
+              transition: "all 0.15s",
+            }}
+            title="Afficher uniquement l'image satellite optique haute résolution du sol réel"
+          >
+            Satellite seul
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveSpecialLayer("both")}
             style={{
               padding: "4px 9px",
@@ -1598,6 +1684,7 @@ export default function MapView(props) {
               color: activeSpecialLayer === "both" ? "#003731" : "#bacac5",
               transition: "all 0.15s",
             }}
+            title="Superposer le radar SAR et la classification IA"
           >
             Radar + IA
           </button>
@@ -1616,6 +1703,7 @@ export default function MapView(props) {
               color: activeSpecialLayer === "radar" ? "#003731" : "#bacac5",
               transition: "all 0.15s",
             }}
+            title="Rétrodiffusion radar SAR seule (polarimétrie HH/HV)"
           >
             Radar seul
           </button>
@@ -1634,9 +1722,26 @@ export default function MapView(props) {
               color: activeSpecialLayer === "changemap" ? "#003731" : "#bacac5",
               transition: "all 0.15s",
             }}
+            title="Classification des changements détectés par IA"
           >
             Changements IA
           </button>
+          {zone?.isCustom && (
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 9.5,
+                color: activeSpecialLayer === "satellite" ? "#57f1db" : "#ffb95f",
+                marginLeft: 4,
+                padding: "2px 6px",
+                borderRadius: 4,
+                background: activeSpecialLayer === "satellite" ? "rgba(87,241,219,0.12)" : "rgba(255,185,95,0.15)",
+                border: activeSpecialLayer === "satellite" ? "1px solid rgba(87,241,219,0.25)" : "1px solid rgba(255,185,95,0.3)",
+              }}
+            >
+              {activeSpecialLayer === "satellite" ? "✓ Fond satellite réel" : "⚠️ Aperçu simulation"}
+            </span>
+          )}
           {zone?.layers?.displacement && (
             <button
               type="button"
