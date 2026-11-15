@@ -219,14 +219,23 @@ export default function ZoneInfoCard({
         )}
       </div>
 
-      {nearest && (
+      {nearest ? (
         <button
           type="button"
           onClick={() => onOpenZone(nearest.id)}
-          className={CSS.btnSecondary}
+          className={CSS.btnPrimary}
         >
-          <span>Open {nearest.name}</span>
-          <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+          <span>Ouvrir la zone {nearest.name}</span>
+          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onOpenZone("souss")}
+          className={CSS.btnPrimary}
+        >
+          <span>Lancer l'analyseur radar</span>
+          <span className="material-symbols-outlined text-[16px]">radar</span>
         </button>
       )}
     </div>

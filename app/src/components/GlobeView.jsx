@@ -279,10 +279,19 @@ const GlobeInner = forwardRef(function GlobeInner(
 
   // Expose flyTo imperative method
   useImperativeHandle(ref, () => ({
-    flyTo: (zone) => {
-      if (!globeEl.current || !zone) return;
-      const { lat, lng } = getZoneLatLng(zone);
-      globeEl.current.pointOfView({ lat, lng, altitude: 1.6 }, 1000);
+    flyTo: (zoneOrCoords) => {
+      if (!globeEl.current || !zoneOrCoords) return;
+      let lat = 0;
+      let lng = 0;
+      if (typeof zoneOrCoords.lat === "number" && typeof zoneOrCoords.lng === "number") {
+        lat = zoneOrCoords.lat;
+        lng = zoneOrCoords.lng;
+      } else {
+        const coords = getZoneLatLng(zoneOrCoords);
+        lat = coords.lat;
+        lng = coords.lng;
+      }
+      globeEl.current.pointOfView({ lat, lng, altitude: 1.4 }, 1000);
     },
   }));
 

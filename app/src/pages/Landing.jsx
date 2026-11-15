@@ -67,15 +67,16 @@ export default function Landing({ manifest, onNavigateToZone }) {
   // User clicks anywhere on globe / polygon
   const handleGlobeClick = useCallback(
     ({ lat, lng, countryName }) => {
+      if (globeRef.current) {
+        globeRef.current.flyTo({ lat, lng });
+      }
+
       const nearest = nearestZone(lat, lng, zones);
 
       if (nearest.inside && nearest.zone) {
         // Clicked inside a supported zone bbox
         setSelectedZone(nearest.zone);
         setClickInfo(null);
-        if (globeRef.current) {
-          globeRef.current.flyTo(nearest.zone);
-        }
       } else if (nearest.distanceKm <= NEAR_KM && nearest.zone) {
         // Within NEAR_KM
         setSelectedZone(null);
@@ -87,7 +88,7 @@ export default function Landing({ manifest, onNavigateToZone }) {
           isNear: true,
         });
       } else {
-        // Far away / no data here
+        // Far away / custom point on globe
         setSelectedZone(null);
         setClickInfo({
           lat,

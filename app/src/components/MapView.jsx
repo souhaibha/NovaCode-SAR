@@ -869,6 +869,53 @@ export default function MapView(props) {
 
   // Dynamic filter for changemap based on activeClasses
   const [filteredChangemapUrl, setFilteredChangemapUrl] = useState(null);
+  const [activeSpecialLayer, setActiveSpecialLayer] = useState("changemap");
+  const [filteredRadarUrl, setFilteredRadarUrl] = useState(null);
+
+  // Mask out pitch-black swath edges from radar JPGs
+  useEffect(() => {
+    if (!currentRadarFrame) {
+      setFilteredRadarUrl(null);
+      return;
+    }
+
+    const radarRawUrl = siteBase + currentRadarFrame;
+    let isCancelled = false;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = radarRawUrl;
+
+    img.onload = () => {
+      if (isCancelled) return;
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] < 14 && data[i + 1] < 14 && data[i + 2] < 14) {
+          data[i + 3] = 0;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      if (!isCancelled) {
+        setFilteredRadarUrl(canvas.toDataURL("image/png"));
+      }
+    };
+
+    img.onerror = () => {
+      if (!isCancelled) setFilteredRadarUrl(radarRawUrl);
+    };
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [siteBase, currentRadarFrame]);
 
   useEffect(() => {
     if (!zone?.changemap) {
@@ -1109,16 +1156,34 @@ export default function MapView(props) {
             {currentRadarFrame && (
               <ImageOverlay
                 key={`radar-${currentRadarFrame}`}
-                url={siteBase + currentRadarFrame}
+                url={filteredRadarUrl || (siteBase + currentRadarFrame)}
                 bounds={bounds}
                 opacity={1}
                 className="pixelated"
               />
             )}
-            {filteredChangemapUrl && (
+            {activeSpecialLayer === "changemap" && filteredChangemapUrl && (
               <ImageOverlay
                 key={`changemap-${zone.site || zone.id}`}
                 url={filteredChangemapUrl}
+                bounds={bounds}
+                opacity={opacity}
+                className="pixelated"
+              />
+            )}
+            {activeSpecialLayer === "displacement" && zone.layers?.displacement && (
+              <ImageOverlay
+                key={`displacement-${zone.site || zone.id}`}
+                url={siteBase + zone.layers.displacement.file}
+                bounds={bounds}
+                opacity={opacity}
+                className="pixelated"
+              />
+            )}
+            {activeSpecialLayer === "fringes" && zone.layers?.fringes && (
+              <ImageOverlay
+                key={`fringes-${zone.site || zone.id}`}
+                url={siteBase + zone.layers.fringes.file}
                 bounds={bounds}
                 opacity={opacity}
                 className="pixelated"
@@ -1172,6 +1237,99 @@ export default function MapView(props) {
       {/* Zoom / Recenter / Fullscreen buttons — outside MapContainer so absolute
           positioning resolves against the outer wrapper div, not Leaflet's control div */}
       <ZoomButtons mapRef={mapRef} bounds={bounds} />
+
+      {/* Earthquake Layer Switcher Pill (for sites with interferometry displacement or fringes like Venezuela) */}
+      {zone?.layers && (zone.layers.displacement || zone.layers.fringes) && (
+        <div
+          style={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            background: "rgba(21, 27, 42, 0.94)",
+            backdropFilter: "blur(12px)",
+            padding: "5px 10px",
+            borderRadius: 12,
+            border: "1px solid rgba(87, 241, 219, 0.4)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              color: "#57f1db",
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              marginRight: 6,
+            }}
+          >
+            Layer:
+          </span>
+          <button
+            type="button"
+            onClick={() => setActiveSpecialLayer("changemap")}
+            style={{
+              padding: "4px 10px",
+              borderRadius: 6,
+              fontSize: 11,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: activeSpecialLayer === "changemap" ? 700 : 500,
+              border: "none",
+              cursor: "pointer",
+              background: activeSpecialLayer === "changemap" ? "#57f1db" : "transparent",
+              color: activeSpecialLayer === "changemap" ? "#003731" : "#bacac5",
+              transition: "all 0.15s",
+            }}
+          >
+            Changemap
+          </button>
+          {zone.layers.displacement && (
+            <button
+              type="button"
+              onClick={() => setActiveSpecialLayer("displacement")}
+              style={{
+                padding: "4px 10px",
+                borderRadius: 6,
+                fontSize: 11,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: activeSpecialLayer === "displacement" ? 700 : 500,
+                border: "none",
+                cursor: "pointer",
+                background: activeSpecialLayer === "displacement" ? "#57f1db" : "transparent",
+                color: activeSpecialLayer === "displacement" ? "#003731" : "#bacac5",
+                transition: "all 0.15s",
+              }}
+            >
+              Displacement (cm)
+            </button>
+          )}
+          {zone.layers.fringes && (
+            <button
+              type="button"
+              onClick={() => setActiveSpecialLayer("fringes")}
+              style={{
+                padding: "4px 10px",
+                borderRadius: 6,
+                fontSize: 11,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: activeSpecialLayer === "fringes" ? 700 : 500,
+                border: "none",
+                cursor: "pointer",
+                background: activeSpecialLayer === "fringes" ? "#57f1db" : "transparent",
+                color: activeSpecialLayer === "fringes" ? "#003731" : "#bacac5",
+                transition: "all 0.15s",
+              }}
+            >
+              Fringes (12 cm)
+            </button>
+          )}
+        </div>
+      )}
 
       {/* A7: Swipe Divider — rendered outside MapContainer so it overlays the full map area */}
       {mode === "swipe" && !isInvalidDateRange && (
