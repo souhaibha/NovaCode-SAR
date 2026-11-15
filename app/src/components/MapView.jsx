@@ -1551,8 +1551,8 @@ export default function MapView(props) {
         </div>
       )}
 
-      {/* Earthquake Layer Switcher Pill (for sites with interferometry displacement or fringes like Venezuela) */}
-      {zone?.layers && (zone.layers.displacement || zone.layers.fringes) && (
+      {/* Layer Switcher Pill: allows toggling between Radar + IA, Radar seul, and Changements IA on all sites */}
+      {(zone?.changemap || (zone?.layers && (zone.layers.displacement || zone.layers.fringes))) && (
         <div
           style={{
             position: "absolute",
@@ -1637,7 +1637,7 @@ export default function MapView(props) {
           >
             Changements IA
           </button>
-          {zone.layers.displacement && (
+          {zone?.layers?.displacement && (
             <button
               type="button"
               onClick={() => setActiveSpecialLayer("displacement")}
@@ -1657,7 +1657,7 @@ export default function MapView(props) {
               Displacement (cm)
             </button>
           )}
-          {zone.layers.fringes && (
+          {zone?.layers?.fringes && (
             <button
               type="button"
               onClick={() => setActiveSpecialLayer("fringes")}
