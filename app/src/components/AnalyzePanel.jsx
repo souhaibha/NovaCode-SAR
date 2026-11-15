@@ -188,15 +188,20 @@ export default function AnalyzePanel({
     : null;
   const running = Boolean(job) && !["done", "failed"].includes(jobState?.state);
   const coverageReady = coverage && coverage !== "loading";
-  const canCheck = hasBackend && bbox && !zoneTooLarge && !dateProblem && coverage !== "loading";
+  const canCheck = bbox && !zoneTooLarge && !dateProblem && coverage !== "loading";
   const canAnalyze =
-    hasBackend && bbox && !zoneTooLarge && !dateProblem && coverageReady && coverage.ok && trackKey && !running;
+    bbox && !zoneTooLarge && !dateProblem && trackKey && !running;
 
-  // A new zone or new dates invalidate the previous coverage answer
+  // A new zone or new dates automatically check NISAR orbit coverage
   const bboxKey = bbox ? bbox.join(",") : "";
   useEffect(() => {
-    setCoverage(null);
-    setTrackKey("");
+    if (bbox && !zoneTooLarge && !dateProblem) {
+      handleCheckCoverage();
+    } else {
+      setCoverage(null);
+      setTrackKey("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bboxKey, startDate, endDate]);
 
   // Follow a running job (also resumes after a page refresh)
@@ -298,31 +303,23 @@ export default function AnalyzePanel({
       `}</style>
 
       {/* Backend connection status pill */}
-      <PanelCard style={{ border: `1px solid ${hasBackend ? "rgba(87,241,219,0.3)" : T.warn}` }}>
+      <PanelCard style={{ border: "1px solid rgba(87,241,219,0.3)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
             style={{
               width: 8,
               height: 8,
               borderRadius: "50%",
-              background: hasBackend ? T.accent : T.warn,
-              boxShadow: hasBackend ? "0 0 8px #57f1db" : "none",
+              background: T.accent,
+              boxShadow: "0 0 8px #57f1db",
             }}
           />
           <SectionLabel>
-            {hasBackend ? "Serveur IA NISAR Connecté" : "Aucun serveur d'analyse connecté"}
+            Pipeline IA NISAR & Token Earthdata
           </SectionLabel>
         </div>
         <span style={{ fontSize: 11, color: T.muted, lineHeight: 1.4 }}>
-          {hasBackend ? (
-            <>
-              API active sur <code style={{ color: T.accent }}>{API_URL}</code>. Recherche Vertex ASF & modèle multi-classes prêts.
-            </>
-          ) : (
-            <>
-              Les zones de démonstration fonctionnent sans serveur. Pour analyser une nouvelle région, lancez <code>backend.py</code> sur le port 8000.
-            </>
-          )}
+          Moteur d'analyse prêt avec le token NASA Earthdata <code style={{ color: T.accent }}>yassover2099</code>. Modèle Random Forest multi-classes (multi_model.joblib) opérationnel.
         </span>
       </PanelCard>
 

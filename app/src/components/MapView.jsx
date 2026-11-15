@@ -1078,6 +1078,17 @@ export default function MapView(props) {
     setActiveSpecialLayer(zone?.isCustom ? "satellite" : "both");
   }, [zone?.site, zone?.id, zone?.isCustom]);
 
+  // When user actively filters classes in "Classification du sol", ensure AI classification layer is visible
+  const prevClassesRef = useRef(activeClasses);
+  useEffect(() => {
+    if (prevClassesRef.current !== activeClasses) {
+      prevClassesRef.current = activeClasses;
+      if (activeSpecialLayer === "satellite" && activeClasses && activeClasses.length > 0) {
+        setActiveSpecialLayer("changemap");
+      }
+    }
+  }, [activeClasses, activeSpecialLayer]);
+
   // Preload all radar frames of the site for instantaneous timeline scrubbing
   useEffect(() => {
     if (zone?.frames?.length && siteBase) {
@@ -1423,7 +1434,7 @@ export default function MapView(props) {
         {/* Real NISAR site changemap & radar frame */}
         {zone.changemap && mode !== "swipe" && activeSpecialLayer !== "satellite" && (
           <>
-            {currentRadarFrame && (activeSpecialLayer === "radar" || activeSpecialLayer === "both" || activeSpecialLayer === "changemap") && (
+            {currentRadarFrame && (activeSpecialLayer === "radar" || activeSpecialLayer === "both") && (
               <SmartImageOverlay
                 key={`radar-${currentRadarFrame}`}
                 url={filteredRadarUrl || (siteBase + currentRadarFrame)}
@@ -1703,9 +1714,9 @@ export default function MapView(props) {
                 color: activeSpecialLayer === "changemap" ? "#003731" : "#bacac5",
                 transition: "all 0.15s",
               }}
-              title="Classification des changements détectés par IA"
+              title="Afficher la classification des surfaces détectées par l'algorithme IA"
             >
-              Changements IA
+              Classification IA
             </button>
             {zone?.isCustom && (
               <span
