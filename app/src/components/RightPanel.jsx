@@ -20,7 +20,14 @@ const TABS = [
 ];
 
 export default function RightPanel({ zone, onJobResult }) {
-  const [activeTab, setActiveTab] = useState('legend');
+  const [activeTab, setActiveTab] = useState(() => (zone?.isCustom ? 'analyze' : 'legend'));
+
+  // If custom zone selected on globe, land directly on Analyze tab
+  useState(() => {
+    if (zone?.isCustom && activeTab !== 'analyze') {
+      setActiveTab('analyze');
+    }
+  });
 
   const hasEvaluation =
     zone?.evaluation &&

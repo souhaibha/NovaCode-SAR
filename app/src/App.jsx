@@ -23,18 +23,65 @@ export default function App() {
 
   // Parse current route
   const isMapRoute = route.startsWith("/map/");
-  const routeZoneId = isMapRoute ? route.replace("/map/", "").trim() : null;
+  const routePart = isMapRoute ? route.replace("/map/", "").trim() : null;
+  const isCustomRoute = Boolean(routePart && routePart.startsWith("custom"));
+
+  let customZone = null;
+  if (isCustomRoute) {
+    const search = routePart.includes("?") ? routePart.split("?")[1] : "";
+    const params = new URLSearchParams(search);
+    const lat = parseFloat(params.get("lat")) || 0;
+    const lng = parseFloat(params.get("lng")) || 0;
+    const country = params.get("country") || "";
+    const dLat = 0.18;
+    const dLon = 0.18 / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+    customZone = {
+      id: "custom",
+      site: "custom",
+      name: country ? `${country}` : `Zone (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`,
+      story: `Région sélectionnée (${lat.toFixed(2)}°N, ${lng.toFixed(2)}°E) prête pour analyse satellite NISAR.`,
+      event: "custom",
+      bbox: [lng - dLon, lat - dLat, lng + dLon, lat + dLat],
+      bounds: [[lat - dLat, lng - dLon], [lat + dLat, lng + dLon]],
+      dates: ["2026-06-15", "2026-11-15"],
+      legend: [],
+      isCustom: true,
+      aoi: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [lng - dLon, lat - dLat],
+                  [lng + dLon, lat - dLat],
+                  [lng + dLon, lat + dLat],
+                  [lng - dLon, lat + dLat],
+                  [lng - dLon, lat - dLat],
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    };
+  }
+
+  const routeZoneId = isCustomRoute ? "custom" : (routePart ? routePart.split("?")[0] : null);
 
   // Resolve basic site entry from manifest (sites.json list)
-  // zones[] entries have id = s.site (aliased in useManifest)
-  const matchedSite = isMapRoute
-    ? manifest?.zones?.find((z) => z.id === routeZoneId)
-    : null;
+  const matchedSite = isCustomRoute
+    ? customZone
+    : (isMapRoute ? manifest?.zones?.find((z) => z.id === routeZoneId) : null);
 
   // Load full summary.json for the active site
-  const { summary: matchedZone, loading: summaryLoading } = useSiteSummary(
-    matchedSite?.site ?? null
+  const { summary: fetchedZone, loading: summaryLoading } = useSiteSummary(
+    isCustomRoute ? null : (matchedSite?.site ?? null)
   );
+
+  const matchedZone = isCustomRoute ? customZone : fetchedZone;
 
   // Initialize or re-sync period and active classes when zone changes
   useEffect(() => {
@@ -54,7 +101,7 @@ export default function App() {
   }, [matchedZone?.site]);
 
   // Loading state (manifest or summary for current site)
-  const isSummaryLoading = isMapRoute && Boolean(matchedSite) && (!matchedZone || summaryLoading);
+  const isSummaryLoading = isMapRoute && Boolean(matchedSite) && !isCustomRoute && (!matchedZone || summaryLoading);
   if (loading || isSummaryLoading) {
     return (
       <div
@@ -149,6 +196,9 @@ export default function App() {
       <Landing
         manifest={manifest}
         onNavigateToZone={(zoneId) => navigate(`/map/${zoneId}`)}
+        onNavigateToCustomZone={({ lat, lng, countryName }) => {
+          navigate(`/map/custom?lat=${lat}&lng=${lng}&country=${encodeURIComponent(countryName || "")}`);
+        }}
       />
     );
   }

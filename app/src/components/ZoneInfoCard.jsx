@@ -57,6 +57,7 @@ export default function ZoneInfoCard({
   sensor,
   onClose,
   onOpenZone,
+  onOpenCustomZone,
 }) {
   const cardRef = useRef(null);
 
@@ -164,13 +165,15 @@ export default function ZoneInfoCard({
     );
   }
 
-  // Case 2: Clicked outside or nearby
+  // Case 2: Clicked on any custom point on the globe
   const nearest = clickInfo?.nearest?.zone;
-  const distanceKm = clickInfo?.nearest?.distanceKm;
-  const isNear = clickInfo?.isNear;
   const lat = clickInfo?.lat;
   const lng = clickInfo?.lng;
   const countryName = clickInfo?.countryName;
+
+  const displayTitle = countryName
+    ? `${countryName}`
+    : `Zone (${lat != null ? lat.toFixed(2) : 0}°, ${lng != null ? lng.toFixed(2) : 0}°)`;
 
   return (
     <div
@@ -182,12 +185,10 @@ export default function ZoneInfoCard({
     >
       <div className={CSS.header}>
         <div className={CSS.titleBox}>
-          <h2 className={CSS.title}>
-            {isNear ? "Nearby SAR Zone" : "No processed data here yet"}
-          </h2>
-          {(lat != null && lng != null) && (
+          <h2 className={CSS.title}>{displayTitle}</h2>
+          {lat != null && lng != null && (
             <span className={CSS.coordsText}>
-              {lat.toFixed(2)}°N, {lng.toFixed(2)}°E {countryName ? `• ${countryName}` : ""}
+              {lat.toFixed(2)}°N, {lng.toFixed(2)}°E
             </span>
           )}
         </div>
@@ -203,39 +204,40 @@ export default function ZoneInfoCard({
 
       <div className={CSS.noticeBox}>
         <div className={CSS.noticeTitle}>
-          <span className="material-symbols-outlined text-[16px]">info</span>
-          <span>{isNear ? "Supported zone in proximity" : "Coverage limitation"}</span>
+          <span className="material-symbols-outlined text-[16px]">radar</span>
+          <span>Prêt pour analyse radar NISAR</span>
         </div>
-        {nearest ? (
-          <p className="leading-relaxed">
-            {isNear
-              ? `Nearest supported zone: ${nearest.name}, about ${distanceKm} km away.`
-              : `This location has no radar change analysis processed. The closest available monitoring zone is ${nearest.name} (${distanceKm} km away).`}
-          </p>
-        ) : (
-          <p className="leading-relaxed">
-            No monitoring zones are currently available.
-          </p>
-        )}
+        <p className="leading-relaxed text-[#dce2f6]">
+          {countryName ? `Région de ${countryName}. ` : ""}
+          Vous pouvez explorer cette zone en haute résolution et lancer une détection de changements par satellite radar.
+        </p>
       </div>
 
-      {nearest ? (
+      {/* Primary Action: Open this custom region on the map and launch analysis */}
+      <button
+        type="button"
+        onClick={() => {
+          if (onOpenCustomZone) {
+            onOpenCustomZone({ lat, lng, countryName });
+          } else {
+            onOpenZone("souss");
+          }
+        }}
+        className={CSS.btnPrimary}
+      >
+        <span>Analyser cette zone sur la carte</span>
+        <span className="material-symbols-outlined text-[18px]">travel_explore</span>
+      </button>
+
+      {/* Secondary option if near a precomputed demo site */}
+      {nearest && (
         <button
           type="button"
           onClick={() => onOpenZone(nearest.id)}
-          className={CSS.btnPrimary}
+          className={CSS.btnSecondary}
         >
-          <span>Ouvrir la zone {nearest.name}</span>
-          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => onOpenZone("souss")}
-          className={CSS.btnPrimary}
-        >
-          <span>Lancer l'analyseur radar</span>
-          <span className="material-symbols-outlined text-[16px]">radar</span>
+          <span>Voir le site démo le plus proche ({nearest.name})</span>
+          <span className="material-symbols-outlined text-[16px]">open_in_new</span>
         </button>
       )}
     </div>

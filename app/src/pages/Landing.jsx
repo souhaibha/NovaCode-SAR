@@ -30,7 +30,7 @@ const CSS = {
     "absolute bottom-4 left-6 z-20 pointer-events-none hidden sm:flex items-center gap-2 text-[11px] font-mono text-[#bacac5] bg-[#151b2a] px-3 py-1.5 rounded-lg border border-[rgba(60,74,70,0.4)]",
 };
 
-export default function Landing({ manifest, onNavigateToZone }) {
+export default function Landing({ manifest, onNavigateToZone, onNavigateToCustomZone }) {
   const globeRef = useRef(null);
 
   const [selectedZone, setSelectedZone] = useState(null);
@@ -160,6 +160,7 @@ export default function Landing({ manifest, onNavigateToZone }) {
           sensor={sensor}
           onClose={handleCloseCard}
           onOpenZone={(zoneId) => onNavigateToZone(zoneId)}
+          onOpenCustomZone={(customData) => onNavigateToCustomZone && onNavigateToCustomZone(customData)}
         />
       )}
 
