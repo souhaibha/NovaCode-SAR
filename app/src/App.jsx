@@ -6,6 +6,8 @@ import Timeline from "./components/Timeline";
 import Landing from "./pages/Landing";
 import RightPanel from "./components/RightPanel";
 import SiteViewerRoute from "./components/SiteViewerRoute";
+import Analyze from "./pages/Analyze";
+import JobView from "./pages/JobView";
 import { useSites } from "./hooks/useSites";
 import useSiteSummary from "./hooks/useSiteSummary";
 import { useHashRoute } from "./lib/router";
@@ -47,6 +49,9 @@ export default function App() {
   const routeSiteId = isSiteRoute ? route.replace("/site/", "").trim() : null;
   const isMapRoute = route.startsWith("/map/");
   const routeMapId  = isMapRoute  ? route.replace("/map/",  "").trim() : null;
+  const isAnalyzeRoute = route === "/analyze" || route.startsWith("/analyze");
+  const isJobRoute = route.startsWith("/job/");
+  const routeJobId = isJobRoute ? route.replace("/job/", "").trim() : null;
 
   // ── Resolve site entry for #/map/<id> ───────────────────────────────────────
   const matchedEntry = isMapRoute && sites.length > 0
@@ -138,6 +143,16 @@ export default function App() {
   // ── 0. /site/<id> route (SiteMap standalone) ────────────────────────────────
   if (isSiteRoute) {
     return <SiteViewerRoute siteId={routeSiteId} />;
+  }
+
+  // ── /analyze route ─────────────────────────────────────────────────────────
+  if (isAnalyzeRoute) {
+    return <Analyze onNavigate={navigate} />;
+  }
+
+  // ── /job/<id> route ────────────────────────────────────────────────────────
+  if (isJobRoute) {
+    return <JobView jobId={routeJobId} onNavigate={navigate} />;
   }
 
   // ── 1. Landing ("/") ────────────────────────────────────────────────────────

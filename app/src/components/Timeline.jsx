@@ -5,7 +5,7 @@ function formatDate(str) {
   const parts = str.split("-");
   if (parts.length !== 3) return str;
   const [y, m, d] = parts;
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1] || m} ${y}`;
 }
 

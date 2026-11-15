@@ -121,12 +121,35 @@ export default function Landing({ manifest, onNavigateToZone }) {
           {isDemo && <span className={CSS.demoBadge}>Demo data</span>}
         </div>
 
-        <div className={CSS.pickerWrapper}>
-          <ZonePicker
-            zones={zones}
-            selectedId={selectedZone?.id}
-            onSelect={handlePickerSelect}
-          />
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }} className="pointer-events-auto">
+          <a
+            href="#/analyze"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 16px",
+              borderRadius: 14,
+              background: "#57f1db",
+              color: "#003731",
+              fontWeight: 700,
+              fontSize: 13,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>crop_free</span>
+            <span>Analyze a zone</span>
+          </a>
+
+          <div className={CSS.pickerWrapper}>
+            <ZonePicker
+              zones={zones}
+              selectedId={selectedZone?.id}
+              onSelect={handlePickerSelect}
+            />
+          </div>
         </div>
       </header>
 
