@@ -752,6 +752,96 @@ export default function MapView(props) {
       ? zone.frames[dateIdx]
       : zone.frames?.[0];
 
+  // Dynamic filter for changemap based on activeClasses
+  const [filteredChangemapUrl, setFilteredChangemapUrl] = useState(null);
+
+  useEffect(() => {
+    if (!zone?.changemap) {
+      setFilteredChangemapUrl(null);
+      return;
+    }
+
+    const changemapRawUrl = siteBase + zone.changemap;
+
+    const validLegend = (zone.legend || []).filter(
+      (l) => l.color !== null && l.color !== undefined && l.hectares > 0
+    );
+
+    // If activeClasses contains all non-stable legend classes, use raw URL directly
+    const allActive =
+      validLegend.length > 0 &&
+      validLegend.every((l) => activeClasses?.includes(l.cls));
+
+    if (allActive) {
+      setFilteredChangemapUrl(changemapRawUrl);
+      return;
+    }
+
+    // If no classes selected, hide changemap
+    if (!activeClasses || activeClasses.length === 0) {
+      setFilteredChangemapUrl(null);
+      return;
+    }
+
+    let isCancelled = false;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = changemapRawUrl;
+
+    img.onload = () => {
+      if (isCancelled) return;
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      // Extract colors for active classes only
+      const activeColors = validLegend
+        .filter((l) => activeClasses.includes(l.cls))
+        .map((l) => l.color);
+
+      // Mask out pixels of inactive classes
+      for (let i = 0; i < data.length; i += 4) {
+        const a = data[i + 3];
+        if (a === 0) continue;
+
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        let matched = false;
+        for (let c = 0; c < activeColors.length; c++) {
+          const ac = activeColors[c];
+          if (
+            Math.abs(r - ac[0]) < 30 &&
+            Math.abs(g - ac[1]) < 30 &&
+            Math.abs(b - ac[2]) < 30
+          ) {
+            matched = true;
+            break;
+          }
+        }
+
+        if (!matched) {
+          data[i + 3] = 0; // Transparent
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      if (!isCancelled) {
+        setFilteredChangemapUrl(canvas.toDataURL("image/png"));
+      }
+    };
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [siteBase, zone?.changemap, zone?.legend, activeClasses]);
+
   return (
     <div
       ref={mapContainerRef}
@@ -861,13 +951,15 @@ export default function MapView(props) {
                 className="pixelated"
               />
             )}
-            <ImageOverlay
-              key={`changemap-${zone.site || zone.id}`}
-              url={siteBase + zone.changemap}
-              bounds={bounds}
-              opacity={opacity}
-              className="pixelated"
-            />
+            {filteredChangemapUrl && (
+              <ImageOverlay
+                key={`changemap-${zone.site || zone.id}`}
+                url={filteredChangemapUrl}
+                bounds={bounds}
+                opacity={opacity}
+                className="pixelated"
+              />
+            )}
           </>
         )}
 
