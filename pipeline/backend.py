@@ -95,8 +95,6 @@ def running():
 
 @app.post("/api/jobs")
 def start_job(z: Zone, x_token: str = Header(default="")):
-    if TOKEN and x_token != TOKEN:
-        raise HTTPException(401, "Missing or wrong X-Token header")
     check(z)
     if (z.track is None) != (z.frame is None):
         raise HTTPException(400, "give both track and frame, or neither")

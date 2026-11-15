@@ -189,7 +189,7 @@ export default function AnalyzePanel({
   const coverageReady = coverage && coverage !== "loading";
   const canCheck = hasBackend && bbox && !zoneTooLarge && !dateProblem && coverage !== "loading";
   const canAnalyze =
-    hasBackend && bbox && !zoneTooLarge && !dateProblem && coverageReady && coverage.ok && trackKey && !running && token.trim();
+    hasBackend && bbox && !zoneTooLarge && !dateProblem && coverageReady && coverage.ok && trackKey && !running;
 
   // A new zone or new dates invalidate the previous coverage answer
   const bboxKey = bbox ? bbox.join(",") : "";
@@ -443,16 +443,9 @@ export default function AnalyzePanel({
           onChange={(e) => setAnalysisName(e.target.value)}
           style={{ ...inputStyle, fontFamily: T.sans }}
         />
-        <label style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 10, color: T.dim, fontFamily: T.mono }}>
-          Jeton d'accès IA (configuré automatiquement)
-          <input
-            type="text"
-            placeholder="nasa2026"
-            value={token}
-            onChange={(e) => setTokenState(e.target.value)}
-            style={inputStyle}
-          />
-        </label>
+        <div style={{ fontSize: 10, color: T.accent, fontFamily: T.mono, display: "flex", alignItems: "center", gap: 5 }}>
+          <span>✓ Authentification NASA & IA intégrée</span>
+        </div>
         <button onClick={handleAnalyze} disabled={!canAnalyze} style={buttonStyle(Boolean(canAnalyze), true)}>
           {running && <Spinner />}
           Lancer l'analyse du modèle
