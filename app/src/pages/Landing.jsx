@@ -4,6 +4,7 @@ import ZoneInfoCard from "../components/ZoneInfoCard";
 import { nearestZone, NEAR_KM } from "../lib/geo";
 
 const GlobeView = lazy(() => import("../components/GlobeView"));
+const SolarSystemView = lazy(() => import("../components/SolarSystemView"));
 
 // Single CSS definitions block for Landing page
 const CSS = {
@@ -33,6 +34,7 @@ const CSS = {
 export default function Landing({ manifest, onNavigateToZone, onNavigateToCustomZone }) {
   const globeRef = useRef(null);
 
+  const [mainView, setMainView] = useState("earth"); // "earth" | "solar"
   const [selectedZone, setSelectedZone] = useState(null);
   const [clickInfo, setClickInfo] = useState(null);
 
@@ -119,49 +121,95 @@ export default function Landing({ manifest, onNavigateToZone, onNavigateToCustom
 
   return (
     <div className={CSS.container}>
-      {/* Top Header / Branding & Search */}
+      {/* Top Header / Branding, View Switcher & Search */}
       <header className={CSS.header}>
-        <div className={CSS.brandRow}>
-          <div className={CSS.logoBox}>
-            <span className="material-symbols-outlined text-[20px]">radar</span>
+        <div className="flex flex-wrap items-center gap-3 pointer-events-auto">
+          <div className={CSS.brandRow}>
+            <div className={CSS.logoBox}>
+              <span className="material-symbols-outlined text-[20px]">radar</span>
+            </div>
+            <span className={CSS.title}>SARdance</span>
+            <span className={CSS.tagline}>Global SAR Change Monitor</span>
+            {isDemo && <span className={CSS.demoBadge}>Demo data</span>}
           </div>
-          <span className={CSS.title}>SARdance</span>
-          <span className={CSS.tagline}>Global SAR Change Monitor</span>
-          {isDemo && <span className={CSS.demoBadge}>Demo data</span>}
+
+          {/* Mode Switcher: Globe Terrestre vs Système Solaire */}
+          <div className="flex items-center gap-1 p-1 bg-[#0a101d]/85 backdrop-blur-md rounded-2xl border border-[rgba(60,74,70,0.5)] shadow-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setMainView("earth");
+                handleCloseCard();
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                mainView === "earth"
+                  ? "bg-[#1c293d] text-[#57f1db] font-semibold border border-[rgba(87,241,219,0.3)] shadow-sm"
+                  : "text-[#8e9eb0] hover:text-[#dce2f6] hover:bg-[#151f30]/50"
+              }`}
+              title="Afficher la Terre et les zones d'observation radar SAR"
+            >
+              <span className="material-symbols-outlined text-[16px]">public</span>
+              <span>Globe Terrestre</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMainView("solar");
+                handleCloseCard();
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                mainView === "solar"
+                  ? "bg-[#1c293d] text-[#57f1db] font-semibold border border-[rgba(87,241,219,0.3)] shadow-sm"
+                  : "text-[#8e9eb0] hover:text-[#dce2f6] hover:bg-[#151f30]/50"
+              }`}
+              title="Explorer le Système Solaire en 3D temps réel"
+            >
+              <span className="material-symbols-outlined text-[16px]">wb_sunny</span>
+              <span>Système Solaire</span>
+            </button>
+          </div>
         </div>
 
-        <div className={CSS.pickerWrapper}>
-          <ZonePicker
-            zones={zones}
-            selectedId={selectedZone?.id}
-            onSelect={handlePickerSelect}
-          />
-        </div>
+        {mainView === "earth" && (
+          <div className={CSS.pickerWrapper}>
+            <ZonePicker
+              zones={zones}
+              selectedId={selectedZone?.id}
+              onSelect={handlePickerSelect}
+            />
+          </div>
+        )}
       </header>
 
-      {/* 3D Globe with Lazy Loading */}
+      {/* 3D View with Lazy Loading: Globe View or Solar System View */}
       <main className={CSS.globeContainer}>
         <Suspense
           fallback={
             <div className={CSS.loaderBox}>
               <span className={CSS.loaderIcon}>progress_activity</span>
-              <span className={CSS.loaderText}>Initializing 3D Globe…</span>
+              <span className={CSS.loaderText}>
+                {mainView === "earth" ? "Initialisation du Globe 3D…" : "Chargement du Système Solaire…"}
+              </span>
             </div>
           }
         >
-          <GlobeView
-            ref={globeRef}
-            zones={zones}
-            selectedId={selectedZone?.id}
-            isCardOpen={isCardOpen}
-            onZoneSelect={handleMarkerSelect}
-            onGlobeClick={handleGlobeClick}
-          />
+          {mainView === "earth" ? (
+            <GlobeView
+              ref={globeRef}
+              zones={zones}
+              selectedId={selectedZone?.id}
+              isCardOpen={isCardOpen}
+              onZoneSelect={handleMarkerSelect}
+              onGlobeClick={handleGlobeClick}
+            />
+          ) : (
+            <SolarSystemView onSwitchToEarth={() => setMainView("earth")} />
+          )}
         </Suspense>
       </main>
 
-      {/* Info Card Drawer / Dialog */}
-      {isCardOpen && (
+      {/* Info Card Drawer / Dialog for Earth zones */}
+      {mainView === "earth" && isCardOpen && (
         <ZoneInfoCard
           zone={selectedZone}
           clickInfo={clickInfo}
@@ -172,13 +220,15 @@ export default function Landing({ manifest, onNavigateToZone, onNavigateToCustom
         />
       )}
 
-      {/* Navigation hint */}
-      <footer className={CSS.footerHint}>
-        <span className="material-symbols-outlined text-[14px] text-[#57f1db]">
-          touch_app
-        </span>
-        <span>Drag to rotate • Scroll to zoom • Click a zone to inspect</span>
-      </footer>
+      {/* Navigation hint for Earth Globe */}
+      {mainView === "earth" && (
+        <footer className={CSS.footerHint}>
+          <span className="material-symbols-outlined text-[14px] text-[#57f1db]">
+            touch_app
+          </span>
+          <span>Glisser pour pivoter • Molette pour zoomer • Cliquer pour inspecter</span>
+        </footer>
+      )}
     </div>
   );
 }
