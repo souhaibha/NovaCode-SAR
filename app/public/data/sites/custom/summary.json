@@ -1,42 +1,42 @@
 {
- "site": "souss",
- "name": "Souss-Massa, Morocco",
- "story": "Irrigated farming in the Souss valley, June to November 2026: fields planted and harvested.",
- "event": "farming",
- "event_date": null,
+ "site": "test_niger",
+ "name": "test_niger",
+ "story": "Automatic analysis from 2026-06-15 to 2026-11-15. Detected (ha): vegetation gain 7013, vegetation loss 3.",
+ "event": "unknown",
+ "event_date": "2026-08-30",
  "bounds": [
   [
-   30.19795272007633,
-   -9.70507246145817
+   16.181802208845703,
+   7.997895751129797
   ],
   [
-   30.903974693593103,
-   -7.992754380276461
+   16.399509367957904,
+   8.223582834769767
   ]
  ],
  "dates": [
-  "2026-06-27",
-  "2026-07-09",
-  "2026-07-21",
-  "2026-08-14",
-  "2026-08-26",
-  "2026-09-19",
-  "2026-10-01",
-  "2026-10-13",
-  "2026-10-25",
-  "2026-11-06"
+  "2026-06-18",
+  "2026-06-30",
+  "2026-07-12",
+  "2026-07-24",
+  "2026-08-17",
+  "2026-08-29",
+  "2026-09-10",
+  "2026-10-04",
+  "2026-10-16",
+  "2026-10-28"
  ],
  "frames": [
-  "radar_2026-06-27.jpg",
-  "radar_2026-07-09.jpg",
-  "radar_2026-07-21.jpg",
-  "radar_2026-08-14.jpg",
-  "radar_2026-08-26.jpg",
-  "radar_2026-09-19.jpg",
-  "radar_2026-10-01.jpg",
-  "radar_2026-10-13.jpg",
-  "radar_2026-10-25.jpg",
-  "radar_2026-11-06.jpg"
+  "radar_2026-06-18.jpg",
+  "radar_2026-06-30.jpg",
+  "radar_2026-07-12.jpg",
+  "radar_2026-07-24.jpg",
+  "radar_2026-08-17.jpg",
+  "radar_2026-08-29.jpg",
+  "radar_2026-09-10.jpg",
+  "radar_2026-10-04.jpg",
+  "radar_2026-10-16.jpg",
+  "radar_2026-10-28.jpg"
  ],
  "changemap": "changemap.png",
  "legend": [
@@ -44,7 +44,7 @@
    "cls": 0,
    "name": "stable",
    "color": null,
-   "hectares": 1235701
+   "hectares": 49442
   },
   {
    "cls": 1,
@@ -54,7 +54,7 @@
     200,
     60
    ],
-   "hectares": 6312
+   "hectares": 7013
   },
   {
    "cls": 2,
@@ -64,7 +64,7 @@
     50,
     50
    ],
-   "hectares": 5396
+   "hectares": 3
   },
   {
    "cls": 3,
@@ -74,7 +74,7 @@
     30,
     10
    ],
-   "hectares": 1092
+   "hectares": 0
   },
   {
    "cls": 4,
@@ -84,7 +84,7 @@
     150,
     255
    ],
-   "hectares": 28
+   "hectares": 0
   },
   {
    "cls": 5,
@@ -94,7 +94,7 @@
     70,
     160
    ],
-   "hectares": 24591
+   "hectares": 1142
   },
   {
    "cls": 6,
@@ -111,25 +111,15 @@
  "excluded_dates": [],
  "frame_colors": "R=HH, G=HV, B=HH-HV (dB)",
  "evaluation": {
-  "vegetation gain": {
-   "precision": 0.7,
-   "recall": 0.27,
-   "f1": 0.39
-  },
-  "vegetation loss": {
-   "precision": 0.53,
-   "recall": 0.44,
-   "f1": 0.48
-  },
-  "tested_on": "held-out 5 km blocks"
+  "note": "No reference map for this zone. Showcase test scores: burned F1 0.85 on an unseen track, flooded F1 0.84, vegetation change F1 0.39 to 0.48."
  },
  "earthquake": null,
  "event_share_of_land_percent": {
-  "vegetation gain": 0.51,
-  "vegetation loss": 0.43,
-  "burned": 0.09,
+  "vegetation gain": 12.42,
+  "vegetation loss": 0.0,
+  "burned": 0.0,
   "flooded": 0.0
  },
- "source": "NISAR L2 GCOV track 23 frame 73, L-band, 40 m",
+ "source": "NISAR L2 GCOV track 58 frame 10, L-band, 40 m",
  "model_version": "multi-event v2"
 }

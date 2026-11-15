@@ -1088,137 +1088,28 @@ export default function MapView(props) {
     };
   }, []);
 
-  // ── Helper to synthesize realistic calibrated SAR radar data for custom zones ──
-  function generateCustomRadarDataUrl(z, dateStr) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 400;
-    const ctx = canvas.getContext("2d");
-    const imgData = ctx.createImageData(400, 400);
-    const data = imgData.data;
-
-    const lat = z?.bounds ? (z.bounds[0][0] + z.bounds[1][0]) / 2 : 16.2;
-    const lng = z?.bounds ? (z.bounds[0][1] + z.bounds[1][1]) / 2 : 8.2;
-
-    let seed = Math.abs(Math.sin(lat * 12.9898 + lng * 78.233 + (dateStr ? dateStr.length : 0)) * 43758.5453);
-    function pseudoRand() {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    }
-
-    const isDesert = (lat >= 12 && lat <= 35 && lng >= -18 && lng <= 55) || (Math.abs(lat) >= 15 && Math.abs(lat) <= 30);
-
-    for (let y = 0; y < 400; y++) {
-      for (let x = 0; x < 400; x++) {
-        const idx = (y * 400 + x) * 4;
-        const noise = (pseudoRand() - 0.5) * 35;
-        const wave = Math.sin(x / 25) * Math.cos(y / 25) * 15;
-
-        let r, g, b;
-        if (isDesert) {
-          r = Math.min(255, Math.max(0, 185 + wave + noise));
-          g = Math.min(255, Math.max(0, 155 + wave * 0.8 + noise));
-          b = Math.min(255, Math.max(0, 95 + wave * 0.5 + noise * 0.7));
-        } else {
-          r = Math.min(255, Math.max(0, 120 + wave + noise));
-          g = Math.min(255, Math.max(0, 160 + wave + noise));
-          b = Math.min(255, Math.max(0, 90 + wave * 0.5 + noise * 0.5));
-        }
-
-        data[idx] = r;
-        data[idx + 1] = g;
-        data[idx + 2] = b;
-        data[idx + 3] = 230;
-      }
-    }
-    ctx.putImageData(imgData, 0, 0);
-    return canvas.toDataURL("image/png");
-  }
-
-  function generateCustomChangemapDataUrl(z, activeCls) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 400;
-    const ctx = canvas.getContext("2d");
-    const imgData = ctx.createImageData(400, 400);
-    const data = imgData.data;
-
-    const lat = z?.bounds ? (z.bounds[0][0] + z.bounds[1][0]) / 2 : 16.2;
-    const lng = z?.bounds ? (z.bounds[0][1] + z.bounds[1][1]) / 2 : 8.2;
-
-    let seed = Math.abs(Math.sin(lat * 37.1 + lng * 91.7) * 10000);
-    function rand() {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    }
-
-    const clusters = [
-      { cls: 1, color: [40, 200, 60], cx: 160, cy: 180, r: 65 },
-      { cls: 2, color: [230, 50, 50], cx: 250, cy: 260, r: 50 },
-      { cls: 3, color: [110, 30, 10], cx: 220, cy: 120, r: 40 },
-      { cls: 4, color: [0, 150, 255], cx: 130, cy: 290, r: 35 },
-      { cls: 5, color: [40, 70, 160], cx: 270, cy: 170, r: 45 },
-    ];
-
-    for (let y = 0; y < 400; y++) {
-      for (let x = 0; x < 400; x++) {
-        const idx = (y * 400 + x) * 4;
-        for (const cl of clusters) {
-          if (!activeCls || !activeCls.includes(cl.cls)) continue;
-          const dist = Math.hypot(x - cl.cx, y - cl.cy) + (rand() - 0.5) * 20;
-          if (dist < cl.r) {
-            data[idx] = cl.color[0];
-            data[idx + 1] = cl.color[1];
-            data[idx + 2] = cl.color[2];
-            data[idx + 3] = 210;
-            break;
-          }
-        }
-      }
-    }
-    ctx.putImageData(imgData, 0, 0);
-    return canvas.toDataURL("image/png");
-  }
-
   useEffect(() => {
-    if (zone?.isCustom) {
-      setFilteredRadarUrl(generateCustomRadarDataUrl(zone, currentRadarFrame));
-      return;
-    }
     return stripBlackEdges(
       currentRadarFrame ? siteBase + currentRadarFrame : null,
       setFilteredRadarUrl
     );
-  }, [siteBase, currentRadarFrame, zone?.isCustom, zone?.bounds, stripBlackEdges]);
+  }, [siteBase, currentRadarFrame, stripBlackEdges]);
 
   useEffect(() => {
-    if (zone?.isCustom) {
-      setFilteredStartRadarUrl(generateCustomRadarDataUrl(zone, startRadarFrame));
-      return;
-    }
     return stripBlackEdges(
       startRadarFrame ? siteBase + startRadarFrame : null,
       setFilteredStartRadarUrl
     );
-  }, [siteBase, startRadarFrame, zone?.isCustom, zone?.bounds, stripBlackEdges]);
+  }, [siteBase, startRadarFrame, stripBlackEdges]);
 
   useEffect(() => {
-    if (zone?.isCustom) {
-      setFilteredEndRadarUrl(generateCustomRadarDataUrl(zone, endRadarFrame));
-      return;
-    }
     return stripBlackEdges(
       endRadarFrame ? siteBase + endRadarFrame : null,
       setFilteredEndRadarUrl
     );
-  }, [siteBase, endRadarFrame, zone?.isCustom, zone?.bounds, stripBlackEdges]);
+  }, [siteBase, endRadarFrame, stripBlackEdges]);
 
   useEffect(() => {
-    if (zone?.isCustom) {
-      setFilteredChangemapUrl(generateCustomChangemapDataUrl(zone, activeClasses));
-      return;
-    }
-
     if (!zone?.changemap) {
       setFilteredChangemapUrl(null);
       return;

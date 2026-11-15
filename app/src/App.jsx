@@ -45,16 +45,16 @@ export default function App() {
     const dLon = 0.35 / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
 
     const nisarPasses = [
-      "2026-06-27",
-      "2026-07-09",
-      "2026-07-21",
-      "2026-08-14",
-      "2026-08-26",
-      "2026-09-19",
-      "2026-10-01",
-      "2026-10-13",
-      "2026-10-25",
-      "2026-11-06",
+      "2026-06-18",
+      "2026-06-30",
+      "2026-07-12",
+      "2026-07-24",
+      "2026-08-17",
+      "2026-08-29",
+      "2026-09-10",
+      "2026-10-04",
+      "2026-10-16",
+      "2026-10-28",
     ];
 
     const standardLegend = [
@@ -116,10 +116,12 @@ export default function App() {
 
   // Load full summary.json for the active site
   const { summary: fetchedZone, loading: summaryLoading } = useSiteSummary(
-    isCustomRoute ? null : (matchedSite?.site ?? null)
+    isCustomRoute ? "custom" : (matchedSite?.site ?? null)
   );
 
-  const rawMatchedZone = isCustomRoute ? customZone : fetchedZone;
+  const rawMatchedZone = isCustomRoute
+    ? (fetchedZone ? { ...fetchedZone, bounds: customZone.bounds, bbox: customZone.bbox, name: customZone.name } : customZone)
+    : fetchedZone;
   const matchedZone = drawnZone
     ? {
         ...rawMatchedZone,
