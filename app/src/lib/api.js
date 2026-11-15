@@ -87,6 +87,10 @@ export async function coverage(bbox, start, end) {
   return res.json();
 }
 
+export function getMockJob(id) {
+  return mockJobStore.get(id) || null;
+}
+
 /**
  * Start a processing job.
  * Sends header X-Token from import.meta.env.VITE_API_TOKEN when set.
@@ -100,6 +104,7 @@ export async function startJob(payload) {
       id: mockId,
       created: Date.now(),
       payload,
+      folder: "kampong_cham/",
     });
     return Promise.resolve({ ok: true, id: mockId });
   }
@@ -119,7 +124,29 @@ export async function startJob(payload) {
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    throw new Error(`API error starting job: HTTP ${res.status}`);
+    // Requirement 3: HTTP 409 on start: "Another analysis is running. Try again in a few minutes."
+    if (res.status === 409) {
+      throw new Error("Another analysis is running. Try again in a few minutes.");
+    }
+
+    let serverMessage = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      serverMessage = data.message || data.detail || serverMessage;
+    } catch {
+      try {
+        const text = await res.text();
+        if (text) serverMessage = text;
+      } catch {
+        // ignore
+      }
+    }
+
+    // Requirement 3: HTTP 400 or 401: show the server message, never show the token.
+    if (API_TOKEN && serverMessage.includes(API_TOKEN)) {
+      serverMessage = serverMessage.replaceAll(API_TOKEN, "[REDACTED]");
+    }
+    throw new Error(serverMessage);
   }
   return res.json();
 }
@@ -127,11 +154,23 @@ export async function startJob(payload) {
 /**
  * Get job status and output info by id.
  * Dev mock steps through queued, searching, downloading, processing, predicting, done on timers.
- * Result points at the first site in sites.json.
+ * Result points at user-run demo site with event "unknown" (kampong_cham/ or first site).
  */
 export async function getJob(id) {
   if (IS_MOCK) {
-    const job = mockJobStore.get(id) || { created: Date.now() - 15000 };
+    // Special test handles for mock verification
+    if (id === "unknown" || id?.includes("lost") || id === "unknown-job") {
+      throw new Error("This job was lost. If it finished, it may be in Recent analyses.");
+    }
+    if (id?.includes("fail") || id === "mock-failed") {
+      return Promise.resolve({
+        id,
+        status: "failed",
+        message: "Only 1 usable passes found for this track and frame.",
+      });
+    }
+
+    const job = mockJobStore.get(id) || { created: Date.now() - 15000, folder: "kampong_cham/" };
     const elapsed = Date.now() - job.created;
     let status = "queued";
     if (elapsed > 12000) status = "done";
@@ -140,10 +179,12 @@ export async function getJob(id) {
     else if (elapsed > 3500) status = "downloading";
     else if (elapsed > 1500) status = "searching";
 
-    let firstFolder = "souss/";
+    let folder = job.folder || "kampong_cham/";
     try {
       const sites = await getSites();
-      if (sites?.[0]?.folder) firstFolder = sites[0].folder;
+      const unknownSite = sites?.find((s) => s.event === "unknown");
+      if (unknownSite?.folder) folder = unknownSite.folder;
+      else if (sites?.[0]?.folder) folder = sites[0].folder;
     } catch {
       // fallback
     }
@@ -151,8 +192,8 @@ export async function getJob(id) {
     return Promise.resolve({
       id,
       status,
-      folder: status === "done" ? firstFolder : null,
-      result: status === "done" ? { folder: firstFolder } : null,
+      folder: status === "done" ? folder : null,
+      result: status === "done" ? { folder } : null,
     });
   }
 
@@ -162,9 +203,35 @@ export async function getJob(id) {
 
   const res = await fetch(`${API_BASE}/api/jobs/${id}`);
   if (!res.ok) {
-    throw new Error(`API error fetching job: HTTP ${res.status}`);
+    // Requirement 4: 404 "unknown job" (server restarted): "This job was lost. If it finished, it may be in Recent analyses."
+    if (res.status === 404) {
+      throw new Error("This job was lost. If it finished, it may be in Recent analyses.");
+    }
+
+    let serverMessage = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      serverMessage = data.message || data.detail || serverMessage;
+    } catch {
+      // ignore
+    }
+
+    if (serverMessage.toLowerCase().includes("unknown job")) {
+      throw new Error("This job was lost. If it finished, it may be in Recent analyses.");
+    }
+
+    // Strip token if present
+    if (API_TOKEN && serverMessage.includes(API_TOKEN)) {
+      serverMessage = serverMessage.replaceAll(API_TOKEN, "[REDACTED]");
+    }
+    throw new Error(serverMessage);
   }
-  return res.json();
+
+  const data = await res.json();
+  if (data?.message && data.message.toLowerCase().includes("unknown job")) {
+    throw new Error("This job was lost. If it finished, it may be in Recent analyses.");
+  }
+  return data;
 }
 
 /**

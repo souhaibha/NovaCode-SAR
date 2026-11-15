@@ -186,6 +186,44 @@ export default function ControlsPanel({
             {eventShareText && (
               <MetaRow label="Event share" value={eventShareText} />
             )}
+
+            {/* Requirement 8: Result wording for user-run zones (event "unknown") */}
+            {zone.event?.toLowerCase() === "unknown" && (
+              <div
+                style={{
+                  marginTop: 8,
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  background: "rgba(255,185,95,0.08)",
+                  border: "1px solid rgba(255,185,95,0.3)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: "#ffb95f", marginTop: 1 }}>
+                    info
+                  </span>
+                  <span style={{ fontSize: 11, color: "#ffb95f", fontWeight: 700, lineHeight: 1.4 }}>
+                    Automatic detection from NISAR radar. Not verified for this zone.
+                  </span>
+                </div>
+                {zone.evaluation?.note && (
+                  <p
+                    style={{
+                      margin: "2px 0 0",
+                      fontSize: 10.5,
+                      color: "#bacac5",
+                      lineHeight: 1.4,
+                      fontFamily: "'JetBrains Mono',monospace",
+                    }}
+                  >
+                    {zone.evaluation.note}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

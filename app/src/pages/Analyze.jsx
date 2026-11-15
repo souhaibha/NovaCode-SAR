@@ -4,6 +4,13 @@ import "leaflet/dist/leaflet.css";
 import { coverage, startJob, IS_MOCK } from "../lib/api";
 import { boundsToBbox } from "../lib/siteAdapter";
 import { useSites } from "../hooks/useSites";
+import {
+  getRecentAnalyses,
+  saveRecentAnalysis,
+  clearRecentAnalyses,
+  getActiveJobId,
+  setActiveJobId,
+} from "../lib/recentAnalyses";
 
 const BASEMAP_URL =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
@@ -113,6 +120,10 @@ export default function Analyze({ onNavigate }) {
   const [isStartingJob, setIsStartingJob] = useState(false);
   const [jobError, setJobError] = useState(null);
 
+  // Recent analyses and active job (Requirements 5 & 7)
+  const [recentAnalyses, setRecentAnalyses] = useState(() => getRecentAnalyses());
+  const [activeJobId, setActiveJobIdState] = useState(() => getActiveJobId());
+
   // Dimensions
   const dims = useMemo(() => computeZoneDimensions(bounds), [bounds]);
   const isTooLarge = dims?.isTooLarge ?? false;
@@ -191,6 +202,18 @@ export default function Analyze({ onNavigate }) {
 
       const res = await startJob(payload);
       if (res && res.id) {
+        // Requirement 5 & 7: Keep job id in localStorage and recent analyses
+        setActiveJobId(res.id);
+        const name = `Zone ${startDate} to ${endDate}`;
+        saveRecentAnalysis({
+          id: res.id,
+          name,
+          bbox: payload.bbox,
+          start: startDate,
+          end: endDate,
+          folder: res.folder || (IS_MOCK ? "kampong_cham/" : null),
+        });
+        setRecentAnalyses(getRecentAnalyses());
         onNavigate(`/job/${res.id}`);
       } else {
         throw new Error(res?.message || "Failed to start analysis job");
@@ -268,43 +291,131 @@ export default function Analyze({ onNavigate }) {
           )}
         </div>
 
-        {/* Navigation Tabs (Requirement 2) */}
-        <div style={{ display: "flex", padding: "8px 16px", gap: 8, borderBottom: "1px solid rgba(60,74,70,0.2)" }}>
+        {/* Navigation Tabs (Requirement 2 & 7) */}
+        <div style={{ display: "flex", padding: "8px 12px", gap: 6, borderBottom: "1px solid rgba(60,74,70,0.2)" }}>
           <button
             type="button"
             onClick={() => setActiveTab("analyze")}
             style={{
               flex: 1,
-              padding: "7px 10px",
+              padding: "7px 6px",
               borderRadius: 8,
               border: activeTab === "analyze" ? "1px solid #57f1db" : "1px solid rgba(60,74,70,0.3)",
               background: activeTab === "analyze" ? "rgba(87,241,219,0.12)" : "#0c1321",
               color: activeTab === "analyze" ? "#57f1db" : "#bacac5",
               fontWeight: activeTab === "analyze" ? 700 : 500,
-              fontSize: 12,
+              fontSize: 11.5,
               cursor: "pointer",
+              whiteSpace: "nowrap",
             }}
           >
-            Analyze a zone
+            Analyze zone
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRecentAnalyses(getRecentAnalyses());
+              setActiveTab("recent");
+            }}
+            style={{
+              flex: 1,
+              padding: "7px 6px",
+              borderRadius: 8,
+              border: activeTab === "recent" ? "1px solid #57f1db" : "1px solid rgba(60,74,70,0.3)",
+              background: activeTab === "recent" ? "rgba(87,241,219,0.12)" : "#0c1321",
+              color: activeTab === "recent" ? "#57f1db" : "#bacac5",
+              fontWeight: activeTab === "recent" ? 700 : 500,
+              fontSize: 11.5,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+            }}
+          >
+            <span>Recent</span>
+            {recentAnalyses.length > 0 && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontFamily: "'JetBrains Mono',monospace",
+                  background: activeTab === "recent" ? "#57f1db" : "#19202e",
+                  color: activeTab === "recent" ? "#003731" : "#bacac5",
+                  padding: "1px 5px",
+                  borderRadius: 8,
+                  fontWeight: 700,
+                }}
+              >
+                {recentAnalyses.length}
+              </span>
+            )}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("demo")}
             style={{
               flex: 1,
-              padding: "7px 10px",
+              padding: "7px 6px",
               borderRadius: 8,
               border: activeTab === "demo" ? "1px solid #57f1db" : "1px solid rgba(60,74,70,0.3)",
               background: activeTab === "demo" ? "rgba(87,241,219,0.12)" : "#0c1321",
               color: activeTab === "demo" ? "#57f1db" : "#bacac5",
               fontWeight: activeTab === "demo" ? 700 : 500,
-              fontSize: 12,
+              fontSize: 11.5,
               cursor: "pointer",
+              whiteSpace: "nowrap",
             }}
           >
             Demo zones
           </button>
         </div>
+
+        {/* Active Job Alert banner */}
+        {activeJobId && (
+          <div
+            style={{
+              margin: "10px 16px 0",
+              padding: "8px 12px",
+              borderRadius: 10,
+              background: "rgba(87,241,219,0.1)",
+              border: "1px solid rgba(87,241,219,0.35)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#57f1db", animation: "spin 3s linear infinite" }}>
+                progress_activity
+              </span>
+              <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#57f1db" }}>Job in progress</span>
+                <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono',monospace", color: "#bacac5", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                  {activeJobId}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate(`/job/${activeJobId}`)}
+              style={{
+                background: "#57f1db",
+                color: "#003731",
+                border: "none",
+                borderRadius: 8,
+                padding: "4px 10px",
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Resume
+            </button>
+          </div>
+        )}
 
         {/* ── TAB 1: ANALYZE A ZONE ── */}
         {activeTab === "analyze" && (
@@ -583,6 +694,113 @@ export default function Analyze({ onNavigate }) {
               )}
             </div>
 
+          </div>
+        )}
+
+        {/* ── TAB: RECENT ANALYSES (Requirement 7) ── */}
+        {activeTab === "recent" && (
+          <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono',monospace", color: "#859490", textTransform: "uppercase" }}>
+                Saved analyses ({recentAnalyses.length})
+              </span>
+              {recentAnalyses.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearRecentAnalyses();
+                    setRecentAnalyses([]);
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#ffb4ab",
+                    fontSize: 11,
+                    fontFamily: "'JetBrains Mono',monospace",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+
+            {recentAnalyses.length === 0 ? (
+              <div
+                style={{
+                  padding: "24px 16px",
+                  borderRadius: 10,
+                  background: "#0c1321",
+                  border: "1px solid rgba(60,74,70,0.3)",
+                  textAlign: "center",
+                  color: "#859490",
+                  fontSize: 12,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 32, color: "#4a5568" }}>
+                  history
+                </span>
+                <span>No recent analyses saved yet. Launch an analysis from "Analyze zone" to review it here.</span>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {recentAnalyses.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => onNavigate(`/map/${item.id}`)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      background: "#0c1321",
+                      border: "1px solid rgba(60,74,70,0.3)",
+                      cursor: "pointer",
+                      transition: "border-color 0.15s, background 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#57f1db";
+                      e.currentTarget.style.background = "#19202e";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(60,74,70,0.3)";
+                      e.currentTarget.style.background = "#0c1321";
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#dce2f6" }}>
+                        {item.name}
+                      </span>
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: "#57f1db" }}>
+                        arrow_forward
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10.5, fontFamily: "'JetBrains Mono',monospace", color: "#859490" }}>
+                      <span>ID: {item.id}</span>
+                    </div>
+
+                    {item.start && item.end && (
+                      <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono',monospace", color: "#bacac5" }}>
+                        {item.start} → {item.end}
+                      </div>
+                    )}
+
+                    {Array.isArray(item.bbox) && (
+                      <div style={{ fontSize: 10, fontFamily: "'JetBrains Mono',monospace", color: "#4a5568" }}>
+                        Bbox: [{item.bbox.map((v) => Number(v).toFixed(2)).join(", ")}]
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

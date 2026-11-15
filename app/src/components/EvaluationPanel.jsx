@@ -48,11 +48,20 @@ function MetricBar({ value }) {
   );
 }
 
-export default function EvaluationPanel({ evaluation }) {
+export default function EvaluationPanel({ evaluation, event }) {
+  const isUnknownZone = event?.toLowerCase() === "unknown";
+
   if (!evaluation || Object.keys(evaluation).length === 0) {
     return (
-      <div style={{ color: '#859490', fontSize: 12, fontFamily: "'JetBrains Mono', monospace", padding: '12px 0' }}>
-        Score data not yet available for this zone.
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {isUnknownZone && (
+          <div style={{ color: '#ffb95f', fontSize: 12, fontWeight: 600, padding: '4px 0' }}>
+            Automatic detection from NISAR radar. Not verified for this zone.
+          </div>
+        )}
+        <div style={{ color: '#859490', fontSize: 12, fontFamily: "'JetBrains Mono', monospace", padding: '8px 0' }}>
+          Score data not yet available for this zone.
+        </div>
       </div>
     );
   }
@@ -64,8 +73,8 @@ export default function EvaluationPanel({ evaluation }) {
     (v) => v && typeof v === 'object' && 'precision' in v
   );
 
-  // If no numeric scores (e.g. earthquake note), display the note
-  if (!hasNumericScores) {
+  // If no numeric scores or unknown zone with note, display wording and notes
+  if (!hasNumericScores || isUnknownZone) {
     // Find any string note in evaluation
     const notes = Object.entries(evaluation)
       .filter(([, v]) => typeof v === 'string')
@@ -74,6 +83,22 @@ export default function EvaluationPanel({ evaluation }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <span style={LABEL_STYLE}>Evaluation notes</span>
+        {isUnknownZone && (
+          <div
+            style={{
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: 'rgba(255,185,95,0.08)',
+              border: '1px solid rgba(255,185,95,0.3)',
+              color: '#ffb95f',
+              fontSize: 12,
+              fontWeight: 600,
+              lineHeight: 1.4,
+            }}
+          >
+            Automatic detection from NISAR radar. Not verified for this zone.
+          </div>
+        )}
         <div
           style={{
             background: '#19202e',

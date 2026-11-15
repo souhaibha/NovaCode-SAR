@@ -110,7 +110,7 @@ export default function RightPanel({ zone, onJobResult }) {
 
         {activeTab === 'scores' && (
           hasEvaluation ? (
-            <EvaluationPanel evaluation={zone.evaluation} />
+            <EvaluationPanel evaluation={zone.evaluation} event={zone?.event} />
           ) : (
             <div
               style={{

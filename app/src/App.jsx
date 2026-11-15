@@ -11,8 +11,9 @@ import JobView from "./pages/JobView";
 import { useSites } from "./hooks/useSites";
 import useSiteSummary from "./hooks/useSiteSummary";
 import { useHashRoute } from "./lib/router";
-import { siteBase } from "./lib/api";
+import { siteBase, IS_MOCK, getMockJob } from "./lib/api";
 import { visibleLegend } from "./lib/siteAdapter";
+import { getRecentAnalyses } from "./lib/recentAnalyses";
 
 // ── Constant ──────────────────────────────────────────────────────────────────
 const TEAM_NAME = "TODO";
@@ -54,9 +55,32 @@ export default function App() {
   const routeJobId = isJobRoute ? route.replace("/job/", "").trim() : null;
 
   // ── Resolve site entry for #/map/<id> ───────────────────────────────────────
-  const matchedEntry = isMapRoute && sites.length > 0
-    ? (sites.find((s) => s.site === routeMapId) || { site: routeMapId, folder: routeMapId + "/" })
-    : null;
+  // Find in sites.json; if not listed, check recent analyses or mock jobs, else treat id as folder name
+  let matchedEntry = null;
+  if (isMapRoute && sites.length > 0) {
+    const fromSites = sites.find((s) => s.site === routeMapId);
+    if (fromSites) {
+      matchedEntry = fromSites;
+    } else {
+      const recents = getRecentAnalyses();
+      const matchedRecent = recents.find((r) => r.id === routeMapId);
+      if (matchedRecent && matchedRecent.folder) {
+        matchedEntry = {
+          site: routeMapId,
+          folder: matchedRecent.folder,
+          name: matchedRecent.name || "Analysis Zone",
+        };
+      } else if (IS_MOCK && (routeMapId?.startsWith("job-sim-") || getMockJob(routeMapId))) {
+        matchedEntry = {
+          site: routeMapId,
+          folder: "kampong_cham/",
+          name: "Simulated Zone",
+        };
+      } else {
+        matchedEntry = { site: routeMapId, folder: routeMapId + "/" };
+      }
+    }
+  }
 
   // ── Load full summary.json ──────────────────────────────────────────────────
   const { summary: matchedZone, loading: summaryLoading, error: summaryError } = useSiteSummary(matchedEntry);
