@@ -1,0 +1,132 @@
+{
+ "site": "avila",
+ "name": "\u00c1vila, Spain",
+ "story": "Spain's largest recorded wildfire started on 22 to 23 July 2026; radar maps the burn scar through smoke and at night.",
+ "event": "fire",
+ "event_date": "2026-07-22",
+ "bounds": [
+  [
+   40.18953998199677,
+   -5.114303459587469
+  ],
+  [
+   40.66074432085179,
+   -4.390497336007089
+  ]
+ ],
+ "dates": [
+  "2026-06-08",
+  "2026-06-20",
+  "2026-07-02",
+  "2026-07-14",
+  "2026-07-26",
+  "2026-08-19",
+  "2026-09-12",
+  "2026-09-24",
+  "2026-10-30"
+ ],
+ "frames": [
+  "radar_2026-06-08.jpg",
+  "radar_2026-06-20.jpg",
+  "radar_2026-07-02.jpg",
+  "radar_2026-07-14.jpg",
+  "radar_2026-07-26.jpg",
+  "radar_2026-08-19.jpg",
+  "radar_2026-09-12.jpg",
+  "radar_2026-09-24.jpg",
+  "radar_2026-10-30.jpg"
+ ],
+ "changemap": "changemap.png",
+ "legend": [
+  {
+   "cls": 0,
+   "name": "stable",
+   "color": null,
+   "hectares": 277940
+  },
+  {
+   "cls": 1,
+   "name": "vegetation gain",
+   "color": [
+    40,
+    200,
+    60
+   ],
+   "hectares": 35
+  },
+  {
+   "cls": 2,
+   "name": "vegetation loss",
+   "color": [
+    230,
+    50,
+    50
+   ],
+   "hectares": 129
+  },
+  {
+   "cls": 3,
+   "name": "burned",
+   "color": [
+    110,
+    30,
+    10
+   ],
+   "hectares": 29670
+  },
+  {
+   "cls": 4,
+   "name": "flooded",
+   "color": [
+    0,
+    150,
+    255
+   ],
+   "hectares": 2
+  },
+  {
+   "cls": 5,
+   "name": "water",
+   "color": [
+    40,
+    70,
+    160
+   ],
+   "hectares": 988
+  },
+  {
+   "cls": 6,
+   "name": "earthquake ground displacement",
+   "color": [
+    255,
+    0,
+    200
+   ],
+   "hectares": 0
+  }
+ ],
+ "layers": {},
+ "excluded_dates": [
+  "2026-08-31",
+  "2026-10-06",
+  "2026-10-18"
+ ],
+ "frame_colors": "R=HH, G=HV, B=HH-HV (dB)",
+ "evaluation": {
+  "burned": {
+   "precision": 0.95,
+   "recall": 0.77,
+   "f1": 0.85
+  },
+  "tested_on": "unseen radar track (track 23) and unseen 5 km blocks"
+ },
+ "earthquake": null,
+ "event_share_of_land_percent": {
+  "vegetation gain": 0.01,
+  "vegetation loss": 0.04,
+  "burned": 9.64,
+  "flooded": 0.0
+ },
+ "source": "NISAR L2 GCOV track 87 frame 22, L-band, 40 m",
+ "model_version": "multi-event v2"
+}

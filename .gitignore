@@ -3,10 +3,13 @@
 *.npy
 *.npz
 *.h5
-data/
+/data/
 raw/
 __pycache__/
 .amlignore*
 node_modules/
 dist/
 .DS_Store
+
+.env
+.env.local
