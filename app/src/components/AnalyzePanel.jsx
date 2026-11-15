@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import SatelliteCalendarPicker from "./SatelliteCalendarPicker";
 import {
   hasBackend,
   API_URL,
@@ -39,10 +40,10 @@ function todayISO() {
 
 function autoName() {
   const now = new Date();
-  return `Analyse ${now.toLocaleDateString("fr-FR", {
+  return `Analysis ${now.toLocaleDateString("en-US", {
     day: "2-digit",
     month: "short",
-  })} ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+  })} ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
@@ -104,13 +105,13 @@ function PanelCard({ children, style }) {
 
 const STAGES = ["queued", "searching", "downloading", "processing", "predicting", "done"];
 const STAGE_LABEL = {
-  queued: "Initialisation",
-  searching: "Recherche des orbites NISAR",
-  downloading: "Acquisition des données radar",
-  processing: "Traitement géométrique & masque",
-  predicting: "Exécution du modèle IA multi-classes",
-  done: "Analyse terminée avec succès",
-  failed: "Échec de l'analyse",
+  queued: "Initialization",
+  searching: "Querying Sentinel-1 / NISAR orbits",
+  downloading: "Acquiring NASA radar scenes",
+  processing: "Geometric calibration & radiometric filter",
+  predicting: "Executing AI multi-class terrain model",
+  done: "Analysis completed successfully",
+  failed: "Analysis failed",
 };
 
 const inputStyle = {
@@ -145,10 +146,31 @@ function buttonStyle(enabled, strong = false) {
   };
 }
 
+function findClosestPass(availableDates, targetDate, minDate) {
+  if (!availableDates || availableDates.length === 0) return targetDate;
+  const filtered = minDate ? availableDates.filter((d) => d >= minDate) : availableDates;
+  if (filtered.length === 0) return targetDate;
+  if (filtered.includes(targetDate)) return targetDate;
+  const targetTime = new Date(targetDate).getTime();
+  let closest = filtered[0];
+  let minDiff = Math.abs(new Date(closest).getTime() - targetTime);
+  for (const d of filtered) {
+    const diff = Math.abs(new Date(d).getTime() - targetTime);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = d;
+    }
+  }
+  return closest;
+}
+
 export default function AnalyzePanel({
   bbox: rawBbox = null,
   drawing = false,
   isDrawing = false,
+  initialStart = null,
+  initialEnd = null,
+  availableDates: propAvailableDates = [],
   onStartDraw,
   onStartDrawZone,
   onClearBbox,
@@ -162,8 +184,15 @@ export default function AnalyzePanel({
   const bbox = normalizeBbox(adjustedBbox || rawBbox);
   const today = todayISO();
 
-  const [startDate, setStartDate] = useState("2026-06-15");
-  const [endDate, setEndDate] = useState(today > "2026-06-15" ? today : "2026-11-15");
+  const [startDate, setStartDate] = useState(initialStart || "2026-06-15");
+  const [endDate, setEndDate] = useState(initialEnd || (today > "2026-06-15" ? today : "2026-11-15"));
+  const [availablePasses, setAvailablePasses] = useState(propAvailableDates);
+
+  useEffect(() => {
+    if (initialStart) setStartDate(initialStart);
+    if (initialEnd) setEndDate(initialEnd);
+  }, [initialStart, initialEnd]);
+
   const [quakeDate, setQuakeDate] = useState("");
   const [analysisName, setAnalysisName] = useState("");
   const [token, setTokenState] = useState(() => getToken() || "nasa2026");
@@ -179,9 +208,9 @@ export default function AnalyzePanel({
   const zoneTooLarge = isTooLarge(dims);
   const dateProblem =
     startDate < "2026-06-15"
-      ? "La couverture NISAR débute le 15 juin 2026."
+      ? "NISAR orbital coverage begins June 15, 2026."
       : startDate >= endDate
-      ? "La date de début doit être antérieure à la date de fin."
+      ? "Start date must be earlier than end date."
       : null;
   const zoneBody = bbox
     ? { bbox: bbox.map((v) => Math.round(v * 1e5) / 1e5), start: startDate, end: endDate }
@@ -198,6 +227,26 @@ export default function AnalyzePanel({
     setCoverage(null);
     setTrackKey("");
   }, [bboxKey, startDate, endDate]);
+
+  // Fetch real NASA satellite passes for this bbox
+  useEffect(() => {
+    if (propAvailableDates && propAvailableDates.length > 0) {
+      setAvailablePasses(propAvailableDates);
+      return;
+    }
+    if (bbox && bbox.length === 4) {
+      const cLat = (bbox[1] + bbox[3]) / 2;
+      const cLng = (bbox[0] + bbox[2]) / 2;
+      fetch(`http://localhost:8000/api/satellite_passes?lat=${cLat.toFixed(3)}&lng=${cLng.toFixed(3)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok && data.dates?.length) {
+            setAvailablePasses(data.dates);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [bboxKey, propAvailableDates]);
 
   // Follow a running job (also resumes after a page refresh)
   useEffect(() => {
@@ -268,7 +317,7 @@ export default function AnalyzePanel({
       const newJob = { id: res.job_id, name };
       setJob(newJob);
       setActiveJob(newJob);
-      setJobState({ state: "queued", step: "Démarrage" });
+      setJobState({ state: "queued", step: "Starting" });
     } catch (e) {
       setError(e.message);
     }
@@ -310,17 +359,17 @@ export default function AnalyzePanel({
             }}
           />
           <SectionLabel>
-            {hasBackend ? "Serveur IA NISAR Connecté" : "Aucun serveur d'analyse connecté"}
+            {hasBackend ? "NISAR AI Server Connected" : "No Analysis Server Connected"}
           </SectionLabel>
         </div>
         <span style={{ fontSize: 11, color: T.muted, lineHeight: 1.4 }}>
           {hasBackend ? (
             <>
-              API active sur <code style={{ color: T.accent }}>{API_URL}</code>. Recherche Vertex ASF & modèle multi-classes prêts.
+              API active on <code style={{ color: T.accent }}>{API_URL}</code>. NASA ASF Datapool search & multi-class model ready.
             </>
           ) : (
             <>
-              Les zones de démonstration fonctionnent sans serveur. Pour analyser une nouvelle région, lancez <code>backend.py</code> sur le port 8000.
+              Demo sites run without a server. To analyze custom coordinates, run <code>backend.py</code> on port 8000.
             </>
           )}
         </span>
@@ -328,24 +377,24 @@ export default function AnalyzePanel({
 
       {/* 1. Zone */}
       <PanelCard>
-        <SectionLabel>1 · Zone d'analyse</SectionLabel>
+        <SectionLabel>1 · Analysis Region</SectionLabel>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button
             onClick={() => triggerDraw?.()}
             disabled={activeDrawing || running}
             style={buttonStyle(!activeDrawing && !running)}
           >
-            {activeDrawing ? "Tracé en cours… cliquez 2 coins" : bbox ? "Redessiner la zone" : "Tracer une zone sur la carte"}
+            {activeDrawing ? "Drawing in progress… click 2 corners" : bbox ? "Redraw region" : "Draw region on map"}
           </button>
           {bbox && !running && (
             <button onClick={() => triggerCancel?.()} style={buttonStyle(true)}>
-              Effacer
+              Clear
             </button>
           )}
         </div>
         {!bbox && !activeDrawing && (
           <span style={{ color: T.dim, fontSize: 11 }}>
-            Cliquez sur "Tracer une zone", puis cliquez sur deux coins opposés sur la carte.
+            Click "Draw region on map", then click two opposite corners on the map.
           </span>
         )}
         {dims && (
@@ -356,7 +405,7 @@ export default function AnalyzePanel({
             {zoneTooLarge && (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <span style={{ color: T.error, fontSize: 11 }}>
-                  Zone trop étendue ({dims.wKm} × {dims.hKm} km) ; la limite NISAR est de 50 × 50 km.
+                  Region too extensive ({dims.wKm} × {dims.hKm} km); NISAR max limit is 50 × 50 km.
                 </span>
                 <button
                   type="button"
@@ -385,34 +434,84 @@ export default function AnalyzePanel({
                     marginTop: 2,
                   }}
                 >
-                  ⚡ Ajuster automatiquement à 35 × 35 km
+                  ⚡ Auto-adjust to 35 × 35 km
                 </button>
               </div>
             )}
             <span style={{ color: T.dim, fontFamily: T.mono, fontSize: 10, lineHeight: 1.5 }}>
-              O {bbox[0].toFixed(4)} · S {bbox[1].toFixed(4)} · E {bbox[2].toFixed(4)} · N {bbox[3].toFixed(4)}
+              W {bbox[0].toFixed(4)} · S {bbox[1].toFixed(4)} · E {bbox[2].toFixed(4)} · N {bbox[3].toFixed(4)}
             </span>
           </>
         )}
       </PanelCard>
 
       {/* 2. Dates */}
-      <PanelCard>
-        <SectionLabel>2 · Période temporelle</SectionLabel>
-        {[
-          ["Date de début", startDate, setStartDate],
-          ["Date de fin", endDate, setEndDate],
-        ].map(([label, value, setter]) => (
-          <label key={label} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: T.muted, fontFamily: T.mono }}>
-            {label}
-            <input type="date" value={value} min="2026-06-15" onChange={(e) => setter(e.target.value)} style={inputStyle} />
-          </label>
-        ))}
+      <PanelCard style={{ overflow: "visible" }}>
+        <SectionLabel>2 · Temporal Period</SectionLabel>
+        <div style={{ display: "flex", gap: 8, position: "relative" }}>
+          <SatelliteCalendarPicker
+            label="Start Date"
+            value={startDate}
+            align="left"
+            position="bottom"
+            availableDates={availablePasses}
+            maxDate={today}
+            onChange={(s) => {
+              setStartDate(s);
+              const minE = new Date(new Date(s).getTime() + 12 * 86400000).toISOString().split("T")[0];
+              if (new Date(endDate) < new Date(minE)) setEndDate(minE);
+            }}
+          />
+          <SatelliteCalendarPicker
+            label="End Date (min +12d)"
+            value={endDate}
+            align="right"
+            position="bottom"
+            availableDates={availablePasses}
+            minDate={startDate ? new Date(new Date(startDate).getTime() + 12 * 86400000).toISOString().split("T")[0] : undefined}
+            maxDate={today}
+            onChange={(e) => setEndDate(e)}
+          />
+        </div>
+
+        {/* Quick orbital presets */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+          <span style={{ fontSize: 10, fontFamily: T.mono, color: T.muted }}>NASA Pass:</span>
+          {[
+            { label: "+12d (2 dates)", days: 12 },
+            { label: "+24d (3 dates)", days: 24 },
+            { label: "+48d (5 dates)", days: 48 },
+          ].map(({ label, days }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => {
+                const rawTarget = new Date(new Date(startDate).getTime() + days * 86400000).toISOString().split("T")[0];
+                const clamped = rawTarget > today ? today : rawTarget;
+                const minEnd = new Date(new Date(startDate).getTime() + 10 * 86400000).toISOString().split("T")[0];
+                const snapped = findClosestPass(availablePasses, clamped, minEnd);
+                setEndDate(snapped);
+              }}
+              style={{
+                padding: "2px 6px",
+                borderRadius: 4,
+                fontSize: 10,
+                fontFamily: T.mono,
+                background: "#0c1321",
+                color: "#bacac5",
+                border: "1px solid rgba(60,74,70,0.5)",
+                cursor: "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         {dateProblem && <span style={{ color: T.error, fontSize: 11, fontFamily: T.mono }}>{dateProblem}</span>}
         <details style={{ fontSize: 11, color: T.muted }}>
-          <summary style={{ cursor: "pointer", fontFamily: T.mono }}>Séisme (optionnel)</summary>
+          <summary style={{ cursor: "pointer", fontFamily: T.mono }}>Earthquake (optional)</summary>
           <label style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 6, fontFamily: T.mono }}>
-            Date de l'événement sismique (active l'interférométrie)
+            Seismic event date (activates interferometric analysis)
             <input type="date" value={quakeDate} min={startDate} max={endDate} onChange={(e) => setQuakeDate(e.target.value)} style={inputStyle} />
           </label>
         </details>
@@ -420,30 +519,30 @@ export default function AnalyzePanel({
 
       {/* 3. Coverage */}
       <PanelCard>
-        <SectionLabel>3 · Couverture satellite NISAR</SectionLabel>
+        <SectionLabel>3 · Satellite Radar Coverage</SectionLabel>
         <button onClick={handleCheckCoverage} disabled={!canCheck} style={buttonStyle(Boolean(canCheck))}>
           {coverage === "loading" && <Spinner />}
-          Vérifier la couverture NISAR
+          Verify NISAR Coverage
         </button>
-        {!bbox && <span style={{ color: T.dim, fontSize: 11 }}>Sélectionnez ou tracez une zone d'abord.</span>}
+        {!bbox && <span style={{ color: T.dim, fontSize: 11 }}>Select or draw a region first.</span>}
         {coverageReady && !coverage.ok && (
           <span style={{ color: T.error, fontSize: 12 }}>
-            Aucune orbite NISAR ne comporte au moins 4 passages sur cette zone durant cette période. Élargissez la période.
+            No NISAR orbit has at least 4 passes over this region during this period. Expand the time window.
           </span>
         )}
         {coverageReady && coverage.ok && (() => {
           const chosen = coverage.tracks.find((t) => `${t.track}/${t.frame}` === trackKey);
           return chosen ? (
             <span style={{ fontSize: 12, color: T.accent, fontFamily: T.mono }}>
-              ✓ Trace {chosen.track}, cadre {chosen.frame} ({(chosen.direction || "").toLowerCase()}) : {chosen.dates.length} passages radar, du{" "}
-              {chosen.dates[0]} au {chosen.dates[chosen.dates.length - 1]}
+              ✓ Track {chosen.track}, Frame {chosen.frame} ({(chosen.direction || "").toLowerCase()}): {chosen.dates.length} radar passes, from{" "}
+              {chosen.dates[0]} to {chosen.dates[chosen.dates.length - 1]}
             </span>
           ) : null;
         })()}
         {coverageReady && coverage.ok && (
           <details style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <summary style={{ fontSize: 11, color: T.muted, cursor: "pointer", fontFamily: T.mono }}>
-              Avancé : choisir une autre orbite radar ({coverage.tracks.filter((t) => t.dates.length >= 4).length} disponibles)
+              Advanced: select an alternate radar orbit ({coverage.tracks.filter((t) => t.dates.length >= 4).length} available)
             </summary>
             {coverage.tracks
               .filter((t) => t.dates.length >= 4)
@@ -453,8 +552,8 @@ export default function AnalyzePanel({
                   <label key={key} style={{ display: "flex", gap: 6, alignItems: "flex-start", fontSize: 11, fontFamily: T.mono, color: T.text, cursor: "pointer" }}>
                     <input type="radio" name="track" checked={trackKey === key} onChange={() => setTrackKey(key)} />
                     <span>
-                      Trace {t.track}, cadre {t.frame} ({(t.direction || "").toLowerCase()}) : {t.dates.length} dates exploitables
-                      {t.single_pol_passes > 0 ? ` (${t.single_pol_passes} simple polarimétrie)` : ""}
+                      Track {t.track}, Frame {t.frame} ({(t.direction || "").toLowerCase()}): {t.dates.length} exploitable passes
+                      {t.single_pol_passes > 0 ? ` (${t.single_pol_passes} single pol)` : ""}
                       <br />
                       <span style={{ color: T.dim }}>{t.dates.join(", ")}</span>
                     </span>
@@ -467,30 +566,30 @@ export default function AnalyzePanel({
 
       {/* 4. Run */}
       <PanelCard>
-        <SectionLabel>4 · Lancer l'analyse IA</SectionLabel>
+        <SectionLabel>4 · Launch AI Analysis</SectionLabel>
         <input
           type="text"
-          placeholder="Nom personnalisé de l'analyse (optionnel)"
+          placeholder="Custom analysis label (optional)"
           value={analysisName}
           onChange={(e) => setAnalysisName(e.target.value)}
           style={{ ...inputStyle, fontFamily: T.sans }}
         />
         <div style={{ fontSize: 10, color: T.accent, fontFamily: T.mono, display: "flex", alignItems: "center", gap: 5 }}>
-          <span>✓ Authentification NASA & IA intégrée</span>
+          <span>✓ Integrated NASA ASF authentication & AI</span>
         </div>
         <button onClick={handleAnalyze} disabled={!canAnalyze} style={buttonStyle(Boolean(canAnalyze), true)}>
           {running && <Spinner />}
-          Lancer l'analyse du modèle
+          Run Model Analysis
         </button>
         {job && (
           <div style={{ marginTop: 2, display: "flex", flexDirection: "column", gap: 3 }}>
             <span style={{ fontSize: 12, fontFamily: T.mono, color: jobState?.state === "failed" ? T.error : jobState?.state === "done" ? T.accent : T.muted }}>
-              {STAGE_LABEL[jobState?.state] || "En cours"}
+              {STAGE_LABEL[jobState?.state] || "In progress"}
               {jobState?.step && jobState.state !== "failed" ? ` : ${jobState.step}` : ""}
             </span>
             {jobState?.state === "failed" ? (
               <>
-                <span style={{ fontSize: 12, color: T.error }}>{jobState.message || "L'analyse s'est arrêtée."}</span>
+                <span style={{ fontSize: 12, color: T.error }}>{jobState.message || "Analysis stopped."}</span>
                 <button
                   onClick={() => {
                     setJob(null);
@@ -500,7 +599,7 @@ export default function AnalyzePanel({
                   disabled={!canAnalyze}
                   style={buttonStyle(Boolean(canAnalyze))}
                 >
-                  Réessayer
+                  Retry
                 </button>
               </>
             ) : (
@@ -516,7 +615,7 @@ export default function AnalyzePanel({
                     );
                   })}
                 </div>
-                <span style={{ fontSize: 10, color: T.dim, fontFamily: T.mono }}>ID Job : {job.id}</span>
+                <span style={{ fontSize: 10, color: T.dim, fontFamily: T.mono }}>Job ID : {job.id}</span>
               </>
             )}
           </div>
@@ -527,22 +626,22 @@ export default function AnalyzePanel({
       {/* 5. Recent analyses (kept in this browser) */}
       {recent.length > 0 && (
         <PanelCard>
-          <SectionLabel>Analyses récentes</SectionLabel>
+          <SectionLabel>Recent Analyses</SectionLabel>
           {recent.map((r) => (
             <div key={r.site} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.bg, borderRadius: 7, padding: "6px 10px" }}>
               <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</span>
                 <span style={{ fontSize: 10, color: T.dim, fontFamily: T.mono }}>{(r.analysed_at || "").slice(0, 16).replace("T", " ")}</span>
               </div>
-              <button onClick={() => onJobResult?.(r.site)} style={buttonStyle(true)}>Ouvrir</button>
+              <button onClick={() => onJobResult?.(r.site)} style={buttonStyle(true)}>Open</button>
             </div>
           ))}
         </PanelCard>
       )}
 
       <span style={{ fontSize: 10, color: T.dim, lineHeight: 1.5 }}>
-        Les détections pour une nouvelle région proviennent directement du modèle multi-classes entraîné sur les données radar NISAR.
-        {hasBackend ? ` · Serveur : ${API_URL}` : ""}
+        Detections for custom regions are generated by the multi-class AI model calibrated on Sentinel-1 & NISAR radar data.
+        {hasBackend ? ` · Server : ${API_URL}` : ""}
       </span>
     </div>
   );

@@ -27,6 +27,11 @@ export default function TopBar({ zone, showBack = false }) {
             <span>Globe</span>
           </a>
         )}
+        <img
+          src="/nasa_logo.png"
+          alt="NASA"
+          className="h-6 w-auto object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+        />
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center"
           style={{
@@ -144,7 +149,7 @@ export default function TopBar({ zone, showBack = false }) {
               textDecoration: "none",
             }}
           >
-            Vue Carte
+            Map View
           </a>
           <a
             href="#"
@@ -155,7 +160,7 @@ export default function TopBar({ zone, showBack = false }) {
               textDecoration: "none",
             }}
           >
-            Données NISAR
+            NISAR Data
           </a>
         </nav>
 
@@ -173,7 +178,7 @@ export default function TopBar({ zone, showBack = false }) {
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
-            FR
+            EN
           </span>
         </div>
       </div>

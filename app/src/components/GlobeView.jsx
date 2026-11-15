@@ -291,7 +291,8 @@ const GlobeInner = forwardRef(function GlobeInner(
         lat = coords.lat;
         lng = coords.lng;
       }
-      globeEl.current.pointOfView({ lat, lng, altitude: 1.4 }, 1000);
+      // Cinematic flight: smoothly transition camera over 1600ms and zoom into city/region
+      globeEl.current.pointOfView({ lat, lng, altitude: 1.15 }, 1600);
     },
   }));
 
@@ -340,9 +341,12 @@ const GlobeInner = forwardRef(function GlobeInner(
         ref={globeEl}
         width={dimensions.width}
         height={dimensions.height}
-        backgroundColor="#070e1c"
-        globeImageUrl={textureUrl}
-        showAtmosphere={false}
+        backgroundColor="rgba(0,0,0,0)"
+        backgroundImageUrl={`${import.meta.env.BASE_URL}textures/night-sky.png`}
+        globeImageUrl={`${import.meta.env.BASE_URL}textures/earth-blue-marble.jpg`}
+        showAtmosphere={true}
+        atmosphereColor="#38bdf8"
+        atmosphereAltitude={0.18}
         rendererConfig={{ powerPreference: "high-performance" }}
         // Zone points using stable string attribute accessors
         pointsData={pointsData}

@@ -11,6 +11,7 @@ import os, re, sys, json, uuid, math, shutil, subprocess, collections, datetime 
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 import asf_search as asf
 
@@ -23,15 +24,22 @@ TOKEN = os.environ.get("API_TOKEN", "")
 app = FastAPI(title="NISAR event detector")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])  # restrict before deploying
 os.makedirs(WEB, exist_ok=True)
+os.makedirs(PUBLIC_SITES, exist_ok=True)
 app.mount("/web", StaticFiles(directory=WEB), name="web")
 
-# Also mount /data/sites and /data for complete frontend compatibility
-if os.path.isdir(PUBLIC_SITES):
-    app.mount("/data/sites", StaticFiles(directory=PUBLIC_SITES), name="data_sites")
-else:
-    app.mount("/data/sites", StaticFiles(directory=WEB), name="data_sites")
-
 JOBS = {}
+
+
+@app.get("/data/sites/{site_id}/{filename}")
+def serve_site_file(site_id: str, filename: str):
+    """Dynamically serve any file from app/public/data/sites/{site_id}/{filename}.
+    Unlike StaticFiles, this works for directories created after server startup."""
+    if not re.fullmatch(r"[a-zA-Z0-9_\-\.]+", site_id) or not re.fullmatch(r"[a-zA-Z0-9_\-\.]+", filename):
+        raise HTTPException(400, "Invalid path")
+    file_path = os.path.join(PUBLIC_SITES, site_id, filename)
+    if not os.path.isfile(file_path):
+        raise HTTPException(404, f"Not found: {site_id}/{filename}")
+    return FileResponse(file_path)
 
 
 class Zone(BaseModel):
@@ -68,6 +76,148 @@ def check(z: Zone):
 def sites():
     f = os.path.join(WEB, "sites.json")
     return json.load(open(f)) if os.path.exists(f) else []
+
+
+PASSES_CACHE = {}
+
+@app.get("/api/satellite_passes")
+def satellite_passes(lat: float, lng: float):
+    cache_key = f"{round(lat, 2)}_{round(lng, 2)}"
+    if cache_key in PASSES_CACHE:
+        return PASSES_CACHE[cache_key]
+
+    targetRadiusKm = 17.5
+    dLat = targetRadiusKm / 110.57
+    cos_lat = max(0.15, math.cos(math.radians(lat)))
+    dLon = targetRadiusKm / (111.32 * cos_lat)
+    w, s, e, n = lng - dLon, lat - dLat, lng + dLon, lat + dLat
+    wkt = f"POLYGON(({w} {s},{e} {s},{e} {n},{w} {n},{w} {s}))"
+
+    try:
+        res = asf.search(intersectsWith=wkt, platform="Sentinel-1", processingLevel="GRD_HD", maxResults=30)
+        dates = sorted(list(set([r.properties.get("startTime", "")[:10] for r in res if r.properties.get("browse")])))
+        result = {"ok": True, "dates": dates}
+        PASSES_CACHE[cache_key] = result
+        return result
+    except Exception as err:
+        return {"ok": False, "dates": [], "error": str(err)}
+
+
+@app.get("/api/dynamic_site")
+def dynamic_site(
+    lat: float,
+    lng: float,
+    country: str = "",
+    start: str = None,
+    end: str = None,
+    max_passes: int = 4,
+    w: float = None,
+    s: float = None,
+    e: float = None,
+    n: float = None
+):
+    """Dynamically fetches real NASA SAR radar data for any clicked or drawn bounding box."""
+    if w is not None and s is not None and e is not None and n is not None:
+        bbox = [round(float(w), 4), round(float(s), 4), round(float(e), 4), round(float(n), 4)]
+        slug_w = f"{abs(w):.2f}".replace(".", "_")
+        slug_s = f"{abs(s):.2f}".replace(".", "_")
+        slug_e = f"{abs(e):.2f}".replace(".", "_")
+        slug_n = f"{abs(n):.2f}".replace(".", "_")
+        site_id = f"zone_d_{slug_w}_{slug_s}_{slug_e}_{slug_n}"
+    else:
+        targetRadiusKm = 17.5
+        dLat = targetRadiusKm / 110.57
+        cos_lat = max(0.15, math.cos(math.radians(lat)))
+        dLon = targetRadiusKm / (111.32 * cos_lat)
+        bbox = [round(lng - dLon, 4), round(lat - dLat, 4), round(lng + dLon, 4), round(lat + dLat, 4)]
+        slug_lat = f"{abs(lat):.2f}".replace(".", "_") + ("s" if lat < 0 else "n")
+        slug_lng = f"{abs(lng):.2f}".replace(".", "_") + ("w" if lng < 0 else "e")
+        site_id = f"zone_{slug_lat}_{slug_lng}"
+    
+    # If custom date range specified, include in unique site slug
+    date_suffix = ""
+    if start and end:
+        s_tag = start.replace("-", "")[-4:]
+        e_tag = end.replace("-", "")[-4:]
+        date_suffix = f"_{s_tag}_{e_tag}"
+    site_id = f"{site_id}{date_suffix}"
+    
+    dest_public = os.path.join(BASE, "app", "public", "data", "sites", site_id)
+    dest_dist = os.path.join(BASE, "app", "dist", "data", "sites", site_id)
+    dest_web = os.path.join(WEB, site_id)
+    summary_path = os.path.join(dest_public, "summary.json")
+    lock_path = os.path.join(dest_public, ".processing")
+
+    # --- Case 1: Already cached → return instantly ---
+    if os.path.exists(summary_path):
+        with open(summary_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            data["site"] = site_id
+            data["id"] = site_id
+            data["folder"] = f"{site_id}/"
+            data["base"] = f"http://localhost:8000/data/sites/{site_id}/"
+            data["status"] = "ready"
+            return JSONResponse(content=data, media_type="application/json; charset=utf-8")
+
+    # --- Case 2: Already being processed in background → tell frontend to wait ---
+    if os.path.exists(lock_path):
+        progress_pct = 35
+        progress_msg = "NASA radar acquisition in progress…"
+        try:
+            with open(lock_path, "r", encoding="utf-8") as lf:
+                txt = lf.read().strip()
+                if txt.startswith("{"):
+                    info = json.loads(txt)
+                    progress_pct = info.get("pct", 35)
+                    progress_msg = info.get("step", progress_msg)
+        except Exception:
+            pass
+        return JSONResponse(content={
+            "status": "processing",
+            "site": site_id,
+            "progress": progress_pct,
+            "message": progress_msg
+        })
+
+    # --- Case 3: Not cached → start background thread and return immediately ---
+    os.makedirs(dest_public, exist_ok=True)
+    with open(lock_path, "w", encoding="utf-8") as lf:
+        json.dump({"pct": 0, "step": "Connecting to NASA ASF Datapool API…"}, lf)
+
+    def _download_in_background():
+        try:
+            try:
+                from pipeline.generate_real_nasa_sar import generate_real_nasa_dataset
+            except ImportError:
+                from generate_real_nasa_sar import generate_real_nasa_dataset
+            generate_real_nasa_dataset(
+                bbox, site_id, [dest_public, dest_dist, dest_web],
+                start_date=start, end_date=end, max_passes=max_passes,
+                lock_file=lock_path
+            )
+        except Exception as e:
+            print(f"[ERROR] Background NASA download failed for {site_id}: {e}")
+        finally:
+            try:
+                with open(lock_path, "w", encoding="utf-8") as lf:
+                    json.dump({"pct": 100, "step": "Satellite processing completed successfully!"}, lf)
+                import time
+                time.sleep(0.8)
+            except Exception:
+                pass
+            if os.path.exists(lock_path):
+                os.remove(lock_path)
+
+    import threading
+    t = threading.Thread(target=_download_in_background, daemon=True)
+    t.start()
+
+    return JSONResponse(content={
+        "status": "processing",
+        "site": site_id,
+        "progress": 0,
+        "message": "Connecting to NASA ASF Datapool API…"
+    })
 
 
 @app.post("/api/coverage")

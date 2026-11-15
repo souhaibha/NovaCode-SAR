@@ -41,7 +41,7 @@ function formatDate(dateStr) {
   const parts = dateStr.split("-").map(Number);
   if (parts.length !== 3) return dateStr;
   const [y, m, d] = parts;
-  const months = ["Janv","Févr","Mars","Avr","Mai","Juin","Juil","Août","Sept","Oct","Nov","Déc"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return `${d} ${months[m - 1]} ${y}`;
 }
 
@@ -129,13 +129,13 @@ export default function SwipeDivider({
       <div className={STYLES.labelsRow}>
         <div className={STYLES.labelLeft} style={STYLES.labelStyle}>
           <span style={{ color: "#57f1db", fontSize: 13 }}>◀</span>
-          <span>AVANT :</span>
+          <span>BEFORE:</span>
           <span style={{ color: "#57f1db", fontWeight: 700 }}>{formatDate(startDate)}</span>
-          <span style={{ color: "#859490", fontSize: 10 }}>({startDate === endDate ? "Radar brut" : "Passage radar initial"})</span>
+          <span style={{ color: "#859490", fontSize: 10 }}>({startDate === endDate ? "Raw radar" : "Initial pass"})</span>
         </div>
         <div className={STYLES.labelRight} style={STYLES.labelStyle}>
-          <span style={{ color: "#859490", fontSize: 10 }}>({startDate === endDate ? "+ Détection IA" : "Passage récent + IA"})</span>
-          <span>APRÈS :</span>
+          <span style={{ color: "#859490", fontSize: 10 }}>({startDate === endDate ? "+ AI Detection" : "Recent pass + AI"})</span>
+          <span>AFTER:</span>
           <span style={{ color: "#57f1db", fontWeight: 700 }}>{formatDate(endDate)}</span>
           <span style={{ color: "#57f1db", fontSize: 13 }}>▶</span>
         </div>
@@ -145,7 +145,7 @@ export default function SwipeDivider({
       <div
         ref={containerRef}
         role="slider"
-        aria-label="Séparateur de comparaison avant / après"
+        aria-label="Before / after swipe comparison divider"
         aria-valuenow={ariaVal}
         aria-valuemin={0}
         aria-valuemax={100}

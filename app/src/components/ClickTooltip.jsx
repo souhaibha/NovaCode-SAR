@@ -94,7 +94,7 @@ export default function ClickTooltip({ point, onClose }) {
         {radarReflection && (
           <div className="mt-2 pt-2 border-t border-[#3c4a46]/40 flex flex-col gap-1 text-[10px] font-mono">
             <div className="flex justify-between text-[#859490]">
-              <span>Rétrodiffusion radar:</span>
+              <span>Radar backscatter:</span>
               <span className="text-[#57f1db]">HV: {radarReflection.hv} / 255</span>
             </div>
             <div className="text-[10px] text-[#bacac5] leading-tight font-sans italic">

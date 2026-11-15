@@ -73,24 +73,6 @@ export default function InfoPanel({ source, dates, excluded_dates }) {
           </div>
         </div>
       </div>
-
-      {/* Excluded dates */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span style={LABEL_STYLE}>Excluded Dates</span>
-        <div style={CARD_STYLE}>
-          {excluded ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {excluded.map((d) => (
-                <span key={d} style={{ ...VALUE_STYLE, color: '#ffb4ab' }}>
-                  {d}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span style={{ ...VALUE_STYLE, color: '#859490' }}>None</span>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

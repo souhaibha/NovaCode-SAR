@@ -1,7 +1,7 @@
-import React, { useState, useRef, Suspense, lazy, useCallback } from "react";
+import React, { useState, useEffect, useRef, Suspense, lazy, useCallback } from "react";
 import ZonePicker from "../components/ZonePicker";
 import ZoneInfoCard from "../components/ZoneInfoCard";
-import { nearestZone, NEAR_KM } from "../lib/geo";
+import worldCountries from "../lib/countries.json";
 
 const GlobeView = lazy(() => import("../components/GlobeView"));
 
@@ -17,109 +17,82 @@ const CSS = {
     "w-9 h-9 rounded-xl flex items-center justify-center bg-[#232a39] border border-[rgba(60,74,70,0.4)] text-[#57f1db]",
   title: "text-lg font-bold tracking-tight text-[#dce2f6]",
   tagline:
-    "hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#232a39] text-[#57f1db] text-[10px] font-mono tracking-wider border border-[rgba(60,74,70,0.4)] uppercase",
-  demoBadge:
-    "px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider uppercase bg-[#ffb4ab]/15 text-[#ffb4ab] border border-[#ffb4ab]/30",
+    "hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-[#232a39] text-[#57f1db] text-[10px] font-sans font-semibold tracking-wider border border-[rgba(60,74,70,0.4)] uppercase",
   pickerWrapper: "pointer-events-auto w-full md:w-96 flex justify-center",
   globeContainer: "w-full h-full relative z-10",
   loaderBox:
     "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#070e1c] z-20 text-[#bacac5]",
   loaderIcon: "material-symbols-outlined text-[42px] text-[#57f1db] animate-spin",
-  loaderText: "font-mono text-xs text-[#bacac5] tracking-wide",
+  loaderText: "font-sans text-xs text-[#bacac5] tracking-wide",
   footerHint:
-    "absolute bottom-4 left-6 z-20 pointer-events-none hidden sm:flex items-center gap-2 text-[11px] font-mono text-[#bacac5] bg-[#151b2a] px-3 py-1.5 rounded-lg border border-[rgba(60,74,70,0.4)]",
+    "absolute bottom-4 left-6 z-20 pointer-events-none hidden sm:flex items-center gap-2 text-[11px] font-sans text-[#bacac5] bg-[#151b2a] px-3 py-1.5 rounded-lg border border-[rgba(60,74,70,0.4)]",
 };
 
 export default function Landing({ manifest, onNavigateToZone, onNavigateToCustomZone }) {
   const globeRef = useRef(null);
 
-  const [selectedZone, setSelectedZone] = useState(null);
   const [clickInfo, setClickInfo] = useState(null);
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const sensor = manifest?.sensor || "NISAR / Sentinel-1";
 
-  const zones = manifest?.zones || [];
-  const sensor = manifest?.sensor || null;
-  const isDemo = Boolean(manifest?.fake);
-
-  const prefetchSite = useCallback((zoneId) => {
-    if (!zoneId || zoneId === "custom") return;
-    const url = `${import.meta.env.BASE_URL}data/sites/${zoneId}/summary.json`;
-    fetch(url, { cache: "force-cache" }).catch(() => {});
+  // Live ticking date/time ticker
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDate(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  // User selects zone from combobox
-  const handlePickerSelect = useCallback(
-    (zone) => {
-      setSelectedZone(zone);
-      setClickInfo(null);
-      prefetchSite(zone?.site || zone?.id);
-      if (globeRef.current) {
-        globeRef.current.flyTo(zone);
-      }
-    },
-    [prefetchSite]
-  );
+  const formattedDate = currentDate.toLocaleDateString("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
-  // User clicks directly on a zone marker
-  const handleMarkerSelect = useCallback(
-    (zone) => {
-      setSelectedZone(zone);
-      setClickInfo(null);
-      prefetchSite(zone?.site || zone?.id);
-      if (globeRef.current) {
-        globeRef.current.flyTo(zone);
-      }
-    },
-    [prefetchSite]
-  );
+  const formattedTime = currentDate.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "UTC",
+  });
 
-  // User clicks anywhere on globe / polygon
-  const handleGlobeClick = useCallback(
-    ({ lat, lng, countryName }) => {
-      if (globeRef.current) {
-        globeRef.current.flyTo({ lat, lng });
-      }
+  // User selects city, region or country from search box
+  const handlePickerSelect = useCallback((place) => {
+    if (globeRef.current && place.lat != null && place.lng != null) {
+      globeRef.current.flyTo({ lat: place.lat, lng: place.lng });
+    }
+    const displayName = place.subtitle
+      ? `${place.name} (${place.subtitle})`
+      : place.name;
+    setClickInfo({
+      lat: place.lat,
+      lng: place.lng,
+      countryName: displayName,
+      isNear: false,
+    });
+  }, []);
 
-      const nearest = nearestZone(lat, lng, zones);
-
-      if (nearest.inside && nearest.zone) {
-        // Clicked inside a supported zone bbox
-        setSelectedZone(nearest.zone);
-        setClickInfo(null);
-      } else if (nearest.distanceKm <= NEAR_KM && nearest.zone) {
-        // Within NEAR_KM
-        setSelectedZone(null);
-        setClickInfo({
-          lat,
-          lng,
-          countryName,
-          nearest,
-          isNear: true,
-        });
-      } else {
-        // Far away / custom point on globe
-        setSelectedZone(null);
-        setClickInfo({
-          lat,
-          lng,
-          countryName,
-          nearest,
-          isNear: false,
-        });
-      }
-    },
-    [zones]
-  );
+  // User clicks directly on globe
+  const handleGlobeClick = useCallback(({ lat, lng, countryName }) => {
+    if (globeRef.current) {
+      globeRef.current.flyTo({ lat, lng });
+    }
+    setClickInfo({
+      lat,
+      lng,
+      countryName,
+      isNear: false,
+    });
+  }, []);
 
   const handleCloseCard = useCallback(() => {
-    setSelectedZone(null);
     setClickInfo(null);
   }, []);
 
-  const isCardOpen = Boolean(selectedZone || clickInfo);
+  const isCardOpen = Boolean(clickInfo);
 
   return (
     <div className={CSS.container}>
-      {/* Top Header / Branding & Search */}
+      {/* Top Header / Branding & Search & Live Date */}
       <header className={CSS.header}>
         <div className={CSS.brandRow}>
           <div className={CSS.logoBox}>
@@ -127,15 +100,27 @@ export default function Landing({ manifest, onNavigateToZone, onNavigateToCustom
           </div>
           <span className={CSS.title}>SARdance</span>
           <span className={CSS.tagline}>Global SAR Change Monitor</span>
-          {isDemo && <span className={CSS.demoBadge}>Demo data</span>}
         </div>
 
         <div className={CSS.pickerWrapper}>
           <ZonePicker
-            zones={zones}
-            selectedId={selectedZone?.id}
+            zones={worldCountries}
+            selectedId={clickInfo?.countryName}
             onSelect={handlePickerSelect}
           />
+        </div>
+
+        {/* Live Date & Orbit Telemetry Pill */}
+        <div className="hidden lg:flex items-center gap-3 bg-[#151b2a] border border-[rgba(87,241,219,0.3)] px-3.5 py-1.5 rounded-2xl shadow-lg pointer-events-auto shrink-0 font-sans">
+          <span className="w-2 h-2 rounded-full bg-[#57f1db] shadow-[0_0_8px_#57f1db] animate-pulse" />
+          <div className="flex flex-col text-right">
+            <span className="text-xs font-bold text-[#ffffff] capitalize tracking-tight font-sans">
+              {formattedDate}
+            </span>
+            <span className="text-[10px] font-semibold text-[#57f1db] tracking-wider font-sans">
+              {formattedTime} UTC • Sentinel-1 Active
+            </span>
+          </div>
         </div>
       </header>
 
@@ -151,10 +136,10 @@ export default function Landing({ manifest, onNavigateToZone, onNavigateToCustom
         >
           <GlobeView
             ref={globeRef}
-            zones={zones}
-            selectedId={selectedZone?.id}
+            zones={[]}
+            selectedId={null}
             isCardOpen={isCardOpen}
-            onZoneSelect={handleMarkerSelect}
+            onZoneSelect={null}
             onGlobeClick={handleGlobeClick}
           />
         </Suspense>
@@ -163,7 +148,7 @@ export default function Landing({ manifest, onNavigateToZone, onNavigateToCustom
       {/* Info Card Drawer / Dialog */}
       {isCardOpen && (
         <ZoneInfoCard
-          zone={selectedZone}
+          zone={null}
           clickInfo={clickInfo}
           sensor={sensor}
           onClose={handleCloseCard}
@@ -177,7 +162,7 @@ export default function Landing({ manifest, onNavigateToZone, onNavigateToCustom
         <span className="material-symbols-outlined text-[14px] text-[#57f1db]">
           touch_app
         </span>
-        <span>Drag to rotate • Scroll to zoom • Click a zone to inspect</span>
+        <span>Click anywhere on Earth or search a location to launch NASA satellite SAR analysis</span>
       </footer>
     </div>
   );

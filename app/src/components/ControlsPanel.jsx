@@ -11,11 +11,13 @@ export default function ControlsPanel({
   setBasemap,
   opacity,
   setOpacity,
+  radarGrayscale,
+  setRadarGrayscale,
 }) {
   // Real summary.json uses zone.event (string), not zone.events (array).
   // Build a synthetic single-event list from zone.event when available.
   const eventLabel = zone?.event
-    ? (zone.event === "farming" ? "Agriculture & Végétation" : zone.event.charAt(0).toUpperCase() + zone.event.slice(1))
+    ? (zone.event === "farming" ? "Agriculture & Vegetation" : zone.event.charAt(0).toUpperCase() + zone.event.slice(1))
     : null;
   const baseEvents = eventLabel
     ? [{ id: zone.event, label: eventLabel, color: "#57f1db" }]
@@ -24,34 +26,44 @@ export default function ControlsPanel({
 
   // Real summary.json uses legend[] with { cls, name, color: [R,G,B]|null, hectares }
   const DEFAULT_LEGEND = [
-    { cls: 1, name: "gain de végétation", color: [40, 200, 60], hectares: 6312 },
-    { cls: 2, name: "perte de végétation", color: [230, 50, 50], hectares: 5396 },
-    { cls: 3, name: "zone brûlée", color: [110, 30, 10], hectares: 1092 },
-    { cls: 4, name: "zone inondée", color: [0, 150, 255], hectares: 28 },
-    { cls: 5, name: "plans d'eau", color: [40, 70, 160], hectares: 24591 },
+    { cls: 1, name: "Vegetation Growth", color: [40, 200, 60], hectares: 6312 },
+    { cls: 2, name: "Vegetation Loss", color: [230, 50, 50], hectares: 5396 },
+    { cls: 3, name: "Burned Area", color: [110, 30, 10], hectares: 1092 },
+    { cls: 4, name: "Inundation / Flooding", color: [0, 150, 255], hectares: 28 },
+    { cls: 5, name: "Permanent Water", color: [40, 70, 160], hectares: 24591 },
+    { cls: 6, name: "Soil & Dune Dynamics", color: [255, 0, 200], hectares: 1540 },
   ];
 
   const sourceLegend = (zone?.legend && zone.legend.length > 0) ? zone.legend : DEFAULT_LEGEND;
   const classes = sourceLegend
     .filter((e) => e.color !== null && e.color !== undefined)
-    .map((e) => ({
-      id: e.cls,
-      label: e.name === "vegetation gain" ? "gain de végétation"
-        : e.name === "vegetation loss" ? "perte de végétation"
-        : e.name === "burned" ? "zone brûlée"
-        : e.name === "flooded" ? "zone inondée"
-        : e.name === "water" ? "plans d'eau"
-        : e.name === "earthquake ground displacement" ? "déplacement de sol"
-        : e.name,
-      color: Array.isArray(e.color)
-        ? `rgb(${e.color[0]},${e.color[1]},${e.color[2]})`
-        : e.color,
-      hectares: e.hectares,
-    }));
+    .map((e) => {
+      let lbl = e.name;
+      if (lbl === "vegetation gain" || lbl === "gain de végétation") lbl = "Vegetation Growth";
+      else if (lbl === "vegetation loss" || lbl === "perte de végétation") lbl = "Vegetation Loss";
+      else if (lbl === "burned" || lbl === "zone brûlée") lbl = "Burned Area";
+      else if (lbl === "flooded" || lbl === "zone inondée") lbl = "Inundation / Flooding";
+      else if (lbl === "water" || lbl === "plans d'eau") lbl = "Permanent Water";
+      else if (lbl === "earthquake ground displacement" || lbl === "déplacement de sol" || lbl === "soil / dune dynamics") lbl = "Soil & Dune Dynamics";
+      return {
+        id: e.cls,
+        label: lbl,
+        color: Array.isArray(e.color)
+          ? `rgb(${e.color[0]},${e.color[1]},${e.color[2]})`
+          : e.color,
+        hectares: e.hectares,
+      };
+    });
 
   function isClassChecked(id) {
     return activeClasses.some((c) => c == id || String(c) === String(id));
   }
+
+  // Check if zone has zero detected changes across all non-stable classes
+  const isZeroDetection =
+    zone &&
+    zone.legend &&
+    zone.legend.filter((l) => l.cls !== 0 && l.hectares > 0).length === 0;
 
   function toggleClass(id) {
     setActiveClasses((prev) => {
@@ -93,7 +105,7 @@ export default function ControlsPanel({
                 textTransform: "uppercase",
               }}
             >
-              NISAR Bande L HH/HV
+              NISAR L-Band HH/HV
             </span>
           </div>
           <span
@@ -123,14 +135,14 @@ export default function ControlsPanel({
                 textTransform: "uppercase",
               }}
             >
-              Événement (Thème)
+              Event / Theme
             </span>
             <span
               className="flex items-center gap-1"
               style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#ffb95f" }}
             >
               <span className="material-symbols-outlined text-[13px]">bolt</span>
-              Actif
+              Active
             </span>
           </div>
 
@@ -200,7 +212,7 @@ export default function ControlsPanel({
                 textTransform: "uppercase",
               }}
             >
-              Classification du sol
+              Classification
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -208,7 +220,7 @@ export default function ControlsPanel({
                 onClick={() => setActiveClasses(classes.map((c) => c.id))}
                 className="text-[10px] font-mono text-[#57f1db] hover:underline cursor-pointer"
               >
-                Tout
+                All
               </button>
               <span style={{ color: "#859490", fontSize: 10 }}>|</span>
               <button
@@ -216,7 +228,7 @@ export default function ControlsPanel({
                 onClick={() => setActiveClasses([])}
                 className="text-[10px] font-mono text-[#859490] hover:text-[#dce2f6] cursor-pointer"
               >
-                Aucun
+                None
               </button>
               <span
                 style={{
@@ -263,6 +275,23 @@ export default function ControlsPanel({
               </label>
             ))}
           </div>
+
+          {isZeroDetection && (
+            <div
+              style={{
+                fontSize: 10.5,
+                fontFamily: "'JetBrains Mono', monospace",
+                color: "#57f1db",
+                background: "rgba(87, 241, 219, 0.08)",
+                border: "1px dashed rgba(87, 241, 219, 0.3)",
+                borderRadius: 8,
+                padding: "7px 10px",
+                lineHeight: 1.45,
+              }}
+            >
+              ℹ️ <strong>0 change detected</strong> on this date. The AI mask is empty: displaying raw calibrated NASA satellite SAR radar.
+            </div>
+          )}
         </div>
 
         {/* Section 3: Mode */}
@@ -277,15 +306,15 @@ export default function ControlsPanel({
               textTransform: "uppercase",
             }}
           >
-            Mode d'inspection
+            Inspection Mode
           </span>
           <div
             className="grid grid-cols-2 p-1 rounded-xl gap-1"
             style={{ background: "#19202e" }}
           >
             {[
-              { key: "period", label: "Vue Temporelle" },
-              { key: "swipe", label: "Comparaison Swipe" },
+              { key: "period", label: "Timeline View" },
+              { key: "swipe", label: "Swipe Compare" },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -316,7 +345,7 @@ export default function ControlsPanel({
                 textTransform: "uppercase",
               }}
             >
-              Fond de carte
+              Basemap
             </span>
             <div
               className="flex rounded-lg p-0.5"
@@ -324,7 +353,7 @@ export default function ControlsPanel({
             >
               {[
                 { key: "sat", label: "Satellite" },
-                { key: "street", label: "Rues" },
+                { key: "street", label: "Streets" },
               ].map(({ key, label }) => (
                 <button
                   key={key}
@@ -356,7 +385,7 @@ export default function ControlsPanel({
           >
             <div className="flex justify-between items-center">
               <span style={{ fontSize: 13, fontWeight: 500, color: "#dce2f6" }}>
-                Opacité radar SAR
+                SAR Radar Opacity
               </span>
               <span
                 style={{
@@ -378,6 +407,55 @@ export default function ControlsPanel({
               onChange={(e) => setOpacity(parseFloat(e.target.value))}
               className="w-full mt-1 accent-[#57f1db] cursor-pointer"
             />
+
+            <div
+              className="flex items-center justify-between pt-2 mt-1.5"
+              style={{ borderTop: "1px solid rgba(255, 255, 255, 0.07)" }}
+            >
+              <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#859490" }}>
+                Radar Palette
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setRadarGrayscale?.(false)}
+                  style={{
+                    padding: "3px 7px",
+                    borderRadius: 5,
+                    fontSize: 10,
+                    fontFamily: "'JetBrains Mono', monospace",
+                    border: "none",
+                    cursor: "pointer",
+                    background: !radarGrayscale ? "#57f1db" : "#232a39",
+                    color: !radarGrayscale ? "#003731" : "#859490",
+                    fontWeight: !radarGrayscale ? 700 : 500,
+                    transition: "all 0.15s",
+                  }}
+                  title="NASA polarimetric false-color (R=VV, G=VH, B=ratio)"
+                >
+                  NASA Colors
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRadarGrayscale?.(true)}
+                  style={{
+                    padding: "3px 7px",
+                    borderRadius: 5,
+                    fontSize: 10,
+                    fontFamily: "'JetBrains Mono', monospace",
+                    border: "none",
+                    cursor: "pointer",
+                    background: radarGrayscale ? "#57f1db" : "#232a39",
+                    color: radarGrayscale ? "#003731" : "#859490",
+                    fontWeight: radarGrayscale ? 700 : 500,
+                    transition: "all 0.15s",
+                  }}
+                  title="Single-channel grayscale radar intensity"
+                >
+                  Grayscale
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

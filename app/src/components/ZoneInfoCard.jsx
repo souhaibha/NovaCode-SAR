@@ -1,33 +1,34 @@
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import SatelliteCalendarPicker from "./SatelliteCalendarPicker";
 
 // Single styling block for the entire component (solid background, no backdrop-blur or heavy shadows over canvas)
 const CSS = {
   container:
-    "absolute bottom-6 right-6 z-[1000] w-[340px] max-w-[calc(100vw-32px)] rounded-2xl bg-[#151b2a] border border-[rgba(60,74,70,0.5)] p-5 text-[#dce2f6] flex flex-col gap-4 outline-none",
+    "absolute bottom-6 right-6 z-[1000] w-[360px] max-w-[calc(100vw-32px)] rounded-2xl bg-[#151b2a] border border-[rgba(60,74,70,0.5)] p-5 text-[#dce2f6] flex flex-col gap-3.5 outline-none font-sans shadow-2xl",
   header: "flex items-start justify-between gap-3",
   titleBox: "flex flex-col gap-1 min-w-0",
   title: "text-lg font-bold text-[#dce2f6] truncate tracking-tight font-sans",
-  subtitle: "text-xs font-mono text-[#bacac5] flex items-center gap-1.5",
+  subtitle: "text-xs font-sans text-[#bacac5] flex items-center gap-1.5",
   closeBtn:
     "w-7 h-7 rounded-lg flex items-center justify-center text-[#bacac5] hover:text-[#dce2f6] hover:bg-[#232a39] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#57f1db] shrink-0",
   badgeRow: "flex flex-wrap items-center gap-2",
   badgeEventType:
-    "px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider bg-[rgba(87,241,219,0.15)] text-[#57f1db] border border-[rgba(87,241,219,0.3)]",
+    "px-2.5 py-0.5 rounded-full text-[11px] font-sans font-semibold uppercase tracking-wider bg-[rgba(87,241,219,0.15)] text-[#57f1db] border border-[rgba(87,241,219,0.3)]",
   badgeSensor:
-    "px-2 py-0.5 rounded-full text-[10px] font-mono text-[#bacac5] bg-[#232a39] border border-[rgba(60,74,70,0.4)]",
+    "px-2.5 py-0.5 rounded-full text-[11px] font-sans text-[#bacac5] bg-[#232a39] border border-[rgba(60,74,70,0.4)]",
   gridDetails:
-    "grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#0c1321] border border-[rgba(60,74,70,0.3)] text-xs font-mono",
-  gridItemLabel: "text-[10px] text-[#bacac5] uppercase tracking-wider block",
-  gridItemValue: "text-xs text-[#dce2f6] font-semibold mt-0.5 truncate",
+    "grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#0c1321] border border-[rgba(60,74,70,0.3)] text-xs font-sans",
+  gridItemLabel: "text-[10px] text-[#bacac5] uppercase tracking-wider block font-sans",
+  gridItemValue: "text-xs text-[#dce2f6] font-semibold mt-0.5 truncate font-sans",
   description:
-    "text-xs leading-relaxed text-[#bacac5] max-h-24 overflow-y-auto pr-1",
+    "text-xs leading-relaxed text-[#bacac5] max-h-24 overflow-y-auto pr-1 font-sans",
   btnPrimary:
-    "w-full py-2.5 px-4 rounded-xl bg-[#57f1db] text-[#003731] font-bold text-sm text-center flex items-center justify-center gap-2 hover:bg-[#78f5e3] active:scale-[0.99] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white",
+    "w-full py-2.5 px-4 rounded-xl bg-[#57f1db] text-[#003731] font-bold text-xs tracking-wide text-center flex items-center justify-center gap-2 hover:bg-[#78f5e3] active:scale-[0.99] transition-all font-sans cursor-pointer shadow-[0_4px_16px_rgba(87,241,219,0.25)]",
   btnSecondary:
-    "w-full py-2 px-4 rounded-xl bg-[#232a39] text-[#57f1db] border border-[rgba(87,241,219,0.3)] font-semibold text-xs text-center flex items-center justify-center gap-2 hover:bg-[#2c3547] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#57f1db]",
+    "w-full py-2 px-4 rounded-xl bg-[#232a39] text-[#57f1db] border border-[rgba(87,241,219,0.3)] font-semibold text-xs text-center flex items-center justify-center gap-2 hover:bg-[#2c3547] transition-all font-sans cursor-pointer",
   noticeBox:
-    "p-3 rounded-xl bg-[#19202e] border border-[rgba(255,180,171,0.25)] text-xs text-[#dce2f6] flex flex-col gap-2",
-  noticeTitle: "font-semibold flex items-center gap-1.5 text-[#ffb4ab]",
+    "p-3.5 rounded-xl bg-[#19202e] border border-[rgba(87,241,219,0.25)] text-xs text-[#dce2f6] flex flex-col gap-2.5 font-sans",
+  noticeTitle: "font-semibold flex items-center gap-1.5 text-[#57f1db] font-sans text-xs",
   coordsText: "font-mono text-[11px] text-[#bacac5]",
 };
 
@@ -49,6 +50,24 @@ function computeAreaKm2(bbox) {
   const heightKm = Math.abs(latMax - latMin) * 110.574;
   const area = widthKm * heightKm;
   return Math.round(area);
+}
+
+function findClosestPass(availableDates, targetDate, minDate) {
+  if (!availableDates || availableDates.length === 0) return targetDate;
+  const filtered = minDate ? availableDates.filter((d) => d >= minDate) : availableDates;
+  if (filtered.length === 0) return targetDate;
+  if (filtered.includes(targetDate)) return targetDate;
+  const targetTime = new Date(targetDate).getTime();
+  let closest = filtered[0];
+  let minDiff = Math.abs(new Date(closest).getTime() - targetTime);
+  for (const d of filtered) {
+    const diff = Math.abs(new Date(d).getTime() - targetTime);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = d;
+    }
+  }
+  return closest;
 }
 
 export default function ZoneInfoCard({
@@ -166,14 +185,58 @@ export default function ZoneInfoCard({
   }
 
   // Case 2: Clicked on any custom point on the globe
+  const [startDate, setStartDate] = useState("2026-10-01");
+  const [endDate, setEndDate] = useState("2026-11-13");
+  const [availablePasses, setAvailablePasses] = useState([]);
+  const [loadingPasses, setLoadingPasses] = useState(false);
+
   const nearest = clickInfo?.nearest?.zone;
   const lat = clickInfo?.lat;
   const lng = clickInfo?.lng;
   const countryName = clickInfo?.countryName;
 
+  // Dynamically fetch actual NASA Sentinel-1 / NISAR pass dates for this clicked location
+  useEffect(() => {
+    if (lat != null && lng != null) {
+      setLoadingPasses(true);
+      fetch(`http://localhost:8000/api/satellite_passes?lat=${lat}&lng=${lng}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok && data.dates?.length) {
+            setAvailablePasses(data.dates);
+            if (data.dates.length >= 2) {
+              setStartDate(data.dates[data.dates.length - 2]);
+              setEndDate(data.dates[data.dates.length - 1]);
+            } else if (data.dates.length === 1) {
+              setStartDate(data.dates[0]);
+              setEndDate(data.dates[0]);
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingPasses(false));
+    }
+  }, [lat, lng]);
+
   const displayTitle = countryName
     ? `${countryName}`
     : `Zone (${lat != null ? lat.toFixed(2) : 0}°, ${lng != null ? lng.toFixed(2) : 0}°)`;
+
+  const handleLaunchAnalysis = () => {
+    if (onOpenCustomZone) {
+      onOpenCustomZone({
+        lat,
+        lng,
+        countryName,
+        start: startDate,
+        end: endDate,
+        maxPasses: 4,
+        view: "period",
+      });
+    } else {
+      onOpenZone("souss");
+    }
+  };
 
   return (
     <div
@@ -205,41 +268,52 @@ export default function ZoneInfoCard({
       <div className={CSS.noticeBox}>
         <div className={CSS.noticeTitle}>
           <span className="material-symbols-outlined text-[16px]">radar</span>
-          <span>Prêt pour analyse radar NISAR</span>
+          <span>Target Dates</span>
         </div>
-        <p className="leading-relaxed text-[#dce2f6]">
-          {countryName ? `Région de ${countryName}. ` : ""}
-          Vous pouvez explorer cette zone en haute résolution et lancer une détection de changements par satellite radar.
-        </p>
+
+        {/* Date range inputs with integrated Satellite Calendar Pickers */}
+        <div className="flex items-center gap-2 mt-1">
+          <SatelliteCalendarPicker
+            label="START"
+            value={startDate}
+            align="left"
+            availableDates={availablePasses}
+            maxDate={new Date().toISOString().split("T")[0]}
+            onChange={(newStart) => {
+              setStartDate(newStart);
+              const autoMinEnd = new Date(new Date(newStart).getTime() + 12 * 86400000).toISOString().split("T")[0];
+              if (new Date(endDate) < new Date(autoMinEnd)) {
+                setEndDate(autoMinEnd);
+              }
+            }}
+          />
+          <SatelliteCalendarPicker
+            label="END (MIN +12D)"
+            value={endDate}
+            align="right"
+            availableDates={availablePasses}
+            minDate={startDate ? new Date(new Date(startDate).getTime() + 12 * 86400000).toISOString().split("T")[0] : undefined}
+            maxDate={new Date().toISOString().split("T")[0]}
+            onChange={(newEnd) => setEndDate(newEnd)}
+          />
+        </div>
+
+        {loadingPasses && (
+          <div className="text-[10px] font-sans text-[#57f1db] animate-pulse">
+            📡 Synchronizing NASA orbital passes…
+          </div>
+        )}
       </div>
 
-      {/* Primary Action: Open this custom region on the map and launch analysis */}
+      {/* Primary Action Button */}
       <button
         type="button"
-        onClick={() => {
-          if (onOpenCustomZone) {
-            onOpenCustomZone({ lat, lng, countryName });
-          } else {
-            onOpenZone("souss");
-          }
-        }}
+        onClick={handleLaunchAnalysis}
         className={CSS.btnPrimary}
       >
-        <span>Analyser cette zone sur la carte</span>
+        <span>Launch NISAR Satellite Analysis</span>
         <span className="material-symbols-outlined text-[18px]">travel_explore</span>
       </button>
-
-      {/* Secondary option if near a precomputed demo site */}
-      {nearest && (
-        <button
-          type="button"
-          onClick={() => onOpenZone(nearest.id)}
-          className={CSS.btnSecondary}
-        >
-          <span>Voir le site démo le plus proche ({nearest.name})</span>
-          <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-        </button>
-      )}
     </div>
   );
 }

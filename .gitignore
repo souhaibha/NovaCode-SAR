@@ -11,3 +11,7 @@ node_modules/
 dist/
 .DS_Store
 web/
+app/public/data/sites/zone_*
+app/public/data/sites/test_ukraine_crop/
+pipeline/radar_*.jpg
+pipeline/real_sentinel1_radar.jpg

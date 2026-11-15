@@ -69,18 +69,21 @@ export default function Timeline({ zone, period, setPeriod }) {
     };
   }
 
-  // Play animation
+  // Play animation: unified playback cursor that advances synchronously through each satellite pass
   function togglePlay() {
     if (playing) {
       clearInterval(playRef.current);
       setPlaying(false);
     } else {
       setPlaying(true);
-      let idx = safeEnd;
+      let idx = dates.indexOf(period.end);
+      if (idx < 0) idx = 0;
       playRef.current = setInterval(() => {
-        idx = idx >= totalDates - 1 ? 0 : idx + 1;
-        setPeriod((p) => ({ ...p, end: dates[idx] }));
-      }, 1000);
+        idx = (idx + 1) % totalDates;
+        const nextDate = dates[idx];
+        // Move both start and end synchronously to the current frame date
+        setPeriod({ start: nextDate, end: nextDate });
+      }, 1200);
     }
   }
 
@@ -92,7 +95,7 @@ export default function Timeline({ zone, period, setPeriod }) {
   function formatDate(d) {
     if (!d) return "—";
     const [y, m, day] = d.split("-");
-    const months = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
   }
 
@@ -228,7 +231,7 @@ export default function Timeline({ zone, period, setPeriod }) {
                 <div
                   key={date}
                   onClick={() => setPeriod((p) => ({ ...p, end: date }))}
-                  title={`Passage NISAR : ${formatDate(date)}`}
+                  title={`NISAR Pass: ${formatDate(date)}`}
                   className="flex flex-col items-center cursor-pointer group"
                   style={{
                     position: "absolute",
@@ -280,7 +283,7 @@ export default function Timeline({ zone, period, setPeriod }) {
           info
         </span>
         <span className="italic truncate">
-          Passages orbitaux NISAR (cycle de 12 jours). Détection temporelle des variations de rétrodiffusion radar.
+          Sentinel-1 / NISAR orbital passes (12-day cycle). Multitemporal radar backscatter change detection.
         </span>
       </div>
     </div>

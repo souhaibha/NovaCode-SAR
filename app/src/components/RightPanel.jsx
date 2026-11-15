@@ -11,12 +11,12 @@ import EvaluationPanel from './EvaluationPanel';
 import AnalyzePanel from './AnalyzePanel';
 
 const TABS = [
-  { key: 'legend',  label: 'Légende' },
-  { key: 'info',    label: 'Infos' },
-  { key: 'help',    label: 'Aide' },
-  { key: 'story',   label: 'Récit' },
+  { key: 'legend',  label: 'Legend' },
+  { key: 'info',    label: 'Info' },
+  { key: 'help',    label: 'Help' },
+  { key: 'story',   label: 'Story' },
   { key: 'scores',  label: 'Scores' },
-  { key: 'analyze', label: 'Analyser' },
+  { key: 'analyze', label: 'Analyze' },
 ];
 
 export default function RightPanel({
@@ -153,6 +153,9 @@ export default function RightPanel({
         {activeTab === 'analyze' && (
           <AnalyzePanel
             bbox={zone?.bbox || zone?.bounds}
+            initialStart={period?.start}
+            initialEnd={period?.end}
+            availableDates={zone?.dates || []}
             onJobResult={onJobResult}
             isDrawing={isDrawing}
             onStartDrawZone={onStartDrawZone}

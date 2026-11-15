@@ -31,7 +31,7 @@ const changemapBlobCache = new Map();
  * to both Leaflet's internal layer instance and the HTML img DOM element.
  */
 const SmartImageOverlay = forwardRef(function SmartImageOverlay(
-  { url, bounds, opacity = 1, className = "pixelated", eventHandlers, ...rest },
+  { url, bounds, opacity = 1, className = "pixelated", filter, eventHandlers, ...rest },
   forwardedRef
 ) {
   const innerRef = useRef(null);
@@ -45,9 +45,14 @@ const SmartImageOverlay = forwardRef(function SmartImageOverlay(
       const el = activeRef.current.getElement?.();
       if (el) {
         el.style.opacity = String(opacity);
+        if (filter !== undefined) {
+          el.style.filter = filter;
+        } else {
+          el.style.filter = "";
+        }
       }
     }
-  }, [opacity, url, activeRef]);
+  }, [opacity, url, filter, activeRef]);
 
   return (
     <ImageOverlay
@@ -339,8 +344,8 @@ function ZoomButtons({ mapRef, bounds, isDrawingZone, onToggleDrawZone }) {
       ? [
           {
             icon: "crop_free",
-            ariaLabel: "Tracer une zone",
-            title: isDrawingZone ? "Annuler le tracé" : "Tracer une zone d'analyse",
+            ariaLabel: "Draw region",
+            title: isDrawingZone ? "Cancel drawing" : "Draw analysis region",
             active: isDrawingZone,
             disabled: false,
             fn: onToggleDrawZone,
@@ -511,7 +516,7 @@ function MapClickHandler({
           if (!matchedClass) {
             matchedClass = {
               id: "stable",
-              label: "Stable (aucun changement)",
+              label: "Stable (no change)",
               color: "#859490",
             };
           }
@@ -531,10 +536,10 @@ function MapClickHandler({
                   hh,
                   hv,
                   desc: hv < 85 
-                    ? "Faible rétrodiffusion HV (végétation coupée/absente ou sol nu)"
+                    ? "Low HV backscatter (sparse vegetation / bare soil)"
                     : hv > 150 
-                    ? "Forte rétrodiffusion HV (végétation dense et active)"
-                    : "Rétrodiffusion HV modérée",
+                    ? "High HV backscatter (dense vegetation canopy)"
+                    : "Moderate HV backscatter",
                 };
               }
             } catch (_) {}
@@ -703,6 +708,8 @@ export default function MapView(props) {
 
   // A7: Swipe mode — effective mode from props or internal fallback
   const mode = props.mode !== undefined ? props.mode : "period";
+  const radarGrayscale = props.radarGrayscale ?? false;
+  const setRadarGrayscale = props.setRadarGrayscale;
 
   // A7: Swipe divider position (0..1) and overlay refs
   const [split, setSplit] = useState(0.5);
@@ -1059,7 +1066,13 @@ export default function MapView(props) {
 
   // Dynamic filter for changemap based on activeClasses
   const [filteredChangemapUrl, setFilteredChangemapUrl] = useState(null);
-  const [activeSpecialLayer, setActiveSpecialLayer] = useState("both");
+  const [activeSpecialLayer, setActiveSpecialLayer] = useState(() => props.initialLayer || "both");
+
+  useEffect(() => {
+    if (props.initialLayer) {
+      setActiveSpecialLayer(props.initialLayer);
+    }
+  }, [props.initialLayer]);
   const [filteredRadarUrl, setFilteredRadarUrl] = useState(null);
   const [filteredStartRadarUrl, setFilteredStartRadarUrl] = useState(null);
   const [filteredEndRadarUrl, setFilteredEndRadarUrl] = useState(null);
@@ -1327,6 +1340,7 @@ export default function MapView(props) {
                 url={filteredStartRadarUrl || (siteBase + startRadarFrame)}
                 bounds={bounds}
                 opacity={opacity}
+                filter={radarGrayscale ? "grayscale(100%) contrast(1.15)" : undefined}
                 className="pixelated"
                 eventHandlers={{
                   add: () => requestAnimationFrame(applyClip),
@@ -1341,6 +1355,7 @@ export default function MapView(props) {
                 url={filteredEndRadarUrl || (siteBase + endRadarFrame)}
                 bounds={bounds}
                 opacity={opacity}
+                filter={radarGrayscale ? "grayscale(100%) contrast(1.15)" : undefined}
                 className="pixelated"
                 eventHandlers={{
                   add: () => requestAnimationFrame(applyClip),
@@ -1405,12 +1420,13 @@ export default function MapView(props) {
         {/* Real NISAR site changemap & radar frame */}
         {zone.changemap && mode !== "swipe" && (
           <>
-            {currentRadarFrame && (activeSpecialLayer === "radar" || activeSpecialLayer === "both" || activeSpecialLayer === "changemap") && (
+            {currentRadarFrame && (activeSpecialLayer === "radar" || activeSpecialLayer === "both") && (
               <SmartImageOverlay
                 key={`radar-${currentRadarFrame}`}
                 url={filteredRadarUrl || (siteBase + currentRadarFrame)}
                 bounds={bounds}
                 opacity={opacity}
+                filter={radarGrayscale ? "grayscale(100%) contrast(1.15)" : undefined}
                 className="pixelated"
               />
             )}
@@ -1529,7 +1545,7 @@ export default function MapView(props) {
             crop_free
           </span>
           <span>
-            <strong>Mode sélection :</strong> Cliquez sur 2 coins opposés pour tracer la zone
+            <strong>Selection mode:</strong> Click 2 opposite corners to draw region
           </span>
           <button
             type="button"
@@ -1546,7 +1562,7 @@ export default function MapView(props) {
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
-            Annuler
+            Cancel
           </button>
         </div>
       )}
@@ -1581,7 +1597,7 @@ export default function MapView(props) {
               marginRight: 6,
             }}
           >
-            Affichage :
+            Layer :
           </span>
           <button
             type="button"
@@ -1599,7 +1615,7 @@ export default function MapView(props) {
               transition: "all 0.15s",
             }}
           >
-            Radar + IA
+            Radar + AI
           </button>
           <button
             type="button"
@@ -1617,7 +1633,7 @@ export default function MapView(props) {
               transition: "all 0.15s",
             }}
           >
-            Radar seul
+            Radar Only
           </button>
           <button
             type="button"
@@ -1635,8 +1651,29 @@ export default function MapView(props) {
               transition: "all 0.15s",
             }}
           >
-            Changements IA
+            AI Changes
           </button>
+          {setRadarGrayscale && (
+            <button
+              type="button"
+              onClick={() => setRadarGrayscale(!radarGrayscale)}
+              style={{
+                padding: "4px 9px",
+                borderRadius: 6,
+                fontSize: 11,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: radarGrayscale ? 700 : 500,
+                border: "none",
+                cursor: "pointer",
+                background: radarGrayscale ? "#57f1db" : "transparent",
+                color: radarGrayscale ? "#003731" : "#bacac5",
+                transition: "all 0.15s",
+              }}
+              title="Toggle satellite radar image between NASA false colors and grayscale"
+            >
+              {radarGrayscale ? "Grayscale ✓" : "Grayscale"}
+            </button>
+          )}
           {zone?.layers?.displacement && (
             <button
               type="button"
@@ -1873,9 +1910,9 @@ export default function MapView(props) {
         </div>
       </div>
 
-      {/* Échelle / Scale & Coordinates (Top Right HUD, cleanly aligned with map controls) */}
+      {/* Scale & Coordinates (Right HUD below zoom buttons, preventing any overlap with top layer controls) */}
       <div
-        className="absolute top-4 right-16 z-[1000] pointer-events-auto flex flex-col items-end gap-0.5 px-2.5 py-1.5 rounded-xl transition-opacity hover:opacity-100"
+        className="absolute top-[185px] right-4 z-[1000] pointer-events-auto flex flex-col items-end gap-0.5 px-2.5 py-1.5 rounded-xl transition-opacity hover:opacity-100"
         style={{
           background: "rgba(15, 23, 42, 0.88)",
           backdropFilter: "blur(12px)",

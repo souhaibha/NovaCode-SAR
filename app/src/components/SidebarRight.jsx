@@ -46,7 +46,7 @@ useEffect(() => {
     labels: stats && stats.series ? stats.series.map((s) => s.date) : [],
     datasets: [
       {
-        label: 'Surface en Eau (km²)',
+        label: 'Water Surface Area (km²)',
         data: stats && stats.series ? stats.series.map((s) => (s.classes ? s.classes.eau_km2 : 0)) : [],
         borderColor: '#0ea5e9', // Sky-500 pour matcher Tailwind
         borderWidth: 2,
