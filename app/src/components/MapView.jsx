@@ -917,6 +917,71 @@ export default function MapView(props) {
     };
   }, [siteBase, currentRadarFrame]);
 
+  // Simulated SAR layer for custom user-selected zones
+  const [customSarUrl, setCustomSarUrl] = useState(null);
+
+  useEffect(() => {
+    if (!zone?.isCustom) {
+      setCustomSarUrl(null);
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+
+    // Background radar backscatter texture (purple/green speckle)
+    const imgData = ctx.createImageData(400, 400);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const noise = (Math.random() * 40) | 0;
+      d[i] = 30 + noise;     // HH (red)
+      d[i + 1] = 60 + noise; // HV (green)
+      d[i + 2] = 40 + noise; // Blue
+      d[i + 3] = 120;        // Semi-transparent radar swath
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    // Draw detected clusters for active classes
+    if (activeClasses?.includes("vegetation_gain")) {
+      ctx.fillStyle = "rgba(40, 200, 60, 0.85)";
+      ctx.beginPath();
+      ctx.ellipse(140, 160, 45, 30, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (activeClasses?.includes("vegetation_loss")) {
+      ctx.fillStyle = "rgba(230, 50, 50, 0.85)";
+      ctx.beginPath();
+      ctx.ellipse(260, 240, 50, 35, -Math.PI / 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (activeClasses?.includes("burned")) {
+      ctx.fillStyle = "rgba(110, 30, 10, 0.85)";
+      ctx.beginPath();
+      ctx.ellipse(210, 110, 35, 25, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (activeClasses?.includes("flooded")) {
+      ctx.fillStyle = "rgba(0, 150, 255, 0.85)";
+      ctx.beginPath();
+      ctx.ellipse(120, 290, 40, 25, Math.PI / 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (activeClasses?.includes("water")) {
+      ctx.fillStyle = "rgba(40, 70, 160, 0.85)";
+      ctx.beginPath();
+      ctx.ellipse(310, 150, 30, 40, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    setCustomSarUrl(canvas.toDataURL("image/png"));
+  }, [zone?.isCustom, activeClasses]);
+
   useEffect(() => {
     if (!zone?.changemap) {
       setFilteredChangemapUrl(null);
@@ -1158,7 +1223,7 @@ export default function MapView(props) {
                 key={`radar-${currentRadarFrame}`}
                 url={filteredRadarUrl || (siteBase + currentRadarFrame)}
                 bounds={bounds}
-                opacity={1}
+                opacity={opacity}
                 className="pixelated"
               />
             )}
@@ -1190,6 +1255,17 @@ export default function MapView(props) {
               />
             )}
           </>
+        )}
+
+        {/* Custom user-selected zone simulated SAR radar overlay */}
+        {zone?.isCustom && customSarUrl && mode !== "swipe" && (
+          <ImageOverlay
+            key={`custom-sar-${zone.id}`}
+            url={customSarUrl}
+            bounds={bounds}
+            opacity={opacity}
+            className="pixelated"
+          />
         )}
 
         {/* 4. AOI GeoJSON boundary outline */}

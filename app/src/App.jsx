@@ -35,6 +35,31 @@ export default function App() {
     const country = params.get("country") || "";
     const dLat = 0.18;
     const dLon = 0.18 / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+
+    const nisarPasses = [
+      "2026-06-15",
+      "2026-06-27",
+      "2026-07-09",
+      "2026-07-21",
+      "2026-08-02",
+      "2026-08-14",
+      "2026-08-26",
+      "2026-09-07",
+      "2026-09-19",
+      "2026-10-01",
+      "2026-10-13",
+      "2026-10-25",
+      "2026-11-06",
+    ];
+
+    const standardLegend = [
+      { cls: "vegetation_gain", name: "vegetation gain", color: [40, 200, 60], hectares: 420 },
+      { cls: "vegetation_loss", name: "vegetation loss", color: [230, 50, 50], hectares: 215 },
+      { cls: "burned", name: "burned", color: [110, 30, 10], hectares: 65 },
+      { cls: "flooded", name: "flooded", color: [0, 150, 255], hectares: 110 },
+      { cls: "water", name: "water", color: [40, 70, 160], hectares: 540 },
+    ];
+
     customZone = {
       id: "custom",
       site: "custom",
@@ -43,8 +68,16 @@ export default function App() {
       event: "custom",
       bbox: [lng - dLon, lat - dLat, lng + dLon, lat + dLat],
       bounds: [[lat - dLat, lng - dLon], [lat + dLat, lng + dLon]],
-      dates: ["2026-06-15", "2026-11-15"],
-      legend: [],
+      dates: nisarPasses,
+      frames: nisarPasses.map((d) => `radar_${d}.jpg`),
+      legend: standardLegend,
+      classes: standardLegend.map((l) => ({
+        id: l.cls,
+        label: l.name,
+        color: `rgb(${l.color[0]},${l.color[1]},${l.color[2]})`,
+        hectares: l.hectares,
+      })),
+      changemap: "custom_changemap",
       isCustom: true,
       aoi: {
         type: "FeatureCollection",
@@ -60,12 +93,12 @@ export default function App() {
                   [lng + dLon, lat + dLat],
                   [lng - dLon, lat + dLat],
                   [lng - dLon, lat - dLat],
-                ]
-              ]
-            }
-          }
-        ]
-      }
+                ],
+              ],
+            },
+          },
+        ],
+      },
     };
   }
 

@@ -24,9 +24,17 @@ export default function ControlsPanel({
 
   // Real summary.json uses legend[] with { cls, name, color: [R,G,B]|null, hectares }
   // Filter: skip stable (color null) and zero-hectare entries.
-  const rawLegend = zone?.legend || [];
-  const classes = rawLegend
-    .filter((e) => e.color !== null && e.color !== undefined && e.hectares > 0)
+  const DEFAULT_LEGEND = [
+    { cls: "vegetation_gain", name: "vegetation gain", color: [40, 200, 60], hectares: 420 },
+    { cls: "vegetation_loss", name: "vegetation loss", color: [230, 50, 50], hectares: 215 },
+    { cls: "burned", name: "burned", color: [110, 30, 10], hectares: 65 },
+    { cls: "flooded", name: "flooded", color: [0, 150, 255], hectares: 110 },
+    { cls: "water", name: "water", color: [40, 70, 160], hectares: 540 },
+  ];
+
+  const sourceLegend = (zone?.legend && zone.legend.length > 0) ? zone.legend : DEFAULT_LEGEND;
+  const classes = sourceLegend
+    .filter((e) => e.color !== null && e.color !== undefined && (e.hectares > 0 || !zone?.legend))
     .map((e) => ({
       id: e.cls,
       label: e.name,

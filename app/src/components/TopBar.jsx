@@ -144,28 +144,21 @@ export default function TopBar({ zone, showBack = false }) {
         </nav>
 
         <div
-          className="flex items-center rounded-full p-0.5"
+          className="flex items-center rounded-full px-2.5 py-0.5"
           style={{
             background: "#151b2a",
-            border: "1px solid rgba(60,74,70,0.3)",
+            border: "1px solid rgba(87,241,219,0.3)",
           }}
         >
-          <button
-            className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+          <span
+            className="text-[11px] font-bold"
             style={{
-              background: "#57f1db",
-              color: "#003731",
+              color: "#57f1db",
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
             FR
-          </button>
-          <button
-            className="px-2 py-0.5 rounded-full text-[11px]"
-            style={{ color: "#bacac5", fontFamily: "'JetBrains Mono', monospace" }}
-          >
-            EN
-          </button>
+          </span>
         </div>
       </div>
     </header>
