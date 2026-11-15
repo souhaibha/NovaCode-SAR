@@ -20,12 +20,25 @@ export function useManifest() {
         return r.json();
       })
       .then((sites) => {
-        // Normalize each site entry so existing code that reads zone.id still works.
-        // sites.json uses { site, name, event, bounds, folder } — expose site as id.
-        const zones = sites.map((s) => ({
-          ...s,
-          id: s.site, // backward-compat alias
-        }));
+        // Normalize each site entry: compute bbox and center from bounds
+        const zones = sites.map((s) => {
+          let bbox = s.bbox;
+          let center = s.center;
+          if (!bbox && s.bounds && s.bounds.length >= 2) {
+            const south = s.bounds[0][0];
+            const west = s.bounds[0][1];
+            const north = s.bounds[1][0];
+            const east = s.bounds[1][1];
+            bbox = [west, south, east, north]; // [minLng, minLat, maxLng, maxLat]
+            center = [(west + east) / 2, (south + north) / 2]; // [lng, lat]
+          }
+          return {
+            ...s,
+            id: s.site || s.id,
+            bbox,
+            center,
+          };
+        });
         setManifest({ zones, sites });
         setLoading(false);
       })

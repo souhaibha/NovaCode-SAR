@@ -258,16 +258,30 @@ const GlobeInner = forwardRef(function GlobeInner(
     };
   }, [isCardOpen]);
 
+  // Safe helper to extract center { lat, lng } from zone (supports center, bbox, or bounds)
+  const getZoneLatLng = (z) => {
+    if (!z) return { lat: 0, lng: 0 };
+    if (z.center) return { lat: z.center[1], lng: z.center[0] };
+    if (z.bbox && z.bbox.length >= 4) {
+      return {
+        lat: (z.bbox[1] + z.bbox[3]) / 2,
+        lng: (z.bbox[0] + z.bbox[2]) / 2,
+      };
+    }
+    if (z.bounds && z.bounds.length >= 2) {
+      return {
+        lat: (z.bounds[0][0] + z.bounds[1][0]) / 2,
+        lng: (z.bounds[0][1] + z.bounds[1][1]) / 2,
+      };
+    }
+    return { lat: 0, lng: 0 };
+  };
+
   // Expose flyTo imperative method
   useImperativeHandle(ref, () => ({
     flyTo: (zone) => {
       if (!globeEl.current || !zone) return;
-      const lat = zone.center
-        ? zone.center[1]
-        : (zone.bbox[1] + zone.bbox[3]) / 2;
-      const lng = zone.center
-        ? zone.center[0]
-        : (zone.bbox[0] + zone.bbox[2]) / 2;
+      const { lat, lng } = getZoneLatLng(zone);
       globeEl.current.pointOfView({ lat, lng, altitude: 1.6 }, 1000);
     },
   }));
@@ -275,8 +289,7 @@ const GlobeInner = forwardRef(function GlobeInner(
   // Stable precomputed points data with attribute names
   const pointsData = useMemo(() => {
     return zones.map((z) => {
-      const lat = z.center ? z.center[1] : (z.bbox[1] + z.bbox[3]) / 2;
-      const lng = z.center ? z.center[0] : (z.bbox[0] + z.bbox[2]) / 2;
+      const { lat, lng } = getZoneLatLng(z);
       const isHighlighted = z.id === selectedId || z.id === hoverZoneId;
       return {
         ...z,
