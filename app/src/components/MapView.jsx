@@ -763,6 +763,7 @@ export default function MapView(props) {
       }}
     >
       <MapContainer
+        key={zone.site || zone.id || "map"}
         ref={mapRef}
         center={center}
         zoom={10}

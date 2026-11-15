@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 
+// In-memory cache to make site transitions instant and eliminate reload issues
+const summaryCache = new Map();
+
 export default function useSiteSummary(siteId) {
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState(() => (siteId ? summaryCache.get(siteId) || null : null));
+  const [loading, setLoading] = useState(() => Boolean(siteId && !summaryCache.has(siteId)));
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -13,9 +16,15 @@ export default function useSiteSummary(siteId) {
       return;
     }
 
+    if (summaryCache.has(siteId)) {
+      setSummary(summaryCache.get(siteId));
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    setSummary(null);
 
     const url = import.meta.env.BASE_URL + 'data/sites/' + siteId + '/summary.json';
 
@@ -33,11 +42,13 @@ export default function useSiteSummary(siteId) {
           const east = data.bounds[1][1];
           bbox = [west, south, east, north];
         }
-        setSummary({
+        const normalized = {
           ...data,
           id: data.site || data.id,
           bbox,
-        });
+        };
+        summaryCache.set(siteId, normalized);
+        setSummary(normalized);
         setLoading(false);
       })
       .catch((err) => {
@@ -46,5 +57,9 @@ export default function useSiteSummary(siteId) {
       });
   }, [siteId]);
 
-  return { summary, loading, error };
+  // Derived loading state: if siteId is present and summary is not yet in state,
+  // we are guaranteed to be loading (no render gap or race condition).
+  const isActuallyLoading = loading || Boolean(siteId && !summary);
+
+  return { summary, loading: isActuallyLoading, error };
 }

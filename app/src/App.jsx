@@ -54,7 +54,8 @@ export default function App() {
   }, [matchedZone?.site]);
 
   // Loading state (manifest or summary for current site)
-  if (loading || (isMapRoute && matchedSite && summaryLoading)) {
+  const isSummaryLoading = isMapRoute && Boolean(matchedSite) && (!matchedZone || summaryLoading);
+  if (loading || isSummaryLoading) {
     return (
       <div
         style={{
