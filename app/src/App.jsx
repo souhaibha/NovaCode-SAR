@@ -22,14 +22,25 @@ export default function App() {
   const [activeClasses, setActiveClasses] = useState([]);
   const [opacity, setOpacity] = useState(0.85);
 
-  // P2 radar & timeline states
-  const [selectedFrameIndex, setSelectedFrameIndex] = useState(0);
-  const [pickedDate, setPickedDate] = useState(null);
+  // Radar display & filter states
   const [radarOpacity, setRadarOpacity] = useState(1.0);
   const [radarFilter, setRadarFilter] = useState("composite");
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [extraLayersVisible, setExtraLayersVisible] = useState({});
+
+  // Single view timeline states
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState(0);
+  const singleDateIndexRef = useRef(0);
+  const [pickedDate, setPickedDate] = useState(null);
+
+  // P3 Compare mode (split view) states
+  const [isCompare, setIsCompare] = useState(false);
+  const [split, setSplit] = useState(0.5);
+  const [beforeIndex, setBeforeIndex] = useState(0);
+  const [afterIndex, setAfterIndex] = useState(1);
+  const [pickedBeforeDate, setPickedBeforeDate] = useState(null);
+  const [pickedAfterDate, setPickedAfterDate] = useState(null);
 
   // ── Route parsing ───────────────────────────────────────────────────────────
   const isSiteRoute = route.startsWith("/site/");
@@ -38,7 +49,6 @@ export default function App() {
   const routeMapId  = isMapRoute  ? route.replace("/map/",  "").trim() : null;
 
   // ── Resolve site entry for #/map/<id> ───────────────────────────────────────
-  // Find by `site` field first; fall back to treating id as a folder name
   const matchedEntry = isMapRoute && sites.length > 0
     ? (sites.find((s) => s.site === routeMapId) || { site: routeMapId, folder: routeMapId + "/" })
     : null;
@@ -52,9 +62,45 @@ export default function App() {
     const vis = visibleLegend(matchedZone.legend || []);
     setActiveClasses(vis.map((e) => e.cls));
     setSelectedFrameIndex(0);
+    singleDateIndexRef.current = 0;
     setPickedDate(null);
     setExtraLayersVisible({});
+    setIsCompare(false);
+    setBeforeIndex(0);
+    setAfterIndex(Math.min(1, (matchedZone.dates?.length || 1) - 1));
+    setPickedBeforeDate(null);
+    setPickedAfterDate(null);
+    setSplit(0.5);
   }, [matchedZone?.id]);
+
+  // Keep singleDateIndexRef in sync with single view changes
+  useEffect(() => {
+    if (!isCompare) {
+      singleDateIndexRef.current = selectedFrameIndex;
+    }
+  }, [selectedFrameIndex, isCompare]);
+
+  // ── Requirement 3: Toggle compare mode & return to single view with same date ──
+  const handleToggleCompare = useCallback(() => {
+    setIsCompare((prev) => {
+      if (!prev) {
+        // Entering compare: save single date index and initialize before/after
+        singleDateIndexRef.current = selectedFrameIndex;
+        setBeforeIndex(0);
+        setAfterIndex(Math.max(1, selectedFrameIndex || 1));
+        setPickedBeforeDate(null);
+        setPickedAfterDate(null);
+        setSplit(0.5);
+        return true;
+      } else {
+        // Leaving compare: return to single view with the same date
+        const returnIndex = singleDateIndexRef.current;
+        setSelectedFrameIndex(returnIndex);
+        setPickedDate(null);
+        return false;
+      }
+    });
+  }, [selectedFrameIndex]);
 
   // ── Global loading gate ─────────────────────────────────────────────────────
   const isLoadingSites = sitesStatus === "loading";
@@ -78,7 +124,7 @@ export default function App() {
     return (
       <div style={{ display:"flex", height:"100vh", alignItems:"center", justifyContent:"center", background:"#0c1321" }}>
         <div style={{ maxWidth:480, padding:24, borderRadius:16, background:"#151b2a", border:"1px solid rgba(255,180,171,0.3)", textAlign:"center" }}>
-          <span className="material-symbols-outlined" style={{ color:"#ffb4ab", fontSize:40, marginBottom:8 }}>error</span>
+          <span className="material-symbols-outlined" style={{ color:"ffb4ab", fontSize:40, marginBottom:8 }}>error</span>
           <h2 style={{ color:"#ffb4ab", fontSize:16, fontWeight:700, marginBottom:8 }}>Data Load Failure</h2>
           <p style={{ color:"#bacac5", fontSize:12, fontFamily:"'JetBrains Mono',monospace", marginBottom:8 }}>
             {import.meta.env.BASE_URL}data/web/sites.json
@@ -143,7 +189,7 @@ export default function App() {
       {/* Body row */}
       <div style={{ display:"flex", flexDirection:"row", height:MAP_AREA_H, width:"100vw", flex:1, minHeight:0, overflow:"hidden" }}>
 
-        {/* Left panel — class filters, opacity, radar layer controls */}
+        {/* Left panel — class filters, opacity, radar controls, compare toggle */}
         <aside style={{ width:300, flexShrink:0, display:"flex", flexDirection:"column", height:"100%", background:"#151b2a", overflowY:"auto", zIndex:20, borderRight:"1px solid rgba(60,74,70,0.3)" }} className="hidden lg:flex">
           <ControlsPanel
             zone={matchedZone}
@@ -159,6 +205,8 @@ export default function App() {
             setBrightness={setBrightness}
             contrast={contrast}
             setContrast={setContrast}
+            isCompare={isCompare}
+            onToggleCompare={handleToggleCompare}
             extraLayersVisible={extraLayersVisible}
             setExtraLayersVisible={setExtraLayersVisible}
             siteBase={base}
@@ -169,7 +217,12 @@ export default function App() {
         <section style={{ flex:1, position:"relative", height:"100%", minWidth:0, minHeight:0, overflow:"hidden", background:"#070e1c" }}>
           <MapView
             zone={matchedZone}
+            isCompare={isCompare}
+            split={split}
+            onSplitChange={setSplit}
             selectedFrameIndex={selectedFrameIndex}
+            beforeIndex={beforeIndex}
+            afterIndex={afterIndex}
             radarOpacity={radarOpacity}
             radarFilter={radarFilter}
             brightness={brightness}
@@ -190,16 +243,26 @@ export default function App() {
               transform: "translateX(-50%)",
               zIndex: 600,
               width: "calc(100% - 32px)",
-              maxWidth: 740,
+              maxWidth: 780,
               pointerEvents: "auto",
             }}
           >
             <Timeline
               dates={matchedZone?.dates || []}
+              isCompare={isCompare}
+              onToggleCompare={handleToggleCompare}
               selectedIndex={selectedFrameIndex}
               onSelectIndex={setSelectedFrameIndex}
               pickedDate={pickedDate}
               onPickedDateChange={setPickedDate}
+              beforeIndex={beforeIndex}
+              onSelectBeforeIndex={setBeforeIndex}
+              pickedBeforeDate={pickedBeforeDate}
+              onPickedBeforeDateChange={setPickedBeforeDate}
+              afterIndex={afterIndex}
+              onSelectAfterIndex={setAfterIndex}
+              pickedAfterDate={pickedAfterDate}
+              onPickedAfterDateChange={setPickedAfterDate}
             />
           </div>
         </section>

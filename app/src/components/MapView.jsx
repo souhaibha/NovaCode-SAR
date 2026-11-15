@@ -1,18 +1,28 @@
 /**
- * MapView — P2 dashboard map.
+ * MapView — P3 dashboard map with Split View (Compare dates mode).
  *
  * Renders:
  *  - Leaflet basemap (satellite)
- *  - Radar frame overlay (bottom, with SVG filter for HH/HV and CSS brightness/contrast)
+ *  - Single view:
+ *      Radar frame overlay (bottom)
+ *  - Compare mode (split view):
+ *      Before radar overlay (bottom, unclipped)
+ *      After radar overlay (middle, clipped by dividerX via inset clipPath)
+ *      SwipeDivider (drag handle & line)
  *  - Optional extra layers (middle, lazy-loaded on toggle)
- *  - Changemap overlay (top, class-filtered via offscreen canvas)
+ *  - Changemap overlay (top, class-filtered via offscreen canvas, unclipped above both)
  *  - Zoom / recenter / fullscreen buttons
  *  - Live scale bar
  *  - Credit line
  *
  * Props:
  *  zone               — normalized summary from useSiteSummary
- *  selectedFrameIndex — index into zone.frames / zone.dates
+ *  isCompare          — boolean: whether Compare dates mode is active
+ *  split              — fraction 0..1 of swipe divider position
+ *  onSplitChange      — callback with new split fraction
+ *  selectedFrameIndex — index for single view
+ *  beforeIndex        — index for compare Before overlay
+ *  afterIndex         — index for compare After overlay
  *  radarOpacity       — opacity for radar ImageOverlay (0..1)
  *  radarFilter        — 'composite' | 'hh' | 'hv'
  *  brightness         — CSS brightness % (50..200)
@@ -23,11 +33,12 @@
  *  siteBase           — base URL string for site's assets
  *  teamName           — string for credit line
  */
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback, forwardRef } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, ImageOverlay, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { visibleLegend } from "../lib/siteAdapter";
+import SwipeDivider from "./SwipeDivider";
 
 const BASEMAP_URL =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
@@ -35,7 +46,7 @@ const BASEMAP_URL =
 // ── Coordinate helpers ──────────────────────────────────────────────────────
 function leafletBounds(bounds) {
   if (!bounds || !Array.isArray(bounds) || bounds.length < 2) return null;
-  return bounds; // already Leaflet order
+  return bounds;
 }
 
 // ── Scale bar ───────────────────────────────────────────────────────────────
@@ -80,6 +91,18 @@ function MapFitBounds({ bounds }) {
     const t2 = setTimeout(fit, 400);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [map, boundsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+// ── Swipe clip subscriber: syncs clip on map movements ─────────────────────
+function SwipeClipHandler({ applyClip }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    const events = ["move", "zoom", "zoomend", "moveend", "resize"];
+    events.forEach((e) => map.on(e, applyClip));
+    return () => events.forEach((e) => map.off(e, applyClip));
+  }, [map, applyClip]);
   return null;
 }
 
@@ -146,11 +169,15 @@ function ZoomButtons({ mapRef, bounds }) {
 }
 
 // ── Radar Image Overlay with SVG / CSS filters ─────────────────────────────
-function RadarImageOverlay({ url, bounds, opacity, filterId, brightness, contrast }) {
-  const overlayRef = useRef(null);
+const RadarImageOverlay = forwardRef(function RadarImageOverlay(
+  { url, bounds, opacity, filterId, brightness, contrast, onImageReady },
+  ref
+) {
+  const innerRef = useRef(null);
+  const overlayRef = ref || innerRef;
 
   const applyFilter = useCallback(() => {
-    const el = overlayRef.current?.getElement();
+    const el = overlayRef.current?.getElement?.();
     if (!el) return;
     let filterVal = "";
     if (filterId) {
@@ -158,16 +185,17 @@ function RadarImageOverlay({ url, bounds, opacity, filterId, brightness, contras
     }
     filterVal += `brightness(${brightness}%) contrast(${contrast}%)`;
     el.style.filter = filterVal.trim();
-  }, [filterId, brightness, contrast]);
+    onImageReady?.();
+  }, [filterId, brightness, contrast, overlayRef, onImageReady]);
 
   useEffect(() => {
     applyFilter();
-    const el = overlayRef.current?.getElement();
+    const el = overlayRef.current?.getElement?.();
     if (el) {
       el.addEventListener("load", applyFilter);
       return () => el.removeEventListener("load", applyFilter);
     }
-  }, [url, applyFilter]);
+  }, [url, applyFilter, overlayRef]);
 
   return (
     <ImageOverlay
@@ -178,7 +206,7 @@ function RadarImageOverlay({ url, bounds, opacity, filterId, brightness, contras
       className="pixelated"
     />
   );
-}
+});
 
 // ── Canvas recolor (changemap pixel filter) ─────────────────────────────────
 const imageDataCache = new Map();
@@ -199,7 +227,7 @@ async function loadOriginalImageData(url) {
         imageDataCache.set(url, imgData);
         resolve(imgData);
       } catch (e) {
-        reject(e); // CORS / tainted canvas
+        reject(e);
       }
     };
     img.onerror = () => reject(new Error(`Failed to load changemap: ${url}`));
@@ -228,7 +256,6 @@ function useFilteredChangemap(changemapUrl, legend, activeClasses) {
       const visItems = visibleLegend(legend);
       if (!visItems.length) { setBlobUrl(null); return; }
 
-      // If all classes active → use raw URL directly
       const allActive = visItems.every((item) => activeClasses.includes(item.cls));
       if (allActive) {
         if (prevBlobRef.current) { URL.revokeObjectURL(prevBlobRef.current); prevBlobRef.current = null; }
@@ -237,7 +264,6 @@ function useFilteredChangemap(changemapUrl, legend, activeClasses) {
         return;
       }
 
-      // Build a set of RGB keys for active classes
       const activeKeys = new Set();
       visItems.forEach((item) => {
         if (activeClasses.includes(item.cls) && Array.isArray(item.color)) {
@@ -295,7 +321,12 @@ function useFilteredChangemap(changemapUrl, legend, activeClasses) {
 // ── Main MapView component ────────────────────────────────────────────────────
 export default function MapView({
   zone,
+  isCompare = false,
+  split = 0.5,
+  onSplitChange,
   selectedFrameIndex = 0,
+  beforeIndex = 0,
+  afterIndex = 1,
   radarOpacity = 1.0,
   radarFilter = "composite",
   brightness = 100,
@@ -307,6 +338,8 @@ export default function MapView({
   teamName,
 }) {
   const mapRef = useRef(null);
+  const mapContainerRef = useRef(null);
+  const afterOverlayRef = useRef(null);
 
   if (!zone) {
     return (
@@ -324,21 +357,68 @@ export default function MapView({
   const east  = zone.bounds?.[1]?.[1] ?? 0;
   const center = useMemo(() => [(south + north) / 2, (west + east) / 2], [south, north, west, east]);
 
-  // Current radar frame
-  const currentRadarFrame = useMemo(() => {
-    if (!Array.isArray(zone.frames) || zone.frames.length === 0) return null;
-    const safeIdx = Math.max(0, Math.min(zone.frames.length - 1, selectedFrameIndex));
-    return zone.frames[safeIdx];
-  }, [zone.frames, selectedFrameIndex]);
+  const frames = Array.isArray(zone.frames) ? zone.frames : [];
+  const dates = Array.isArray(zone.dates) ? zone.dates : [];
 
-  // Preload neighbouring radar frames (Requirement 1)
+  // Single view frame
+  const currentRadarFrame = useMemo(() => {
+    if (!frames.length) return null;
+    const safeIdx = Math.max(0, Math.min(frames.length - 1, selectedFrameIndex));
+    return frames[safeIdx];
+  }, [frames, selectedFrameIndex]);
+
+  // Compare mode frames
+  const isInvalidOrder = beforeIndex >= afterIndex;
+  const beforeRadarFrame = useMemo(() => {
+    if (!frames.length) return null;
+    const safe = Math.max(0, Math.min(frames.length - 1, beforeIndex));
+    return frames[safe];
+  }, [frames, beforeIndex]);
+
+  const afterRadarFrame = useMemo(() => {
+    if (!frames.length) return null;
+    const safe = Math.max(0, Math.min(frames.length - 1, afterIndex));
+    return frames[safe];
+  }, [frames, afterIndex]);
+
+  // Preload frames
   useEffect(() => {
-    if (!Array.isArray(zone.frames) || zone.frames.length === 0) return;
-    const prevUrl = zone.frames[selectedFrameIndex - 1]?.url;
-    const nextUrl = zone.frames[selectedFrameIndex + 1]?.url;
-    if (prevUrl) { const img = new Image(); img.src = prevUrl; }
-    if (nextUrl) { const img = new Image(); img.src = nextUrl; }
-  }, [zone.frames, selectedFrameIndex]);
+    if (!frames.length) return;
+    if (isCompare) {
+      if (beforeRadarFrame) { const img = new Image(); img.src = beforeRadarFrame.url; }
+      if (afterRadarFrame) { const img = new Image(); img.src = afterRadarFrame.url; }
+    } else {
+      const prevUrl = frames[selectedFrameIndex - 1]?.url;
+      const nextUrl = frames[selectedFrameIndex + 1]?.url;
+      if (prevUrl) { const img = new Image(); img.src = prevUrl; }
+      if (nextUrl) { const img = new Image(); img.src = nextUrl; }
+    }
+  }, [frames, isCompare, selectedFrameIndex, beforeRadarFrame, afterRadarFrame]);
+
+  // ── Requirement 2: Divider clips ONLY the "after" overlay ─────────────────
+  const applyClip = useCallback(() => {
+    if (!isCompare || isInvalidOrder) return;
+    const afterEl = afterOverlayRef.current?.getElement?.();
+    const mapEl = mapContainerRef.current;
+    if (!mapEl || !afterEl) return;
+
+    const mapRect = mapEl.getBoundingClientRect();
+    const dividerX = mapRect.left + split * mapRect.width;
+    const afterRect = afterEl.getBoundingClientRect();
+
+    // Clip left side of afterEl so it only shows to the right of dividerX
+    const clipLeftPx = Math.max(0, dividerX - afterRect.left);
+    afterEl.style.clipPath = `inset(0 0 0 ${clipLeftPx}px)`;
+  }, [isCompare, isInvalidOrder, split]);
+
+  useEffect(() => {
+    if (isCompare && !isInvalidOrder) {
+      applyClip();
+    } else {
+      const el = afterOverlayRef.current?.getElement?.();
+      if (el) el.style.clipPath = "";
+    }
+  }, [split, isCompare, isInvalidOrder, beforeIndex, afterIndex, applyClip]);
 
   const changemapUrl = useMemo(() => {
     if (!zone.changemapUrl) return null;
@@ -353,16 +433,24 @@ export default function MapView({
     activeClasses ?? []
   );
 
-  return (
-    <div style={{ position:"relative", width:"100%", height:"100%", overflow:"hidden" }}>
+  const filterId =
+    radarFilter === "hh"
+      ? "radar-filter-hh"
+      : radarFilter === "hv"
+      ? "radar-filter-hv"
+      : null;
 
+  return (
+    <div
+      ref={mapContainerRef}
+      style={{ position:"relative", width:"100%", height:"100%", overflow:"hidden" }}
+    >
       {/* SVG filters for HH and HV monochrome channels (Requirement 3) */}
       <svg
         style={{ position:"absolute", width:0, height:0, pointerEvents:"none", overflow:"hidden" }}
         aria-hidden="true"
       >
         <defs>
-          {/* HH copies red channel to all channels */}
           <filter id="radar-filter-hh" colorInterpolationFilters="sRGB">
             <feColorMatrix
               type="matrix"
@@ -372,7 +460,6 @@ export default function MapView({
                       0 0 0 1 0"
             />
           </filter>
-          {/* HV copies green channel to all channels */}
           <filter id="radar-filter-hv" colorInterpolationFilters="sRGB">
             <feColorMatrix
               type="matrix"
@@ -397,25 +484,55 @@ export default function MapView({
         <MapFitBounds bounds={bounds} />
         <TileLayer url={BASEMAP_URL} maxZoom={18} />
 
-        {/* 1. Radar Overlay (Requirement 1: below changemap) */}
-        {currentRadarFrame && bounds && radarOpacity > 0 && (
+        {/* ── MODE A: SINGLE RADAR OVERLAY ── */}
+        {!isCompare && currentRadarFrame && bounds && radarOpacity > 0 && (
           <RadarImageOverlay
+            key={`radar-single-${currentRadarFrame.url}`}
             url={currentRadarFrame.url}
             bounds={bounds}
             opacity={radarOpacity}
-            filterId={
-              radarFilter === "hh"
-                ? "radar-filter-hh"
-                : radarFilter === "hv"
-                ? "radar-filter-hv"
-                : null
-            }
+            filterId={filterId}
             brightness={brightness}
             contrast={contrast}
           />
         )}
 
-        {/* 2. Optional Extra Layers (Requirement 5: lazy-loaded on toggle) */}
+        {/* ── MODE B: COMPARE DATES (TWO RADAR OVERLAYS) ── */}
+        {isCompare && !isInvalidOrder && (
+          <>
+            <SwipeClipHandler applyClip={applyClip} />
+
+            {/* Before radar overlay: unclipped, at bottom */}
+            {beforeRadarFrame && bounds && radarOpacity > 0 && (
+              <RadarImageOverlay
+                key={`radar-before-${beforeRadarFrame.url}`}
+                url={beforeRadarFrame.url}
+                bounds={bounds}
+                opacity={radarOpacity}
+                filterId={filterId}
+                brightness={brightness}
+                contrast={contrast}
+              />
+            )}
+
+            {/* After radar overlay: clipped on left by divider, sits above before overlay */}
+            {afterRadarFrame && bounds && radarOpacity > 0 && (
+              <RadarImageOverlay
+                ref={afterOverlayRef}
+                key={`radar-after-${afterRadarFrame.url}`}
+                url={afterRadarFrame.url}
+                bounds={bounds}
+                opacity={radarOpacity}
+                filterId={filterId}
+                brightness={brightness}
+                contrast={contrast}
+                onImageReady={applyClip}
+              />
+            )}
+          </>
+        )}
+
+        {/* Optional Extra Layers (lazy-loaded on toggle) */}
         {bounds && Array.isArray(zone.layers) &&
           zone.layers.map((layer) => {
             if (!extraLayersVisible?.[layer.key]) return null;
@@ -430,7 +547,7 @@ export default function MapView({
             );
           })}
 
-        {/* 3. Changemap overlay (top) */}
+        {/* Changemap overlay: sits above both radar overlays, unclipped */}
         {filteredUrl && bounds && (
           <ImageOverlay
             key={`changemap-${zone.id || zone.site}`}
@@ -441,6 +558,17 @@ export default function MapView({
           />
         )}
       </MapContainer>
+
+      {/* Swipe divider: rendered outside MapContainer */}
+      {isCompare && !isInvalidOrder && (
+        <SwipeDivider
+          split={split}
+          onSplitChange={onSplitChange}
+          mapContainerRef={mapContainerRef}
+          beforeDate={dates[beforeIndex]}
+          afterDate={dates[afterIndex]}
+        />
+      )}
 
       {/* Controls outside MapContainer */}
       <ZoomButtons mapRef={mapRef} bounds={bounds} />

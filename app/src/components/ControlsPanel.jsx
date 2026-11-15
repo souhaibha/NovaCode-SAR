@@ -57,6 +57,8 @@ export default function ControlsPanel({
   setBrightness,
   contrast = 100,
   setContrast,
+  isCompare = false,
+  onToggleCompare,
   extraLayersVisible = {},
   setExtraLayersVisible,
   siteBase,
@@ -388,6 +390,19 @@ export default function ControlsPanel({
                 style={{ width:"100%", accentColor:"#57f1db", cursor:"pointer" }}
               />
             </div>
+
+            {/* Compare dates toggle */}
+            {Array.isArray(zone.dates) && zone.dates.length >= 2 && (
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"4px 0", borderTop:"1px solid rgba(60,74,70,0.2)" }}>
+                <span style={{ fontSize:11, color:"#dce2f6" }}>Compare dates (split)</span>
+                <input
+                  type="checkbox"
+                  checked={isCompare}
+                  onChange={onToggleCompare}
+                  style={{ accentColor:"#57f1db", width:15, height:15, cursor:"pointer" }}
+                />
+              </div>
+            )}
 
             {/* Disclaimer notice (Requirement 3) */}
             <span style={{ fontSize:9.5, color:"#859490", fontStyle:"italic", lineHeight:1.3 }}>
