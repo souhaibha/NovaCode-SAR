@@ -449,6 +449,8 @@ export default function App() {
         >
           <RightPanel
             zone={matchedZone}
+            period={period}
+            eventResult={eventResult}
             isDrawing={isDrawingZone}
             onStartDrawZone={() => setIsDrawingZone(true)}
             onCancelDrawZone={() => setIsDrawingZone(false)}

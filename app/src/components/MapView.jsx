@@ -1050,7 +1050,7 @@ export default function MapView(props) {
 
   // Dynamic filter for changemap based on activeClasses
   const [filteredChangemapUrl, setFilteredChangemapUrl] = useState(null);
-  const [activeSpecialLayer, setActiveSpecialLayer] = useState("changemap");
+  const [activeSpecialLayer, setActiveSpecialLayer] = useState("both");
   const [filteredRadarUrl, setFilteredRadarUrl] = useState(null);
   const [filteredStartRadarUrl, setFilteredStartRadarUrl] = useState(null);
   const [filteredEndRadarUrl, setFilteredEndRadarUrl] = useState(null);
@@ -1365,7 +1365,7 @@ export default function MapView(props) {
         {/* Real NISAR site changemap & radar frame */}
         {zone.changemap && mode !== "swipe" && (
           <>
-            {currentRadarFrame && (
+            {currentRadarFrame && (activeSpecialLayer === "radar" || activeSpecialLayer === "both" || activeSpecialLayer === "changemap") && (
               <SmartImageOverlay
                 key={`radar-${currentRadarFrame}`}
                 url={filteredRadarUrl || (siteBase + currentRadarFrame)}
@@ -1374,12 +1374,12 @@ export default function MapView(props) {
                 className="pixelated"
               />
             )}
-            {activeSpecialLayer === "changemap" && filteredChangemapUrl && (
+            {(activeSpecialLayer === "changemap" || activeSpecialLayer === "both") && filteredChangemapUrl && (
               <SmartImageOverlay
                 key={`changemap-${zone.site || zone.id}`}
                 url={filteredChangemapUrl}
                 bounds={bounds}
-                opacity={opacity}
+                opacity={activeSpecialLayer === "both" ? Math.min(opacity, 0.58) : opacity}
                 className="pixelated"
               />
             )}
@@ -1541,13 +1541,49 @@ export default function MapView(props) {
               marginRight: 6,
             }}
           >
-            Layer:
+            Affichage :
           </span>
+          <button
+            type="button"
+            onClick={() => setActiveSpecialLayer("both")}
+            style={{
+              padding: "4px 9px",
+              borderRadius: 6,
+              fontSize: 11,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: activeSpecialLayer === "both" ? 700 : 500,
+              border: "none",
+              cursor: "pointer",
+              background: activeSpecialLayer === "both" ? "#57f1db" : "transparent",
+              color: activeSpecialLayer === "both" ? "#003731" : "#bacac5",
+              transition: "all 0.15s",
+            }}
+          >
+            Radar + IA
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSpecialLayer("radar")}
+            style={{
+              padding: "4px 9px",
+              borderRadius: 6,
+              fontSize: 11,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: activeSpecialLayer === "radar" ? 700 : 500,
+              border: "none",
+              cursor: "pointer",
+              background: activeSpecialLayer === "radar" ? "#57f1db" : "transparent",
+              color: activeSpecialLayer === "radar" ? "#003731" : "#bacac5",
+              transition: "all 0.15s",
+            }}
+          >
+            Radar seul
+          </button>
           <button
             type="button"
             onClick={() => setActiveSpecialLayer("changemap")}
             style={{
-              padding: "4px 10px",
+              padding: "4px 9px",
               borderRadius: 6,
               fontSize: 11,
               fontFamily: "'JetBrains Mono', monospace",
@@ -1559,7 +1595,7 @@ export default function MapView(props) {
               transition: "all 0.15s",
             }}
           >
-            Changemap
+            Changements IA
           </button>
           {zone.layers.displacement && (
             <button

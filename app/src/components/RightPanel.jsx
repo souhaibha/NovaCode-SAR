@@ -21,6 +21,8 @@ const TABS = [
 
 export default function RightPanel({
   zone,
+  period,
+  eventResult,
   onJobResult,
   isDrawing = false,
   onStartDrawZone,
@@ -102,7 +104,12 @@ export default function RightPanel({
         }}
       >
         {activeTab === 'legend' && (
-          <LegendPanel legend={zone?.legend} />
+          <LegendPanel
+            legend={zone?.legend}
+            dates={zone?.dates}
+            period={period}
+            eventResult={eventResult}
+          />
         )}
 
         {activeTab === 'info' && (
