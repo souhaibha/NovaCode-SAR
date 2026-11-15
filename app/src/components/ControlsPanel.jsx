@@ -12,18 +12,29 @@ export default function ControlsPanel({
   opacity,
   setOpacity,
 }) {
-  const baseEvents = zone?.events || manifest?.events || [];
-  // Include "Water change" combined option
-  const events = [
-    ...baseEvents,
-    {
-      id: "water_change",
-      label: "Water change",
-      color: "#38BDF8",
-      subtitle: "Gain & loss",
-    },
-  ];
-  const classes = zone?.classes || manifest?.classes || [];
+  // Real summary.json uses zone.event (string), not zone.events (array).
+  // Build a synthetic single-event list from zone.event when available.
+  const eventLabel = zone?.event
+    ? zone.event.charAt(0).toUpperCase() + zone.event.slice(1)
+    : null;
+  const baseEvents = eventLabel
+    ? [{ id: zone.event, label: eventLabel, color: "#57f1db" }]
+    : (manifest?.events || []);
+  const events = baseEvents; // no synthetic "Water change" entry for real data
+
+  // Real summary.json uses legend[] with { cls, name, color: [R,G,B]|null, hectares }
+  // Filter: skip stable (color null) and zero-hectare entries.
+  const rawLegend = zone?.legend || [];
+  const classes = rawLegend
+    .filter((e) => e.color !== null && e.color !== undefined && e.hectares > 0)
+    .map((e) => ({
+      id: e.cls,
+      label: e.name,
+      color: Array.isArray(e.color)
+        ? `rgb(${e.color[0]},${e.color[1]},${e.color[2]})`
+        : e.color,
+      hectares: e.hectares,
+    }));
 
   function toggleClass(id) {
     setActiveClasses((prev) =>
@@ -60,7 +71,7 @@ export default function ControlsPanel({
                 textTransform: "uppercase",
               }}
             >
-              NISAR L-Band SAR
+              NISAR L-band HH/HV
             </span>
           </div>
           <span
@@ -73,7 +84,7 @@ export default function ControlsPanel({
               borderRadius: 4,
             }}
           >
-            L-BAND
+            HH/HV
           </span>
         </div>
 

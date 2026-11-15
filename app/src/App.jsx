@@ -4,10 +4,10 @@ import ControlsPanel from "./components/ControlsPanel";
 import MapView from "./components/MapView";
 import Timeline from "./components/Timeline";
 import Landing from "./pages/Landing";
+import RightPanel from "./components/RightPanel";
 import { useManifest } from "./hooks/useManifest";
+import useSiteSummary from "./hooks/useSiteSummary";
 import { useHashRoute } from "./lib/router";
-
-const MANIFEST_PATH = import.meta.env.BASE_URL + "data/manifest.json";
 
 export default function App() {
   const { manifest, loading, error } = useManifest();
@@ -25,10 +25,16 @@ export default function App() {
   const isMapRoute = route.startsWith("/map/");
   const routeZoneId = isMapRoute ? route.replace("/map/", "").trim() : null;
 
-  // Resolve target zone from manifest
-  const matchedZone = isMapRoute
+  // Resolve basic site entry from manifest (sites.json list)
+  // zones[] entries have id = s.site (aliased in useManifest)
+  const matchedSite = isMapRoute
     ? manifest?.zones?.find((z) => z.id === routeZoneId)
     : null;
+
+  // Load full summary.json for the active site
+  const { summary: matchedZone, loading: summaryLoading } = useSiteSummary(
+    matchedSite?.site ?? null
+  );
 
   // Initialize or re-sync period and active classes when zone changes
   useEffect(() => {
@@ -37,15 +43,18 @@ export default function App() {
         start: matchedZone.dates[0],
         end: matchedZone.dates[matchedZone.dates.length - 1],
       });
-      const cls = matchedZone.classes || manifest?.classes || [];
-      setActiveClasses(cls.map((c) => c.id));
-      const evs = matchedZone.events || manifest?.events || [];
-      setEventId(evs[0]?.id || null);
+      // Real summary.json: legend entries with { cls, name, color: [R,G,B]|null, hectares }
+      const legendClasses = (matchedZone.legend || [])
+        .filter((e) => e.color !== null && e.color !== undefined && e.hectares > 0)
+        .map((e) => e.cls);
+      setActiveClasses(legendClasses.length ? legendClasses : []);
+      // zone.event is a string in real data (not an events array)
+      setEventId(matchedZone.event || null);
     }
-  }, [matchedZone?.id]);
+  }, [matchedZone?.site]);
 
-  // Loading state
-  if (loading) {
+  // Loading state (manifest or summary for current site)
+  if (loading || (isMapRoute && matchedSite && summaryLoading)) {
     return (
       <div
         style={{
@@ -85,7 +94,7 @@ export default function App() {
     );
   }
 
-  // Error state with manifest file path
+  // Error state
   if (error) {
     return (
       <div
@@ -114,7 +123,7 @@ export default function App() {
             error
           </span>
           <h2 style={{ color: "#ffb4ab", fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-            Manifest Load Failure
+            Data Load Failure
           </h2>
           <p
             style={{
@@ -125,7 +134,7 @@ export default function App() {
               wordBreak: "break-all",
             }}
           >
-            File path: {MANIFEST_PATH}
+            File path: {import.meta.env.BASE_URL}data/sites.json
           </p>
           <p style={{ color: "#ffb4ab", fontSize: 13 }}>{error}</p>
         </div>
@@ -144,7 +153,7 @@ export default function App() {
   }
 
   // 2. Zone not found route
-  if (!matchedZone) {
+  if (!matchedSite) {
     return (
       <div
         style={{
@@ -235,7 +244,7 @@ export default function App() {
       }}
     >
       {/* Top bar with back-to-globe button */}
-      <TopBar zone={matchedZone} showBack={true} />
+      <TopBar zone={matchedZone ?? matchedSite} showBack={true} />
 
       {/* Body row — fills remaining height */}
       <div
@@ -293,7 +302,7 @@ export default function App() {
           }}
         >
           <MapView
-            zone={matchedZone}
+            zone={matchedZone ?? matchedSite}
             eventId={eventId}
             period={period}
             activeClasses={activeClasses}
@@ -314,12 +323,24 @@ export default function App() {
             }}
           >
             <Timeline
-              zone={matchedZone}
+              zone={matchedZone ?? matchedSite}
               period={period}
               setPeriod={setPeriod}
             />
           </div>
         </section>
+
+        {/* Right panel — summary / legend / story / scores / analyze */}
+        <aside className="hidden lg:flex">
+          <RightPanel
+            zone={matchedZone}
+            onJobResult={(resPath) => {
+              if (resPath && resPath.includes("souss")) {
+                navigate("/map/souss");
+              }
+            }}
+          />
+        </aside>
       </div>
     </div>
   );
