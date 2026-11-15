@@ -172,8 +172,13 @@ export default function ZoneInfoCard({
   const countryName = clickInfo?.countryName;
 
   const displayTitle = countryName
-    ? `${countryName}`
-    : `Zone (${lat != null ? lat.toFixed(2) : 0}°, ${lng != null ? lng.toFixed(2) : 0}°)`;
+    ? countryName
+    : (lat != null && lng != null ? `Zone (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)` : "Zone sélectionnée");
+
+  const formattedCoords =
+    lat != null && lng != null
+      ? `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lng).toFixed(2)}°${lng >= 0 ? "E" : "W"}`
+      : null;
 
   return (
     <div
@@ -186,10 +191,8 @@ export default function ZoneInfoCard({
       <div className={CSS.header}>
         <div className={CSS.titleBox}>
           <h2 className={CSS.title}>{displayTitle}</h2>
-          {lat != null && lng != null && (
-            <span className={CSS.coordsText}>
-              {lat.toFixed(2)}°N, {lng.toFixed(2)}°E
-            </span>
+          {formattedCoords && (
+            <span className={CSS.coordsText}>{formattedCoords}</span>
           )}
         </div>
         <button
