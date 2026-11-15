@@ -1,0 +1,149 @@
+{
+ "site": "venezuela75",
+ "name": "Northern Venezuela",
+ "story": "M7.5 and M7.2 earthquakes on 24 June 2026; interferometry measures ground motion of tens of centimetres.",
+ "event": "earthquake",
+ "event_date": "2026-06-24",
+ "bounds": [
+  [
+   9.832643177886519,
+   -67.60410701297053
+  ],
+  [
+   10.755462087274955,
+   -65.7940471983994
+  ]
+ ],
+ "dates": [
+  "2026-05-17",
+  "2026-05-29",
+  "2026-06-10",
+  "2026-07-04",
+  "2026-08-21",
+  "2026-09-02",
+  "2026-09-14",
+  "2026-09-26",
+  "2026-10-08",
+  "2026-10-20"
+ ],
+ "frames": [
+  "radar_2026-05-17.jpg",
+  "radar_2026-05-29.jpg",
+  "radar_2026-06-10.jpg",
+  "radar_2026-07-04.jpg",
+  "radar_2026-08-21.jpg",
+  "radar_2026-09-02.jpg",
+  "radar_2026-09-14.jpg",
+  "radar_2026-09-26.jpg",
+  "radar_2026-10-08.jpg",
+  "radar_2026-10-20.jpg"
+ ],
+ "changemap": "changemap.png",
+ "legend": [
+  {
+   "cls": 0,
+   "name": "stable",
+   "color": null,
+   "hectares": 1368141
+  },
+  {
+   "cls": 1,
+   "name": "vegetation gain",
+   "color": [
+    40,
+    200,
+    60
+   ],
+   "hectares": 25057
+  },
+  {
+   "cls": 2,
+   "name": "vegetation loss",
+   "color": [
+    230,
+    50,
+    50
+   ],
+   "hectares": 846
+  },
+  {
+   "cls": 3,
+   "name": "burned",
+   "color": [
+    110,
+    30,
+    10
+   ],
+   "hectares": 6975
+  },
+  {
+   "cls": 4,
+   "name": "flooded",
+   "color": [
+    0,
+    150,
+    255
+   ],
+   "hectares": 102
+  },
+  {
+   "cls": 5,
+   "name": "water",
+   "color": [
+    40,
+    70,
+    160
+   ],
+   "hectares": 328341
+  },
+  {
+   "cls": 6,
+   "name": "earthquake ground displacement",
+   "color": [
+    255,
+    0,
+    200
+   ],
+   "hectares": 261168
+  }
+ ],
+ "layers": {
+  "displacement": {
+   "file": "displacement.png",
+   "colors": "red/blue = motion away/toward radar (sign unverified), white = none",
+   "scale_cm": [
+    -38.9,
+    38.9
+   ]
+  },
+  "fringes": {
+   "file": "fringes.png",
+   "meaning": "each full colour cycle = about 12 cm of ground motion"
+  }
+ },
+ "excluded_dates": [
+  "2026-05-05",
+  "2026-06-22",
+  "2026-07-16"
+ ],
+ "frame_colors": "R=HH, G=HV, B=HH-HV (dB)",
+ "evaluation": {
+  "earthquake": "physics module: displacement above 3x measured noise; not a learned class",
+  "tested_on": "n/a"
+ },
+ "earthquake": {
+  "threshold_cm": 6.0,
+  "noise_cm": 1.89,
+  "p99_abs_cm": 38.9,
+  "pair": null,
+  "note": "line-of-sight motion; direction depends on an unverified sign convention"
+ },
+ "event_share_of_land_percent": {
+  "vegetation gain": 1.74,
+  "vegetation loss": 0.02,
+  "burned": 0.48,
+  "flooded": 0.01
+ },
+ "source": "NISAR L2 GCOV track 126 frame 83, L-band, 40 m",
+ "model_version": "multi-event v2"
+}

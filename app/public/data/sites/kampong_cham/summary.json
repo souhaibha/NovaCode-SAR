@@ -1,0 +1,121 @@
+{
+ "site": "kampong_cham",
+ "name": "kampong_cham",
+ "story": "Automatic analysis from 2026-07-15 to 2026-11-10. Detected (ha): vegetation gain 1406, vegetation loss 183, burned 585, flooded 46.",
+ "event": "unknown",
+ "event_date": "2026-09-12",
+ "bounds": [
+  [
+   11.69929265296772,
+   105.44926110333023
+  ],
+  [
+   12.08108397766272,
+   105.85121406903286
+  ]
+ ],
+ "dates": [
+  "2026-08-11",
+  "2026-08-23",
+  "2026-09-04",
+  "2026-09-16",
+  "2026-09-28",
+  "2026-10-10",
+  "2026-10-22"
+ ],
+ "frames": [
+  "radar_2026-08-11.jpg",
+  "radar_2026-08-23.jpg",
+  "radar_2026-09-04.jpg",
+  "radar_2026-09-16.jpg",
+  "radar_2026-09-28.jpg",
+  "radar_2026-10-10.jpg",
+  "radar_2026-10-22.jpg"
+ ],
+ "changemap": "changemap.png",
+ "legend": [
+  {
+   "cls": 0,
+   "name": "stable",
+   "color": null,
+   "hectares": 177520
+  },
+  {
+   "cls": 1,
+   "name": "vegetation gain",
+   "color": [
+    40,
+    200,
+    60
+   ],
+   "hectares": 1406
+  },
+  {
+   "cls": 2,
+   "name": "vegetation loss",
+   "color": [
+    230,
+    50,
+    50
+   ],
+   "hectares": 183
+  },
+  {
+   "cls": 3,
+   "name": "burned",
+   "color": [
+    110,
+    30,
+    10
+   ],
+   "hectares": 585
+  },
+  {
+   "cls": 4,
+   "name": "flooded",
+   "color": [
+    0,
+    150,
+    255
+   ],
+   "hectares": 46
+  },
+  {
+   "cls": 5,
+   "name": "water",
+   "color": [
+    40,
+    70,
+    160
+   ],
+   "hectares": 4240
+  },
+  {
+   "cls": 6,
+   "name": "earthquake ground displacement",
+   "color": [
+    255,
+    0,
+    200
+   ],
+   "hectares": 0
+  }
+ ],
+ "layers": {},
+ "excluded_dates": [
+  "2026-07-18"
+ ],
+ "frame_colors": "R=HH, G=HV, B=HH-HV (dB)",
+ "evaluation": {
+  "note": "No reference map for this zone. Showcase test scores: burned F1 0.85 on an unseen track, flooded F1 0.84, vegetation change F1 0.39 to 0.48."
+ },
+ "earthquake": null,
+ "event_share_of_land_percent": {
+  "vegetation gain": 0.78,
+  "vegetation loss": 0.1,
+  "burned": 0.33,
+  "flooded": 0.03
+ },
+ "source": "NISAR L2 GCOV track 155 frame 8, L-band, 40 m",
+ "model_version": "multi-event v2"
+}

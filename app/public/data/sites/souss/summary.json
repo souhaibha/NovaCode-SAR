@@ -1,0 +1,135 @@
+{
+ "site": "souss",
+ "name": "Souss-Massa, Morocco",
+ "story": "Irrigated farming in the Souss valley, June to November 2026: fields planted and harvested.",
+ "event": "farming",
+ "event_date": null,
+ "bounds": [
+  [
+   30.19795272007633,
+   -9.70507246145817
+  ],
+  [
+   30.903974693593103,
+   -7.992754380276461
+  ]
+ ],
+ "dates": [
+  "2026-06-27",
+  "2026-07-09",
+  "2026-07-21",
+  "2026-08-14",
+  "2026-08-26",
+  "2026-09-19",
+  "2026-10-01",
+  "2026-10-13",
+  "2026-10-25",
+  "2026-11-06"
+ ],
+ "frames": [
+  "radar_2026-06-27.jpg",
+  "radar_2026-07-09.jpg",
+  "radar_2026-07-21.jpg",
+  "radar_2026-08-14.jpg",
+  "radar_2026-08-26.jpg",
+  "radar_2026-09-19.jpg",
+  "radar_2026-10-01.jpg",
+  "radar_2026-10-13.jpg",
+  "radar_2026-10-25.jpg",
+  "radar_2026-11-06.jpg"
+ ],
+ "changemap": "changemap.png",
+ "legend": [
+  {
+   "cls": 0,
+   "name": "stable",
+   "color": null,
+   "hectares": 1235701
+  },
+  {
+   "cls": 1,
+   "name": "vegetation gain",
+   "color": [
+    40,
+    200,
+    60
+   ],
+   "hectares": 6312
+  },
+  {
+   "cls": 2,
+   "name": "vegetation loss",
+   "color": [
+    230,
+    50,
+    50
+   ],
+   "hectares": 5396
+  },
+  {
+   "cls": 3,
+   "name": "burned",
+   "color": [
+    110,
+    30,
+    10
+   ],
+   "hectares": 1092
+  },
+  {
+   "cls": 4,
+   "name": "flooded",
+   "color": [
+    0,
+    150,
+    255
+   ],
+   "hectares": 28
+  },
+  {
+   "cls": 5,
+   "name": "water",
+   "color": [
+    40,
+    70,
+    160
+   ],
+   "hectares": 24591
+  },
+  {
+   "cls": 6,
+   "name": "earthquake ground displacement",
+   "color": [
+    255,
+    0,
+    200
+   ],
+   "hectares": 0
+  }
+ ],
+ "layers": {},
+ "excluded_dates": [],
+ "frame_colors": "R=HH, G=HV, B=HH-HV (dB)",
+ "evaluation": {
+  "vegetation gain": {
+   "precision": 0.7,
+   "recall": 0.27,
+   "f1": 0.39
+  },
+  "vegetation loss": {
+   "precision": 0.53,
+   "recall": 0.44,
+   "f1": 0.48
+  },
+  "tested_on": "held-out 5 km blocks"
+ },
+ "earthquake": null,
+ "event_share_of_land_percent": {
+  "vegetation gain": 0.51,
+  "vegetation loss": 0.43,
+  "burned": 0.09,
+  "flooded": 0.0
+ },
+ "source": "NISAR L2 GCOV track 23 frame 73, L-band, 40 m",
+ "model_version": "multi-event v2"
+}
