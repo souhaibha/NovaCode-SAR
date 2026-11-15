@@ -106,10 +106,10 @@ export default function SwipeDivider({ split, onSplitChange, mapContainerRef, st
       {/* Date labels row: start on left, end on right, always visible */}
       <div className={STYLES.labelsRow}>
         <span className={STYLES.labelLeft} style={STYLES.labelStyle}>
-          {formatDate(startDate)}
+          ◀ {formatDate(startDate)} {startDate === endDate ? "(Radar brut)" : "(Avant)"}
         </span>
         <span className={STYLES.labelRight} style={STYLES.labelStyle}>
-          {formatDate(endDate)}
+          {formatDate(endDate)} {startDate === endDate ? "(+ Détection IA)" : "(Après + IA)"} ▶
         </span>
       </div>
 

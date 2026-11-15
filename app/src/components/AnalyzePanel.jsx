@@ -22,8 +22,18 @@ const T = {
  * Given a bbox [west, south, east, north] in degrees, return { wKm, hKm }.
  */
 function bboxToKm(bbox) {
-  if (!bbox || bbox.length < 4) return null;
-  const [west, south, east, north] = bbox;
+  if (!bbox) return null;
+  let west, south, east, north;
+  if (Array.isArray(bbox) && Array.isArray(bbox[0]) && bbox.length >= 2) {
+    south = bbox[0][0];
+    west = bbox[0][1];
+    north = bbox[1][0];
+    east = bbox[1][1];
+  } else if (Array.isArray(bbox) && bbox.length >= 4) {
+    [west, south, east, north] = bbox;
+  } else {
+    return null;
+  }
   const R = 6371;
   const latMid = ((south + north) / 2) * (Math.PI / 180);
   const dLat = Math.abs(north - south) * (Math.PI / 180);

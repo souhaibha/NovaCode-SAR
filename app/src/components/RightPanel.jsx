@@ -127,7 +127,7 @@ export default function RightPanel({ zone, onJobResult }) {
         )}
 
         {activeTab === 'analyze' && (
-          <AnalyzePanel onJobResult={onJobResult} />
+          <AnalyzePanel bbox={zone?.bbox || zone?.bounds} onJobResult={onJobResult} />
         )}
       </div>
     </div>
