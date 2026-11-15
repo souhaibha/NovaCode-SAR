@@ -111,14 +111,14 @@ export default function App() {
 
   const routeZoneId = isCustomRoute ? "custom" : (routePart ? routePart.split("?")[0] : null);
 
-  // Resolve basic site entry from manifest (sites.json list)
+  // Resolve basic site entry from manifest (sites.json list) or fallback to dynamic route zone
   const matchedSite = isCustomRoute
     ? customZone
-    : (isMapRoute ? manifest?.zones?.find((z) => z.id === routeZoneId) : null);
+    : (isMapRoute ? (manifest?.zones?.find((z) => z.id === routeZoneId) || { id: routeZoneId, site: routeZoneId, name: routeZoneId }) : null);
 
   // Load full summary.json for the active site
   const { summary: fetchedZone, loading: summaryLoading } = useSiteSummary(
-    isCustomRoute ? "custom" : (matchedSite?.site ?? null)
+    isCustomRoute ? "custom" : (matchedSite?.site || routeZoneId || null)
   );
 
   const rawMatchedZone = isCustomRoute
@@ -459,8 +459,10 @@ export default function App() {
             onStartDrawZone={() => setIsDrawingZone(true)}
             onCancelDrawZone={() => setIsDrawingZone(false)}
             onJobResult={(resPath) => {
-              if (resPath && resPath.includes("souss")) {
-                navigate("/map/souss");
+              if (resPath) {
+                // Navigate cleanly to the newly created analysis site
+                const cleanSite = resPath.replace(/^\/?(web\/)?/, "").replace(/\/+$/, "");
+                navigate(`/map/${cleanSite}`);
               }
             }}
           />

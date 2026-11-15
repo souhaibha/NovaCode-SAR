@@ -1,0 +1,127 @@
+{
+ "site": "test_hackathon_mali_89cc75",
+ "name": "test_hackathon_mali_89cc75",
+ "story": "Automatic analysis from 2026-06-15 to 2026-11-15. Detected (ha): vegetation gain 3420, burned 1.",
+ "event": "unknown",
+ "event_date": "2026-08-30",
+ "bounds": [
+  [
+   12.530545347806747,
+   -5.262787183097848
+  ],
+  [
+   12.74925022352163,
+   -5.040127129905027
+  ]
+ ],
+ "dates": [
+  "2026-06-19",
+  "2026-07-01",
+  "2026-07-13",
+  "2026-07-25",
+  "2026-08-18",
+  "2026-08-30",
+  "2026-09-11",
+  "2026-09-23",
+  "2026-10-05",
+  "2026-10-17",
+  "2026-10-29"
+ ],
+ "frames": [
+  "radar_2026-06-19.jpg",
+  "radar_2026-07-01.jpg",
+  "radar_2026-07-13.jpg",
+  "radar_2026-07-25.jpg",
+  "radar_2026-08-18.jpg",
+  "radar_2026-08-30.jpg",
+  "radar_2026-09-11.jpg",
+  "radar_2026-09-23.jpg",
+  "radar_2026-10-05.jpg",
+  "radar_2026-10-17.jpg",
+  "radar_2026-10-29.jpg"
+ ],
+ "changemap": "changemap.png",
+ "legend": [
+  {
+   "cls": 0,
+   "name": "stable",
+   "color": null,
+   "hectares": 52981
+  },
+  {
+   "cls": 1,
+   "name": "vegetation gain",
+   "color": [
+    40,
+    200,
+    60
+   ],
+   "hectares": 3420
+  },
+  {
+   "cls": 2,
+   "name": "vegetation loss",
+   "color": [
+    230,
+    50,
+    50
+   ],
+   "hectares": 0
+  },
+  {
+   "cls": 3,
+   "name": "burned",
+   "color": [
+    110,
+    30,
+    10
+   ],
+   "hectares": 1
+  },
+  {
+   "cls": 4,
+   "name": "flooded",
+   "color": [
+    0,
+    150,
+    255
+   ],
+   "hectares": 0
+  },
+  {
+   "cls": 5,
+   "name": "water",
+   "color": [
+    40,
+    70,
+    160
+   ],
+   "hectares": 1196
+  },
+  {
+   "cls": 6,
+   "name": "earthquake ground displacement",
+   "color": [
+    255,
+    0,
+    200
+   ],
+   "hectares": 0
+  }
+ ],
+ "layers": {},
+ "excluded_dates": [],
+ "frame_colors": "R=HH, G=HV, B=HH-HV (dB)",
+ "evaluation": {
+  "note": "No reference map for this zone. Showcase test scores: burned F1 0.85 on an unseen track, flooded F1 0.84, vegetation change F1 0.39 to 0.48."
+ },
+ "earthquake": null,
+ "event_share_of_land_percent": {
+  "vegetation gain": 6.06,
+  "vegetation loss": 0.0,
+  "burned": 0.0,
+  "flooded": 0.0
+ },
+ "source": "NISAR L2 GCOV track 73 frame 8, L-band, 40 m",
+ "model_version": "multi-event v2"
+}
