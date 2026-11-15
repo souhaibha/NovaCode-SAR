@@ -1021,7 +1021,11 @@ export default function MapView(props) {
   const scaleBar = useScaleBar(mapRef, center[0]);
 
   // Support for real NISAR site data (summary.json with frames and changemap)
-  const siteBase = `${import.meta.env.BASE_URL}data/sites/${zone.site || zone.id}/`;
+  const siteBase = zone.base
+    ? (zone.base.endsWith('/') ? zone.base : zone.base + '/')
+    : (zone.folder
+        ? `${import.meta.env.BASE_URL}data/sites/${zone.folder}`.replace(/\/\/+$/, '/')
+        : `${import.meta.env.BASE_URL}data/sites/${zone.site || zone.id}/`);
   const dateIdx = zone.dates ? zone.dates.indexOf(endDate) : -1;
   const currentRadarFrame =
     dateIdx >= 0 && zone.frames?.[dateIdx]

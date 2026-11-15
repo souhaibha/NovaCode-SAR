@@ -26,11 +26,30 @@ export default function useSiteSummary(siteId) {
     setLoading(true);
     setError(null);
 
-    const url = import.meta.env.BASE_URL + 'data/sites/' + siteId + '/summary.json';
+    // Support remote site custom analysis or standard site directory
+    let remoteBase = null;
+    try {
+      const stored = JSON.parse(localStorage.getItem("sarwatch.remote_sites") || "[]");
+      const match = stored.find((s) => s.site === siteId);
+      if (match?.base) remoteBase = match.base;
+    } catch {
+      /* ignore */
+    }
 
-    fetch(url)
+    const primaryUrl = remoteBase ? `${remoteBase}summary.json` : `${import.meta.env.BASE_URL}data/sites/${siteId}/summary.json`;
+    const fallbackUrl = `${import.meta.env.BASE_URL}data/sites/${siteId}/summary.json`;
+
+    fetch(primaryUrl)
       .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load summary for "${siteId}": ${res.status}`);
+        if (!res.ok) {
+          if (remoteBase && primaryUrl !== fallbackUrl) {
+            return fetch(fallbackUrl).then((r2) => {
+              if (!r2.ok) throw new Error(`Failed to load summary for "${siteId}": HTTP ${res.status}`);
+              return r2.json();
+            });
+          }
+          throw new Error(`Failed to load summary for "${siteId}": HTTP ${res.status}`);
+        }
         return res.json();
       })
       .then((data) => {

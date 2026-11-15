@@ -7,7 +7,7 @@ Run from the folder that contains analyze.py and the other pipeline scripts (the
 Needs the Earthdata token in ~/.edl_token and the model in ~/data/multi_model.joblib.
 NOT YET TESTED: try every call before building on it (see docs/APP_PLAN.md).
 """
-import os, re, sys, json, uuid, math, subprocess, collections, datetime as dt
+import os, re, sys, json, uuid, math, shutil, subprocess, collections, datetime as dt
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -17,12 +17,20 @@ import asf_search as asf
 HOME = os.path.expanduser("~")
 BASE = os.environ.get("SAR_WEB_ROOT", os.getcwd())
 WEB = os.path.join(BASE, "web")
+PUBLIC_SITES = os.path.join(BASE, "app", "public", "data", "sites")
 TOKEN = os.environ.get("API_TOKEN", "")
 
 app = FastAPI(title="NISAR event detector")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])  # restrict before deploying
 os.makedirs(WEB, exist_ok=True)
 app.mount("/web", StaticFiles(directory=WEB), name="web")
+
+# Also mount /data/sites and /data for complete frontend compatibility
+if os.path.isdir(PUBLIC_SITES):
+    app.mount("/data/sites", StaticFiles(directory=PUBLIC_SITES), name="data_sites")
+else:
+    app.mount("/data/sites", StaticFiles(directory=WEB), name="data_sites")
+
 JOBS = {}
 
 
@@ -126,6 +134,22 @@ def job(jid: str):
     s = json.load(open(f))
     if s.get("state") == "done":
         s["result"] = f"/web/{jid}/"
+        # Auto-sync to public/data/sites and dist/data/sites for direct map preview
+        try:
+            web_src = os.path.join(WEB, jid)
+            if os.path.isdir(web_src):
+                for dest_base in [
+                    os.path.join(BASE, "app", "public", "data", "sites", jid),
+                    os.path.join(BASE, "app", "dist", "data", "sites", jid)
+                ]:
+                    os.makedirs(dest_base, exist_ok=True)
+                    for item in os.listdir(web_src):
+                        s_item = os.path.join(web_src, item)
+                        d_item = os.path.join(dest_base, item)
+                        if os.path.isfile(s_item):
+                            shutil.copy2(s_item, d_item)
+        except Exception:
+            pass
     if jid in JOBS and JOBS[jid]["proc"].poll() not in (None, 0) and s.get("state") != "failed":
         s.update(state="failed", message="The analysis stopped unexpectedly; see the server log.")
     return s
