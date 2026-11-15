@@ -138,7 +138,7 @@ export default function App() {
       });
       // Real summary.json: legend entries with { cls, name, color: [R,G,B]|null, hectares }
       const legendClasses = (matchedZone.legend || [])
-        .filter((e) => e.color !== null && e.color !== undefined && (e.hectares > 0 || matchedZone.isCustom))
+        .filter((e) => e.color !== null && e.color !== undefined)
         .map((e) => e.cls);
       setActiveClasses(legendClasses.length ? legendClasses : [1, 2, 3, 4, 5]);
       // zone.event is a string in real data (not an events array)

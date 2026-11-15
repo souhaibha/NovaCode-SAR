@@ -1349,7 +1349,7 @@ export default function MapView(props) {
             key={`event-${selectedEvent?.id}-${startDate}-${endDate}`}
             url={eventDataUrl}
             bounds={bounds}
-            opacity={0.92}
+            opacity={opacity}
             className="pixelated"
           />
         )}

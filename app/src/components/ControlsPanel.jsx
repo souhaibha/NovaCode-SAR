@@ -33,7 +33,7 @@ export default function ControlsPanel({
 
   const sourceLegend = (zone?.legend && zone.legend.length > 0) ? zone.legend : DEFAULT_LEGEND;
   const classes = sourceLegend
-    .filter((e) => e.color !== null && e.color !== undefined && (e.hectares > 0 || !zone?.legend || zone?.isCustom))
+    .filter((e) => e.color !== null && e.color !== undefined)
     .map((e) => ({
       id: e.cls,
       label: e.name === "vegetation gain" ? "gain de végétation"

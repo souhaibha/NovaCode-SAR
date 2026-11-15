@@ -85,3 +85,29 @@ export function nearestZone(lat, lon, zones) {
     inside: isInside,
   };
 }
+
+/**
+ * Size of a bbox in km, measured on the ground:
+ * Accepts either [W, S, E, N] or [[S, W], [N, E]].
+ */
+export function bboxSizeKm(bbox) {
+  if (!bbox) return null;
+  let w, s, e, n;
+  if (Array.isArray(bbox) && Array.isArray(bbox[0]) && bbox.length >= 2) {
+    s = bbox[0][0];
+    w = bbox[0][1];
+    n = bbox[1][0];
+    e = bbox[1][1];
+  } else if (Array.isArray(bbox) && bbox.length >= 4) {
+    [w, s, e, n] = bbox;
+  } else {
+    return null;
+  }
+  const latMid = (s + n) / 2;
+  const wKm = haversineKm(latMid, w, latMid, e);
+  const hKm = haversineKm(s, w, n, w);
+  return { wKm: Math.round(wKm * 10) / 10, hKm: Math.round(hKm * 10) / 10 };
+}
+
+export const MAX_ZONE_KM = 50;
+export const zoneTooLarge = (size) => Boolean(size && (size.wKm > MAX_ZONE_KM || size.hKm > MAX_ZONE_KM));

@@ -1,4 +1,19 @@
 import { useState, useEffect, useRef } from "react";
+import {
+  hasBackend,
+  API_URL,
+  checkCoverage,
+  startJob,
+  getJob,
+  registerFinishedJob,
+  getRemoteSites,
+  getActiveJob,
+  setActiveJob,
+  getToken,
+  setToken,
+  normalizeBbox,
+} from "../lib/api";
+import { bboxSizeKm, zoneTooLarge as isTooLarge } from "../lib/geo";
 
 // ── Style tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -18,41 +33,16 @@ const T = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Given a bbox [west, south, east, north] in degrees, return { wKm, hKm }.
- */
-function bboxToKm(bbox) {
-  if (!bbox) return null;
-  let west, south, east, north;
-  if (Array.isArray(bbox) && Array.isArray(bbox[0]) && bbox.length >= 2) {
-    south = bbox[0][0];
-    west = bbox[0][1];
-    north = bbox[1][0];
-    east = bbox[1][1];
-  } else if (Array.isArray(bbox) && bbox.length >= 4) {
-    [west, south, east, north] = bbox;
-  } else {
-    return null;
-  }
-  const R = 6371;
-  const latMid = ((south + north) / 2) * (Math.PI / 180);
-  const dLat = Math.abs(north - south) * (Math.PI / 180);
-  const dLon = Math.abs(east - west) * (Math.PI / 180);
-  const hKm = R * dLat;
-  const wKm = R * dLon * Math.cos(latMid);
-  return { wKm: Math.round(wKm * 10) / 10, hKm: Math.round(hKm * 10) / 10 };
-}
-
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
 function autoName() {
   const now = new Date();
-  return `Analysis ${now.toLocaleDateString("en-GB", {
+  return `Analyse ${now.toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "short",
-  })} ${now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+  })} ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
@@ -62,9 +52,9 @@ function SectionLabel({ children }) {
     <div
       style={{
         fontFamily: T.mono,
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: 700,
-        letterSpacing: "0.1em",
+        letterSpacing: "0.08em",
         textTransform: "uppercase",
         color: T.dim,
         marginBottom: 6,
@@ -80,51 +70,15 @@ function Spinner() {
     <span
       style={{
         display: "inline-block",
-        width: 14,
-        height: 14,
-        border: `2px solid ${T.border}`,
-        borderTopColor: T.accent,
+        width: 10,
+        height: 10,
         borderRadius: "50%",
-        animation: "spin 0.7s linear infinite",
-        flexShrink: 0,
+        border: `2px solid ${T.accent}`,
+        borderTopColor: "transparent",
+        animation: "spin 0.8s linear infinite",
+        verticalAlign: "middle",
       }}
     />
-  );
-}
-
-function ProgressBar({ pct, indeterminate }) {
-  return (
-    <div
-      style={{
-        height: 4,
-        background: T.card,
-        borderRadius: 999,
-        overflow: "hidden",
-        marginTop: 6,
-      }}
-    >
-      {indeterminate ? (
-        <div
-          style={{
-            height: "100%",
-            width: "40%",
-            background: T.accent,
-            borderRadius: 999,
-            animation: "slide 1.2s ease-in-out infinite",
-          }}
-        />
-      ) : (
-        <div
-          style={{
-            height: "100%",
-            width: `${pct}%`,
-            background: T.accent,
-            borderRadius: 999,
-            transition: "width 0.3s ease",
-          }}
-        />
-      )}
-    </div>
   );
 }
 
@@ -148,145 +102,191 @@ function PanelCard({ children, style }) {
 
 // ── Main component ───────────────────────────────────────────────────────────
 
+const STAGES = ["queued", "searching", "downloading", "processing", "predicting", "done"];
+const STAGE_LABEL = {
+  queued: "Initialisation",
+  searching: "Recherche des orbites NISAR",
+  downloading: "Acquisition des données radar",
+  processing: "Traitement géométrique & masque",
+  predicting: "Exécution du modèle IA multi-classes",
+  done: "Analyse terminée avec succès",
+  failed: "Échec de l'analyse",
+};
+
+const inputStyle = {
+  background: T.deep,
+  border: `1px solid ${T.border}`,
+  borderRadius: 6,
+  color: T.text,
+  fontFamily: T.mono,
+  fontSize: 12,
+  padding: "5px 8px",
+  outline: "none",
+  colorScheme: "dark",
+  width: "100%",
+  boxSizing: "border-box",
+};
+
+function buttonStyle(enabled, strong = false) {
+  return {
+    background: enabled ? (strong ? "rgba(87,241,219,0.18)" : "rgba(87,241,219,0.10)") : "rgba(87,241,219,0.03)",
+    border: `1px solid ${enabled ? T.accent : T.border}`,
+    borderRadius: 6,
+    color: enabled ? T.accent : T.dim,
+    fontFamily: T.mono,
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.06em",
+    padding: "6px 12px",
+    cursor: enabled ? "pointer" : "not-allowed",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  };
+}
+
 export default function AnalyzePanel({
-  bbox = null,
-  onJobResult,
+  bbox: rawBbox = null,
+  drawing = false,
   isDrawing = false,
+  onStartDraw,
   onStartDrawZone,
+  onClearBbox,
   onCancelDrawZone,
+  onJobResult,
 }) {
+  const activeDrawing = drawing || isDrawing;
+  const triggerDraw = onStartDraw || onStartDrawZone;
+  const triggerCancel = onClearBbox || onCancelDrawZone;
+  const bbox = normalizeBbox(rawBbox);
   const today = todayISO();
 
-  // ── State ──
   const [startDate, setStartDate] = useState("2026-06-15");
-  const [endDate, setEndDate] = useState(today);
-
-  const [coverageStatus, setCoverageStatus] = useState(null); // null | 'loading' | { ok, passes, message }
-  const [jobStatus, setJobStatus] = useState(null); // null | 'running' | 'done' | 'failed'
-  const [jobStep, setJobStep] = useState(null); // { text, pct, indeterminate }
-  const [recentAnalyses, setRecentAnalyses] = useState([]);
+  const [endDate, setEndDate] = useState(today > "2026-06-15" ? today : "2026-11-15");
+  const [quakeDate, setQuakeDate] = useState("");
   const [analysisName, setAnalysisName] = useState("");
+  const [token, setTokenState] = useState(() => getToken() || "nasa2026");
+  const [coverage, setCoverage] = useState(null); // null | "loading" | { ok, tracks, message }
+  const [trackKey, setTrackKey] = useState(""); // "track/frame"
+  const [job, setJob] = useState(() => getActiveJob()); // { id, name }
+  const [jobState, setJobState] = useState(null); // status.json from the server
+  const [error, setError] = useState(null);
+  const [recent, setRecent] = useState(() => getRemoteSites());
+  const pollRef = useRef(null);
 
-  const timeoutsRef = useRef([]);
+  const dims = bboxSizeKm(bbox);
+  const zoneTooLarge = isTooLarge(dims);
+  const dateProblem =
+    startDate < "2026-06-15"
+      ? "La couverture NISAR débute le 15 juin 2026."
+      : startDate >= endDate
+      ? "La date de début doit être antérieure à la date de fin."
+      : null;
+  const zoneBody = bbox
+    ? { bbox: bbox.map((v) => Math.round(v * 1e5) / 1e5), start: startDate, end: endDate }
+    : null;
+  const running = Boolean(job) && !["done", "failed"].includes(jobState?.state);
+  const coverageReady = coverage && coverage !== "loading";
+  const canCheck = hasBackend && bbox && !zoneTooLarge && !dateProblem && coverage !== "loading";
+  const canAnalyze =
+    hasBackend && bbox && !zoneTooLarge && !dateProblem && coverageReady && coverage.ok && trackKey && !running && token.trim();
 
-  // ── Derived ──
-  const dims = bboxToKm(bbox);
-  const zoneTooLarge = dims && (dims.wKm > 50 || dims.hKm > 50);
-  const coverageOk = coverageStatus?.ok === true;
-  const canAnalyze = coverageOk && !zoneTooLarge && jobStatus !== "running";
-
-  // ── Cleanup timeouts on unmount ──
+  // A new zone or new dates invalidate the previous coverage answer
+  const bboxKey = bbox ? bbox.join(",") : "";
   useEffect(() => {
-    return () => timeoutsRef.current.forEach(clearTimeout);
-  }, []);
+    setCoverage(null);
+    setTrackKey("");
+  }, [bboxKey, startDate, endDate]);
 
-  // ── Coverage check ──
-  async function handleCheckCoverage() {
-    setCoverageStatus("loading");
-    try {
-      const res = await fetch(import.meta.env.BASE_URL + "data/mock/coverage_ok.json");
-      const data = await res.json();
-      const passes = data.tracks?.[0]?.dates?.length ?? 0;
-      setCoverageStatus({ ok: data.ok, passes, message: data.message });
-    } catch {
-      setCoverageStatus({ ok: false, passes: 0, message: "Network error — could not check coverage." });
-    }
-  }
-
-  // ── Analyze zone ──
-  async function handleAnalyze() {
-    if (!canAnalyze) return;
-    setJobStatus("running");
-    setJobStep(null);
-    timeoutsRef.current.forEach(clearTimeout);
-    timeoutsRef.current = [];
-
-    try {
-      await fetch(import.meta.env.BASE_URL + "data/mock/job_created.json");
-    } catch {
-      /* ignore */
-    }
-
-    // t=0 — downloading
-    const dl = async () => {
+  // Follow a running job (also resumes after a page refresh)
+  useEffect(() => {
+    if (!job || !hasBackend) return undefined;
+    let stopped = false;
+    async function tick() {
       try {
-        const data = await (
-          await fetch(import.meta.env.BASE_URL + "data/mock/job_downloading.json")
-        ).json();
-        const pct = data.total ? Math.round((data.done / data.total) * 100) : 0;
-        setJobStep({
-          text: `${data.step} ${data.done} of ${data.total}`,
-          pct,
-          indeterminate: false,
-        });
-      } catch {
-        setJobStep({ text: "Reading radar pass 4 of 7", pct: 57, indeterminate: false });
-      }
-    };
-    dl();
-
-    // t=3s — processing
-    const t1 = setTimeout(async () => {
-      try {
-        const data = await (
-          await fetch(import.meta.env.BASE_URL + "data/mock/job_processing.json")
-        ).json();
-        setJobStep({ text: data.step + "...", pct: 0, indeterminate: true });
-      } catch {
-        setJobStep({ text: "Running model...", pct: 0, indeterminate: true });
-      }
-    }, 3000);
-    timeoutsRef.current.push(t1);
-
-    // t=6s — done
-    const t2 = setTimeout(async () => {
-      try {
-        const data = await (
-          await fetch(import.meta.env.BASE_URL + "data/mock/job_done.json")
-        ).json();
-
-        if (data.state === "failed") {
-          setJobStatus("failed");
-          setJobStep({ text: data.message, pct: 0, indeterminate: false });
+        const s = await getJob(job.id);
+        if (stopped) return;
+        setJobState(s);
+        setError(null);
+        if (s.state === "done") {
+          const entry = await registerFinishedJob(job.id, job.name);
+          setActiveJob(null);
+          setRecent(getRemoteSites());
+          onJobResult?.(entry.site);
           return;
         }
-
-        setJobStatus("done");
-        setJobStep({ text: "✓ Analysis ready", pct: 100, indeterminate: false });
-
-        const name = analysisName.trim() || autoName();
-        const result = data.result ?? "/data/sites/souss/";
-
-        setRecentAnalyses((prev) => {
-          const entry = { name, time: new Date(), result };
-          return [entry, ...prev].slice(0, 5);
-        });
-
-        if (onJobResult) onJobResult(result);
-      } catch {
-        setJobStatus("failed");
-        setJobStep({ text: "Analysis failed — check logs.", pct: 0, indeterminate: false });
+        if (s.state === "failed") {
+          setActiveJob(null);
+          return;
+        }
+      } catch (e) {
+        if (!stopped) setError(e.message);
       }
-    }, 6000);
-    timeoutsRef.current.push(t2);
+      if (!stopped) pollRef.current = setTimeout(tick, 5000);
+    }
+    tick();
+    return () => {
+      stopped = true;
+      clearTimeout(pollRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.id]);
+
+  async function handleCheckCoverage() {
+    if (!canCheck) return;
+    setError(null);
+    setCoverage("loading");
+    try {
+      const c = await checkCoverage(zoneBody);
+      setCoverage(c);
+      const usable = (c.tracks || []).filter((t) => t.dates.length >= 4);
+      if (usable.length > 0) {
+        setTrackKey(`${usable[0].track}/${usable[0].frame}`);
+      }
+    } catch (e) {
+      setCoverage(null);
+      setError(e.message);
+    }
   }
 
-  // ── Render ──
+  async function handleAnalyze() {
+    if (!canAnalyze) return;
+    setError(null);
+    const [t, f] = trackKey.split("/").map(Number);
+    const name = analysisName.trim() || autoName();
+    const payload = {
+      ...zoneBody,
+      name,
+      track: t,
+      frame: f,
+      earthquake_date: quakeDate || null,
+    };
+    try {
+      setToken(token.trim());
+      const res = await startJob(payload, token.trim());
+      const newJob = { id: res.job_id, name };
+      setJob(newJob);
+      setActiveJob(newJob);
+      setJobState({ state: "queued", step: "Démarrage" });
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  const stageIdx = jobState ? STAGES.indexOf(jobState.state) : -1;
+
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        padding: "10px 12px 16px",
         fontFamily: T.sans,
-        color: T.text,
         fontSize: 13,
         height: "100%",
         overflowY: "auto",
       }}
     >
-      {/* Global keyframe injection */}
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slide {
@@ -296,302 +296,229 @@ export default function AnalyzePanel({
         }
       `}</style>
 
-      {/* ── 1. Zone size / Draw zone ── */}
-      <PanelCard>
-        <SectionLabel>1 · Analysis zone</SectionLabel>
-        <button
-          type="button"
-          onClick={() => {
-            if (isDrawing) {
-              onCancelDrawZone && onCancelDrawZone();
-            } else {
-              onStartDrawZone && onStartDrawZone();
-            }
-          }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            width: "100%",
-            padding: "9px 12px",
-            borderRadius: 8,
-            border: isDrawing ? `1.5px solid ${T.accent}` : `1px solid ${T.border}`,
-            background: isDrawing ? "rgba(87,241,219,0.18)" : "rgba(35,42,57,0.7)",
-            color: isDrawing ? T.accent : "#dce2f6",
-            fontFamily: T.mono,
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-            marginBottom: 6,
-            transition: "all 0.15s ease",
-            outline: "none",
-          }}
-        >
-          <span className="material-symbols-outlined text-[16px]">
-            {isDrawing ? "close" : "crop_free"}
-          </span>
-          {isDrawing ? "Annuler le dessin" : "Draw zone on map"}
-        </button>
-        <p style={{ fontSize: 10, color: T.muted, margin: "0 0 6px 0", lineHeight: 1.4 }}>
-          {isDrawing
-            ? "Mode actif : Cliquez deux coins opposés sur la carte."
-            : "Use 'Draw zone on map', then click two opposite corners."}
-        </p>
-
-        {!dims ? (
-          <span style={{ color: T.muted, fontSize: 11, fontFamily: T.mono }}>
-            Draw a rectangle on the map to select a zone
-          </span>
-        ) : zoneTooLarge ? (
-          <span style={{ color: T.error, fontSize: 11, fontFamily: T.mono }}>
-            Zone too large ({dims.wKm} × {dims.hKm} km — max 50 × 50 km)
-          </span>
-        ) : (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0c1321", padding: "5px 8px", borderRadius: 6 }}>
-            <span style={{ color: T.accent, fontFamily: T.mono, fontSize: 12, fontWeight: 700 }}>
-              ✓ {dims.wKm} km × {dims.hKm} km
-            </span>
-            <span style={{ color: T.dim, fontSize: 10, fontFamily: T.mono }}>
-              ~{Math.round(dims.wKm * dims.hKm)} km²
-            </span>
-          </div>
-        )}
-      </PanelCard>
-
-      {/* ── 2. Date pickers ── */}
-      <PanelCard>
-        <SectionLabel>Date range</SectionLabel>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {[
-            { label: "Start date", value: startDate, setter: setStartDate },
-            { label: "End date", value: endDate, setter: setEndDate },
-          ].map(({ label, value, setter }) => (
-            <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <label
-                style={{ fontSize: 11, color: T.muted, fontFamily: T.mono, letterSpacing: "0.04em" }}
-              >
-                {label}
-              </label>
-              <input
-                type="date"
-                value={value}
-                min="2026-06-15"
-                max={today}
-                onChange={(e) => setter(e.target.value)}
-                style={{
-                  background: T.card,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 6,
-                  color: T.text,
-                  fontFamily: T.mono,
-                  fontSize: 12,
-                  padding: "5px 8px",
-                  outline: "none",
-                  colorScheme: "dark",
-                  width: "100%",
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      </PanelCard>
-
-      {/* ── 3. Coverage check ── */}
-      <PanelCard>
-        <SectionLabel>Coverage</SectionLabel>
-        <button
-          onClick={handleCheckCoverage}
-          disabled={coverageStatus === "loading"}
-          style={{
-            background: coverageStatus === "loading" ? T.border : "rgba(87,241,219,0.12)",
-            border: `1px solid ${T.accent}`,
-            borderRadius: 6,
-            color: T.accent,
-            fontFamily: T.mono,
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.06em",
-            padding: "6px 12px",
-            cursor: coverageStatus === "loading" ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            transition: "background 0.2s",
-          }}
-        >
-          {coverageStatus === "loading" && <Spinner />}
-          Check coverage
-        </button>
-
-        {coverageStatus && coverageStatus !== "loading" && (
-          <div
+      {/* Backend connection status pill */}
+      <PanelCard style={{ border: `1px solid ${hasBackend ? "rgba(87,241,219,0.3)" : T.warn}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
             style={{
-              fontSize: 12,
-              fontFamily: T.mono,
-              marginTop: 2,
-              color: coverageStatus.ok ? T.accent : T.error,
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: hasBackend ? T.accent : T.warn,
+              boxShadow: hasBackend ? "0 0 8px #57f1db" : "none",
             }}
+          />
+          <SectionLabel>
+            {hasBackend ? "Serveur IA NISAR Connecté" : "Aucun serveur d'analyse connecté"}
+          </SectionLabel>
+        </div>
+        <span style={{ fontSize: 11, color: T.muted, lineHeight: 1.4 }}>
+          {hasBackend ? (
+            <>
+              API active sur <code style={{ color: T.accent }}>{API_URL}</code>. Recherche Vertex ASF & modèle multi-classes prêts.
+            </>
+          ) : (
+            <>
+              Les zones de démonstration fonctionnent sans serveur. Pour analyser une nouvelle région, lancez <code>backend.py</code> sur le port 8000.
+            </>
+          )}
+        </span>
+      </PanelCard>
+
+      {/* 1. Zone */}
+      <PanelCard>
+        <SectionLabel>1 · Zone d'analyse</SectionLabel>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button
+            onClick={() => triggerDraw?.()}
+            disabled={activeDrawing || running}
+            style={buttonStyle(!activeDrawing && !running)}
           >
-            {coverageStatus.ok
-              ? `✓ NISAR covers this zone (${coverageStatus.passes} passes)`
-              : coverageStatus.message || "Coverage not available for this zone."}
-          </div>
+            {activeDrawing ? "Tracé en cours… cliquez 2 coins" : bbox ? "Redessiner la zone" : "Tracer une zone sur la carte"}
+          </button>
+          {bbox && !running && (
+            <button onClick={() => triggerCancel?.()} style={buttonStyle(true)}>
+              Effacer
+            </button>
+          )}
+        </div>
+        {!bbox && !activeDrawing && (
+          <span style={{ color: T.dim, fontSize: 11 }}>
+            Cliquez sur "Tracer une zone", puis cliquez sur deux coins opposés sur la carte.
+          </span>
+        )}
+        {dims && (
+          <>
+            <span style={{ color: zoneTooLarge ? T.error : T.accent, fontFamily: T.mono, fontSize: 12 }}>
+              {dims.wKm} km × {dims.hKm} km
+            </span>
+            {zoneTooLarge && (
+              <span style={{ color: T.error, fontSize: 12 }}>
+                Zone trop étendue ; la limite maximale est de 50 × 50 km.
+              </span>
+            )}
+            <span style={{ color: T.dim, fontFamily: T.mono, fontSize: 10, lineHeight: 1.5 }}>
+              O {bbox[0].toFixed(4)} · S {bbox[1].toFixed(4)} · E {bbox[2].toFixed(4)} · N {bbox[3].toFixed(4)}
+            </span>
+          </>
         )}
       </PanelCard>
 
-      {/* ── 4. Analyze zone + progress ── */}
+      {/* 2. Dates */}
       <PanelCard>
-        <SectionLabel>Analysis</SectionLabel>
+        <SectionLabel>2 · Période temporelle</SectionLabel>
+        {[
+          ["Date de début", startDate, setStartDate],
+          ["Date de fin", endDate, setEndDate],
+        ].map(([label, value, setter]) => (
+          <label key={label} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: T.muted, fontFamily: T.mono }}>
+            {label}
+            <input type="date" value={value} min="2026-06-15" onChange={(e) => setter(e.target.value)} style={inputStyle} />
+          </label>
+        ))}
+        {dateProblem && <span style={{ color: T.error, fontSize: 11, fontFamily: T.mono }}>{dateProblem}</span>}
+        <details style={{ fontSize: 11, color: T.muted }}>
+          <summary style={{ cursor: "pointer", fontFamily: T.mono }}>Séisme (optionnel)</summary>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 6, fontFamily: T.mono }}>
+            Date de l'événement sismique (active l'interférométrie)
+            <input type="date" value={quakeDate} min={startDate} max={endDate} onChange={(e) => setQuakeDate(e.target.value)} style={inputStyle} />
+          </label>
+        </details>
+      </PanelCard>
 
+      {/* 3. Coverage */}
+      <PanelCard>
+        <SectionLabel>3 · Couverture satellite NISAR</SectionLabel>
+        <button onClick={handleCheckCoverage} disabled={!canCheck} style={buttonStyle(Boolean(canCheck))}>
+          {coverage === "loading" && <Spinner />}
+          Vérifier la couverture NISAR
+        </button>
+        {!bbox && <span style={{ color: T.dim, fontSize: 11 }}>Sélectionnez ou tracez une zone d'abord.</span>}
+        {coverageReady && !coverage.ok && (
+          <span style={{ color: T.error, fontSize: 12 }}>
+            Aucune orbite NISAR ne comporte au moins 4 passages sur cette zone durant cette période. Élargissez la période.
+          </span>
+        )}
+        {coverageReady && coverage.ok && (() => {
+          const chosen = coverage.tracks.find((t) => `${t.track}/${t.frame}` === trackKey);
+          return chosen ? (
+            <span style={{ fontSize: 12, color: T.accent, fontFamily: T.mono }}>
+              ✓ Trace {chosen.track}, cadre {chosen.frame} ({(chosen.direction || "").toLowerCase()}) : {chosen.dates.length} passages radar, du{" "}
+              {chosen.dates[0]} au {chosen.dates[chosen.dates.length - 1]}
+            </span>
+          ) : null;
+        })()}
+        {coverageReady && coverage.ok && (
+          <details style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <summary style={{ fontSize: 11, color: T.muted, cursor: "pointer", fontFamily: T.mono }}>
+              Avancé : choisir une autre orbite radar ({coverage.tracks.filter((t) => t.dates.length >= 4).length} disponibles)
+            </summary>
+            {coverage.tracks
+              .filter((t) => t.dates.length >= 4)
+              .map((t) => {
+                const key = `${t.track}/${t.frame}`;
+                return (
+                  <label key={key} style={{ display: "flex", gap: 6, alignItems: "flex-start", fontSize: 11, fontFamily: T.mono, color: T.text, cursor: "pointer" }}>
+                    <input type="radio" name="track" checked={trackKey === key} onChange={() => setTrackKey(key)} />
+                    <span>
+                      Trace {t.track}, cadre {t.frame} ({(t.direction || "").toLowerCase()}) : {t.dates.length} dates exploitables
+                      {t.single_pol_passes > 0 ? ` (${t.single_pol_passes} simple polarimétrie)` : ""}
+                      <br />
+                      <span style={{ color: T.dim }}>{t.dates.join(", ")}</span>
+                    </span>
+                  </label>
+                );
+              })}
+          </details>
+        )}
+      </PanelCard>
+
+      {/* 4. Run */}
+      <PanelCard>
+        <SectionLabel>4 · Lancer l'analyse IA</SectionLabel>
         <input
           type="text"
-          placeholder="Analysis name (optional)"
+          placeholder="Nom personnalisé de l'analyse (optionnel)"
           value={analysisName}
           onChange={(e) => setAnalysisName(e.target.value)}
-          style={{
-            background: T.deep,
-            border: `1px solid ${T.border}`,
-            borderRadius: 6,
-            color: T.text,
-            fontFamily: T.sans,
-            fontSize: 12,
-            padding: "5px 8px",
-            outline: "none",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
+          style={{ ...inputStyle, fontFamily: T.sans }}
         />
-
-        <button
-          onClick={handleAnalyze}
-          disabled={!canAnalyze}
-          style={{
-            background: canAnalyze
-              ? "rgba(87,241,219,0.15)"
-              : "rgba(87,241,219,0.04)",
-            border: `1px solid ${canAnalyze ? T.accent : T.border}`,
-            borderRadius: 6,
-            color: canAnalyze ? T.accent : T.dim,
-            fontFamily: T.mono,
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            padding: "7px 14px",
-            cursor: canAnalyze ? "pointer" : "not-allowed",
-            transition: "all 0.2s",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          {jobStatus === "running" && <Spinner />}
-          Analyze zone
+        <label style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 10, color: T.dim, fontFamily: T.mono }}>
+          Jeton d'accès IA (configuré automatiquement)
+          <input
+            type="text"
+            placeholder="nasa2026"
+            value={token}
+            onChange={(e) => setTokenState(e.target.value)}
+            style={inputStyle}
+          />
+        </label>
+        <button onClick={handleAnalyze} disabled={!canAnalyze} style={buttonStyle(Boolean(canAnalyze), true)}>
+          {running && <Spinner />}
+          Lancer l'analyse du modèle
         </button>
-
-        {/* Progress / status */}
-        {jobStep && (
-          <div style={{ marginTop: 2 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontFamily: T.mono,
-                color:
-                  jobStatus === "failed"
-                    ? T.error
-                    : jobStatus === "done"
-                    ? T.accent
-                    : T.muted,
-              }}
-            >
-              {jobStep.text}
-            </div>
-            {jobStatus === "running" && (
-              <ProgressBar
-                pct={jobStep.pct}
-                indeterminate={jobStep.indeterminate}
-              />
-            )}
-            {jobStatus === "done" && (
-              <ProgressBar pct={100} indeterminate={false} />
+        {job && (
+          <div style={{ marginTop: 2, display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ fontSize: 12, fontFamily: T.mono, color: jobState?.state === "failed" ? T.error : jobState?.state === "done" ? T.accent : T.muted }}>
+              {STAGE_LABEL[jobState?.state] || "En cours"}
+              {jobState?.step && jobState.state !== "failed" ? ` : ${jobState.step}` : ""}
+            </span>
+            {jobState?.state === "failed" ? (
+              <>
+                <span style={{ fontSize: 12, color: T.error }}>{jobState.message || "L'analyse s'est arrêtée."}</span>
+                <button
+                  onClick={() => {
+                    setJob(null);
+                    setJobState(null);
+                    handleAnalyze();
+                  }}
+                  disabled={!canAnalyze}
+                  style={buttonStyle(Boolean(canAnalyze))}
+                >
+                  Réessayer
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 2 }}>
+                  {STAGES.slice(1).map((st, i) => {
+                    const idx = i + 1;
+                    const state = stageIdx > idx ? "done" : stageIdx === idx ? "current" : "todo";
+                    return (
+                      <span key={st} style={{ fontSize: 11, fontFamily: T.mono, color: state === "current" ? T.accent : state === "done" ? T.muted : T.dim }}>
+                        {state === "done" ? "✓" : state === "current" ? "●" : "○"} {idx}. {STAGE_LABEL[st]}
+                      </span>
+                    );
+                  })}
+                </div>
+                <span style={{ fontSize: 10, color: T.dim, fontFamily: T.mono }}>ID Job : {job.id}</span>
+              </>
             )}
           </div>
         )}
+        {error && <span style={{ color: T.error, fontSize: 12 }}>{error}</span>}
       </PanelCard>
 
-      {/* ── 5. Recent analyses ── */}
-      {recentAnalyses.length > 0 && (
+      {/* 5. Recent analyses (kept in this browser) */}
+      {recent.length > 0 && (
         <PanelCard>
-          <SectionLabel>Recent analyses</SectionLabel>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {recentAnalyses.map((item, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  background: T.bg,
-                  borderRadius: 7,
-                  padding: "7px 10px",
-                  gap: 8,
-                }}
-              >
-                <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: T.text,
-                      fontFamily: T.sans,
-                      fontWeight: 600,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {item.name}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      color: T.dim,
-                      fontFamily: T.mono,
-                    }}
-                  >
-                    {item.time.toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                    })}{" "}
-                    {item.time.toLocaleTimeString("en-GB", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-                <button
-                  onClick={() => onJobResult && onJobResult(item.result)}
-                  style={{
-                    background: "rgba(87,241,219,0.1)",
-                    border: `1px solid ${T.accent}`,
-                    borderRadius: 5,
-                    color: T.accent,
-                    fontFamily: T.mono,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: "0.06em",
-                    padding: "3px 10px",
-                    cursor: "pointer",
-                    flexShrink: 0,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Open
-                </button>
+          <SectionLabel>Analyses récentes</SectionLabel>
+          {recent.map((r) => (
+            <div key={r.site} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.bg, borderRadius: 7, padding: "6px 10px" }}>
+              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</span>
+                <span style={{ fontSize: 10, color: T.dim, fontFamily: T.mono }}>{(r.analysed_at || "").slice(0, 16).replace("T", " ")}</span>
               </div>
-            ))}
-          </div>
+              <button onClick={() => onJobResult?.(r.site)} style={buttonStyle(true)}>Ouvrir</button>
+            </div>
+          ))}
         </PanelCard>
       )}
+
+      <span style={{ fontSize: 10, color: T.dim, lineHeight: 1.5 }}>
+        Les détections pour une nouvelle région proviennent directement du modèle multi-classes entraîné sur les données radar NISAR.
+        {hasBackend ? ` · Serveur : ${API_URL}` : ""}
+      </span>
     </div>
   );
 }
