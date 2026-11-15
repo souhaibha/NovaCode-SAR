@@ -1,23 +1,41 @@
-import { useState, useEffect } from 'react';
+/**
+ * useSiteSummary — fetches and normalizes summary.json for a site entry.
+ *
+ * Accepts the index entry object { site, folder, bounds, ... } from sites.json.
+ * Uses siteBase() so the path is consistent with api.js.
+ *
+ * Returns { summary, loading, error }
+ *   summary has the full normalized shape from normalizeSummary() PLUS
+ *   legacy fields that MapView expects (bbox, id, changemap, legend, etc.).
+ */
+import { useState, useEffect } from "react";
+import { siteBase } from "../lib/api";
+import { normalizeSummary } from "../lib/siteAdapter";
 
-// In-memory cache to make site transitions instant and eliminate reload issues
+// In-memory cache (key = folder string)
 const summaryCache = new Map();
 
-export default function useSiteSummary(siteId) {
-  const [summary, setSummary] = useState(() => (siteId ? summaryCache.get(siteId) || null : null));
-  const [loading, setLoading] = useState(() => Boolean(siteId && !summaryCache.has(siteId)));
+export default function useSiteSummary(siteEntry) {
+  const cacheKey = siteEntry?.folder || siteEntry?.site || null;
+
+  const [summary, setSummary] = useState(() =>
+    cacheKey ? summaryCache.get(cacheKey) || null : null
+  );
+  const [loading, setLoading] = useState(() =>
+    Boolean(cacheKey && !summaryCache.has(cacheKey))
+  );
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!siteId) {
+    if (!cacheKey) {
       setSummary(null);
       setLoading(false);
       setError(null);
       return;
     }
 
-    if (summaryCache.has(siteId)) {
-      setSummary(summaryCache.get(siteId));
+    if (summaryCache.has(cacheKey)) {
+      setSummary(summaryCache.get(cacheKey));
       setLoading(false);
       setError(null);
       return;
@@ -26,40 +44,55 @@ export default function useSiteSummary(siteId) {
     setLoading(true);
     setError(null);
 
-    const url = import.meta.env.BASE_URL + 'data/sites/' + siteId + '/summary.json';
+    const base = siteBase(siteEntry);
+    const url = base + "summary.json";
 
-    fetch(url)
+    const controller = new AbortController();
+
+    fetch(url, { signal: controller.signal })
       .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load summary for "${siteId}": ${res.status}`);
+        if (!res.ok)
+          throw new Error(`Failed to load summary: HTTP ${res.status} (${url})`);
+        const ct = res.headers.get("content-type");
+        if (ct && ct.includes("text/html"))
+          throw new Error(`Site summary not found`);
         return res.json();
       })
-      .then((data) => {
-        let bbox = data.bbox;
-        if (!bbox && data.bounds && data.bounds.length >= 2) {
-          const south = data.bounds[0][0];
-          const west = data.bounds[0][1];
-          const north = data.bounds[1][0];
-          const east = data.bounds[1][1];
-          bbox = [west, south, east, north];
-        }
-        const normalized = {
-          ...data,
-          id: data.site || data.id,
+      .then((raw) => {
+        // Normalize via siteAdapter (validates required fields, builds frame URLs, etc.)
+        const normalized = normalizeSummary(raw, base);
+
+        // Add legacy compatibility fields expected by MapView / App.jsx
+        const south = normalized.bounds[0][0];
+        const west  = normalized.bounds[0][1];
+        const north = normalized.bounds[1][0];
+        const east  = normalized.bounds[1][1];
+        const bbox  = [west, south, east, north]; // [minLng, minLat, maxLng, maxLat]
+
+        const full = {
+          ...normalized,
+          // Legacy fields
           bbox,
+          id: normalized.id || cacheKey,
+          site: normalized.id || cacheKey,
+          // changemap filename (not URL) for MapView backward compat
+          changemap: raw.changemap || null,
         };
-        summaryCache.set(siteId, normalized);
-        setSummary(normalized);
+
+        summaryCache.set(cacheKey, full);
+        setSummary(full);
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message);
+        if (controller.signal.aborted) return;
+        setError(err.message || String(err));
         setLoading(false);
       });
-  }, [siteId]);
 
-  // Derived loading state: if siteId is present and summary is not yet in state,
-  // we are guaranteed to be loading (no render gap or race condition).
-  const isActuallyLoading = loading || Boolean(siteId && !summary);
+    return () => controller.abort();
+  }, [cacheKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isActuallyLoading = loading || Boolean(cacheKey && !summary);
 
   return { summary, loading: isActuallyLoading, error };
 }

@@ -32,6 +32,10 @@ export function useSite(basePath) {
         if (!res.ok) {
           throw new Error(`Failed to load site summary: HTTP ${res.status}`);
         }
+        const ct = res.headers.get("content-type");
+        if (ct && ct.includes("text/html")) {
+          throw new Error(`Site summary not found`);
+        }
         return res.json();
       })
       .then((raw) => {

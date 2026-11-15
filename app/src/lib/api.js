@@ -87,6 +87,19 @@ export async function getJob(id) {
 }
 
 /**
+ * Returns the base URL for a site's assets given its index entry.
+ * @param {{ folder?: string, site?: string }} siteEntry - entry from sites.json
+ */
+export function siteBase(siteEntry) {
+  const folder = siteEntry?.folder || (siteEntry?.site ? siteEntry.site + "/" : "");
+  if (API_BASE) {
+    return `${API_BASE}/web/${folder}`.replace(/([^:]\/)\/+/g, "$1");
+  }
+  const base = import.meta.env.BASE_URL || "/";
+  return `${base}data/web/${folder}`.replace(/([^:]\/)\/+/g, "$1");
+}
+
+/**
  * Returns the folder URL/path of a finished job, so useSite(basePath) can open it
  * exactly like a demo site.
  */
