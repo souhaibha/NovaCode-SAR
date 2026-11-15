@@ -15,39 +15,52 @@ export default function ControlsPanel({
   // Real summary.json uses zone.event (string), not zone.events (array).
   // Build a synthetic single-event list from zone.event when available.
   const eventLabel = zone?.event
-    ? zone.event.charAt(0).toUpperCase() + zone.event.slice(1)
+    ? (zone.event === "farming" ? "Agriculture & Végétation" : zone.event.charAt(0).toUpperCase() + zone.event.slice(1))
     : null;
   const baseEvents = eventLabel
     ? [{ id: zone.event, label: eventLabel, color: "#57f1db" }]
     : (manifest?.events || []);
-  const events = baseEvents; // no synthetic "Water change" entry for real data
+  const events = baseEvents;
 
   // Real summary.json uses legend[] with { cls, name, color: [R,G,B]|null, hectares }
-  // Filter: skip stable (color null) and zero-hectare entries.
   const DEFAULT_LEGEND = [
-    { cls: "vegetation_gain", name: "vegetation gain", color: [40, 200, 60], hectares: 420 },
-    { cls: "vegetation_loss", name: "vegetation loss", color: [230, 50, 50], hectares: 215 },
-    { cls: "burned", name: "burned", color: [110, 30, 10], hectares: 65 },
-    { cls: "flooded", name: "flooded", color: [0, 150, 255], hectares: 110 },
-    { cls: "water", name: "water", color: [40, 70, 160], hectares: 540 },
+    { cls: 1, name: "gain de végétation", color: [40, 200, 60], hectares: 6312 },
+    { cls: 2, name: "perte de végétation", color: [230, 50, 50], hectares: 5396 },
+    { cls: 3, name: "zone brûlée", color: [110, 30, 10], hectares: 1092 },
+    { cls: 4, name: "zone inondée", color: [0, 150, 255], hectares: 28 },
+    { cls: 5, name: "plans d'eau", color: [40, 70, 160], hectares: 24591 },
   ];
 
   const sourceLegend = (zone?.legend && zone.legend.length > 0) ? zone.legend : DEFAULT_LEGEND;
   const classes = sourceLegend
-    .filter((e) => e.color !== null && e.color !== undefined && (e.hectares > 0 || !zone?.legend))
+    .filter((e) => e.color !== null && e.color !== undefined && (e.hectares > 0 || !zone?.legend || zone?.isCustom))
     .map((e) => ({
       id: e.cls,
-      label: e.name,
+      label: e.name === "vegetation gain" ? "gain de végétation"
+        : e.name === "vegetation loss" ? "perte de végétation"
+        : e.name === "burned" ? "zone brûlée"
+        : e.name === "flooded" ? "zone inondée"
+        : e.name === "water" ? "plans d'eau"
+        : e.name,
       color: Array.isArray(e.color)
         ? `rgb(${e.color[0]},${e.color[1]},${e.color[2]})`
         : e.color,
       hectares: e.hectares,
     }));
 
+  function isClassChecked(id) {
+    return activeClasses.some((c) => c == id || String(c) === String(id));
+  }
+
   function toggleClass(id) {
-    setActiveClasses((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
+    setActiveClasses((prev) => {
+      const active = prev.some((c) => c == id || String(c) === String(id));
+      if (active) {
+        return prev.filter((c) => c != id && String(c) !== String(id));
+      } else {
+        return [...prev, id];
+      }
+    });
   }
 
   return (
@@ -79,7 +92,7 @@ export default function ControlsPanel({
                 textTransform: "uppercase",
               }}
             >
-              NISAR L-band HH/HV
+              NISAR Bande L HH/HV
             </span>
           </div>
           <span
@@ -109,18 +122,18 @@ export default function ControlsPanel({
                 textTransform: "uppercase",
               }}
             >
-              Event (Type of Change)
+              Événement (Thème)
             </span>
             <span
               className="flex items-center gap-1"
               style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#ffb95f" }}
             >
               <span className="material-symbols-outlined text-[13px]">bolt</span>
-              Active
+              Actif
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             {events.map((ev) => {
               const isSelected = eventId === ev.id;
               const evColor = ev.color || "#FF5A5F";
@@ -167,17 +180,6 @@ export default function ControlsPanel({
                       />
                     )}
                   </div>
-                  {ev.subtitle && (
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontFamily: "'JetBrains Mono', monospace",
-                        color: "#859490",
-                      }}
-                    >
-                      {ev.subtitle}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -197,7 +199,7 @@ export default function ControlsPanel({
                 textTransform: "uppercase",
               }}
             >
-              Land Classification
+              Classification du sol
             </span>
             <span
               style={{
@@ -206,7 +208,7 @@ export default function ControlsPanel({
                 color: "#859490",
               }}
             >
-              {activeClasses.length} Active
+              {classes.filter((c) => isClassChecked(c.id)).length} Actifs
             </span>
           </div>
 
@@ -231,22 +233,11 @@ export default function ControlsPanel({
                     <span style={{ fontSize: 13, fontWeight: 500, color: "#dce2f6" }}>
                       {cls.label}
                     </span>
-                    {cls.hint && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontFamily: "'JetBrains Mono', monospace",
-                          color: "#859490",
-                        }}
-                      >
-                        {cls.hint}
-                      </span>
-                    )}
                   </div>
                 </div>
                 <input
                   type="checkbox"
-                  checked={activeClasses.includes(cls.id)}
+                  checked={isClassChecked(cls.id)}
                   onChange={() => toggleClass(cls.id)}
                   style={{ accentColor: "#57f1db", width: 16, height: 16, cursor: "pointer" }}
                 />
@@ -267,15 +258,15 @@ export default function ControlsPanel({
               textTransform: "uppercase",
             }}
           >
-            Inspection Mode
+            Mode d'inspection
           </span>
           <div
             className="grid grid-cols-2 p-1 rounded-xl gap-1"
             style={{ background: "#19202e" }}
           >
             {[
-              { key: "period", label: "Period View" },
-              { key: "swipe", label: "Swipe Split" },
+              { key: "period", label: "Vue Temporelle" },
+              { key: "swipe", label: "Comparaison Swipe" },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -306,15 +297,15 @@ export default function ControlsPanel({
                 textTransform: "uppercase",
               }}
             >
-              Basemap
+              Fond de carte
             </span>
             <div
               className="flex rounded-lg p-0.5"
               style={{ background: "#19202e" }}
             >
               {[
-                { key: "sat", label: "Sat Photo" },
-                { key: "street", label: "Street" },
+                { key: "sat", label: "Satellite" },
+                { key: "street", label: "Rues" },
               ].map(({ key, label }) => (
                 <button
                   key={key}
@@ -346,7 +337,7 @@ export default function ControlsPanel({
           >
             <div className="flex justify-between items-center">
               <span style={{ fontSize: 13, fontWeight: 500, color: "#dce2f6" }}>
-                SAR Overlay Opacity
+                Opacité radar SAR
               </span>
               <span
                 style={{
@@ -365,8 +356,8 @@ export default function ControlsPanel({
               max="1"
               step="0.01"
               value={opacity}
-              onChange={(e) => setOpacity(Number(e.target.value))}
-              className="w-full mt-1"
+              onChange={(e) => setOpacity(parseFloat(e.target.value))}
+              className="w-full mt-1 accent-[#57f1db] cursor-pointer"
             />
           </div>
         </div>

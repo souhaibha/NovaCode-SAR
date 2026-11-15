@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback, forwardRef } from "react";
 import L from "leaflet";
 import {
   MapContainer,
   TileLayer,
   ImageOverlay,
   GeoJSON,
+  Rectangle,
+  CircleMarker,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -19,6 +21,140 @@ import {
   confidenceAt,
   fetchConfidence,
 } from "../lib/pixelInfo";
+
+/**
+ * SmartImageOverlay — ImageOverlay wrapper that reliably applies opacity changes
+ * to both Leaflet's internal layer instance and the HTML img DOM element.
+ */
+const SmartImageOverlay = forwardRef(function SmartImageOverlay(
+  { url, bounds, opacity = 1, className = "pixelated", eventHandlers, ...rest },
+  forwardedRef
+) {
+  const innerRef = useRef(null);
+  const activeRef = forwardedRef || innerRef;
+
+  useEffect(() => {
+    if (activeRef.current) {
+      if (typeof activeRef.current.setOpacity === "function") {
+        activeRef.current.setOpacity(opacity);
+      }
+      const el = activeRef.current.getElement?.();
+      if (el) {
+        el.style.opacity = String(opacity);
+      }
+    }
+  }, [opacity, url, activeRef]);
+
+  return (
+    <ImageOverlay
+      ref={activeRef}
+      url={url}
+      bounds={bounds}
+      opacity={opacity}
+      className={className}
+      eventHandlers={eventHandlers}
+      {...rest}
+    />
+  );
+});
+
+/**
+ * MapDrawZoneHandler — allows user to click two opposite corners on the map
+ * to define a custom analysis zone bounding box.
+ */
+function MapDrawZoneHandler({ isDrawing, onZoneDrawn, onCancel }) {
+  const [firstCorner, setFirstCorner] = useState(null);
+  const [mousePos, setMousePos] = useState(null);
+
+  useEffect(() => {
+    if (!isDrawing) {
+      setFirstCorner(null);
+      setMousePos(null);
+    }
+  }, [isDrawing]);
+
+  useEffect(() => {
+    if (!isDrawing) return;
+    const handleKey = (e) => {
+      if (e.key === "Escape") {
+        setFirstCorner(null);
+        setMousePos(null);
+        onCancel?.();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isDrawing, onCancel]);
+
+  useMapEvents({
+    click(e) {
+      if (!isDrawing) return;
+      if (!firstCorner) {
+        setFirstCorner(e.latlng);
+      } else {
+        const c1 = firstCorner;
+        const c2 = e.latlng;
+        const latMin = Math.min(c1.lat, c2.lat);
+        const latMax = Math.max(c1.lat, c2.lat);
+        const lngMin = Math.min(c1.lng, c2.lng);
+        const lngMax = Math.max(c1.lng, c2.lng);
+
+        if (Math.abs(latMax - latMin) > 0.005 && Math.abs(lngMax - lngMin) > 0.005) {
+          onZoneDrawn?.({
+            bounds: [[latMin, lngMin], [latMax, lngMax]],
+            bbox: [lngMin, latMin, lngMax, latMax],
+          });
+        }
+        setFirstCorner(null);
+        setMousePos(null);
+      }
+    },
+    mousemove(e) {
+      if (!isDrawing || !firstCorner) return;
+      setMousePos(e.latlng);
+    },
+  });
+
+  if (!isDrawing) return null;
+
+  if (firstCorner && mousePos) {
+    const previewBounds = [
+      [Math.min(firstCorner.lat, mousePos.lat), Math.min(firstCorner.lng, mousePos.lng)],
+      [Math.max(firstCorner.lat, mousePos.lat), Math.max(firstCorner.lng, mousePos.lng)],
+    ];
+    return (
+      <>
+        <CircleMarker
+          center={firstCorner}
+          radius={5}
+          pathOptions={{ color: "#ffffff", fillColor: "#57f1db", fillOpacity: 1, weight: 2 }}
+        />
+        <Rectangle
+          bounds={previewBounds}
+          pathOptions={{
+            color: "#57f1db",
+            weight: 2,
+            dashArray: "5 4",
+            fillColor: "#57f1db",
+            fillOpacity: 0.25,
+          }}
+        />
+      </>
+    );
+  }
+
+  if (firstCorner) {
+    return (
+      <CircleMarker
+        center={firstCorner}
+        radius={5}
+        pathOptions={{ color: "#ffffff", fillColor: "#57f1db", fillOpacity: 1, weight: 2 }}
+      />
+    );
+  }
+
+  return null;
+}
 
 const BASE = import.meta.env.BASE_URL + "data/";
 
@@ -138,7 +274,7 @@ function useScaleBar(mapRef, fallbackLat) {
 // Custom map zoom/nav buttons.
 // Rendered OUTSIDE MapContainer — receives mapRef from parent.
 // mapRef.current is the Leaflet map instance (react-leaflet v4 MapContainer ref).
-function ZoomButtons({ mapRef, bounds }) {
+function ZoomButtons({ mapRef, bounds, isDrawingZone, onToggleDrawZone }) {
   const containerRef = useRef(null);
 
   // Reactive zoom / min / max — updated on every zoomend
@@ -187,6 +323,18 @@ function ZoomButtons({ mapRef, bounds }) {
   const atMin = zoom !== null && zoom <= min;
 
   const buttons = [
+    ...(onToggleDrawZone
+      ? [
+          {
+            icon: "crop_free",
+            ariaLabel: "Tracer une zone",
+            title: isDrawingZone ? "Annuler le tracé" : "Tracer une zone d'analyse",
+            active: isDrawingZone,
+            disabled: false,
+            fn: onToggleDrawZone,
+          },
+        ]
+      : []),
     {
       icon: "add",
       ariaLabel: "Zoom in",
@@ -249,7 +397,7 @@ function ZoomButtons({ mapRef, bounds }) {
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.3)",
       }}
     >
-      {buttons.map(({ icon, ariaLabel, title, disabled, fn }) => (
+      {buttons.map(({ icon, ariaLabel, title, disabled, active, fn }) => (
         <button
           key={ariaLabel}
           type="button"
@@ -261,21 +409,21 @@ function ZoomButtons({ mapRef, bounds }) {
             width: 32,
             height: 32,
             borderRadius: 8,
-            border: "none",
-            background: "transparent",
-            color: "#dce2f6",
+            border: active ? "1.5px solid #57f1db" : "none",
+            background: active ? "rgba(87,241,219,0.22)" : "transparent",
+            color: active ? "#57f1db" : "#dce2f6",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: disabled ? "not-allowed" : "pointer",
             opacity: disabled ? 0.3 : 1,
-            transition: "background 0.15s",
+            transition: "all 0.15s",
             outline: "none",
           }}
           onFocus={(e) => (e.currentTarget.style.outline = "2px solid #57f1db")}
           onBlur={(e) => (e.currentTarget.style.outline = "none")}
-          onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = "rgba(87,241,219,0.12)"; }}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          onMouseEnter={(e) => { if (!disabled && !active) e.currentTarget.style.background = "rgba(87,241,219,0.12)"; }}
+          onMouseLeave={(e) => { if (!disabled && !active) e.currentTarget.style.background = "transparent"; }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{icon}</span>
         </button>
@@ -584,6 +732,10 @@ export default function MapView(props) {
   const opacity = props.opacity !== undefined ? props.opacity : internalOpacity;
   const onEventResult = props.onEventResult;
   const onPointSelect = props.onPointSelect;
+  const isDrawingZone = props.isDrawingZone || false;
+  const onStartDrawZone = props.onStartDrawZone;
+  const onCancelDrawZone = props.onCancelDrawZone;
+  const onZoneDrawn = props.onZoneDrawn;
 
   const [aoi, setAoi] = useState(null);
   const [eventDataUrl, setEventDataUrl] = useState(null);
@@ -669,9 +821,17 @@ export default function MapView(props) {
     }
   }, [split]);
 
-  // Re-apply clip whenever split changes (while in swipe mode)
+  // Re-apply clip whenever split, mode, or overlay frames change
   useEffect(() => {
-    if (mode === "swipe") applyClip();
+    if (mode === "swipe") {
+      applyClip();
+      const t1 = setTimeout(applyClip, 50);
+      const t2 = setTimeout(applyClip, 200);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
   }, [split, mode, applyClip]);
 
   // Clean up clipPath on overlays when leaving swipe mode
@@ -856,37 +1016,50 @@ export default function MapView(props) {
       : zone.frames?.[0];
 
   const startDateIdx = zone.dates ? zone.dates.indexOf(startDate) : 0;
+  const effectiveStartIdx =
+    mode === "swipe" && startDate === endDate
+      ? 0
+      : (startDateIdx >= 0 ? startDateIdx : 0);
   const startRadarFrame =
-    startDateIdx >= 0 && zone.frames?.[startDateIdx]
-      ? zone.frames[startDateIdx]
-      : zone.frames?.[0];
+    zone.frames?.[effectiveStartIdx] || zone.frames?.[0];
 
   const endDateIdx = zone.dates ? zone.dates.indexOf(endDate) : -1;
+  const effectiveEndIdx =
+    mode === "swipe" && startDate === endDate
+      ? (dateIdx >= 0 ? dateIdx : (zone.frames ? zone.frames.length - 1 : 0))
+      : (endDateIdx >= 0 ? endDateIdx : (zone.frames ? zone.frames.length - 1 : 0));
   const endRadarFrame =
-    endDateIdx >= 0 && zone.frames?.[endDateIdx]
-      ? zone.frames[endDateIdx]
-      : (zone.frames ? zone.frames[zone.frames.length - 1] : zone.frames?.[0]);
+    zone.frames?.[effectiveEndIdx] || (zone.frames ? zone.frames[zone.frames.length - 1] : zone.frames?.[0]);
+
+  const effectiveStartDate =
+    mode === "swipe" && startDate === endDate
+      ? (zone.dates?.[0] || startDate)
+      : startDate;
+  const effectiveEndDate =
+    mode === "swipe" && startDate === endDate
+      ? (zone.dates?.[effectiveEndIdx] || endDate)
+      : endDate;
 
   // Dynamic filter for changemap based on activeClasses
   const [filteredChangemapUrl, setFilteredChangemapUrl] = useState(null);
   const [activeSpecialLayer, setActiveSpecialLayer] = useState("changemap");
   const [filteredRadarUrl, setFilteredRadarUrl] = useState(null);
+  const [filteredStartRadarUrl, setFilteredStartRadarUrl] = useState(null);
+  const [filteredEndRadarUrl, setFilteredEndRadarUrl] = useState(null);
 
-  // Mask out pitch-black swath edges from radar JPGs
-  useEffect(() => {
-    if (!currentRadarFrame) {
-      setFilteredRadarUrl(null);
+  // Helper to remove pitch-black swath edges from radar JPGs
+  const stripBlackEdges = useCallback((url, onResult) => {
+    if (!url) {
+      onResult(null);
       return;
     }
-
-    const radarRawUrl = siteBase + currentRadarFrame;
-    let isCancelled = false;
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.src = radarRawUrl;
+    img.src = url;
+    let cancelled = false;
 
     img.onload = () => {
-      if (isCancelled) return;
+      if (cancelled) return;
       const canvas = document.createElement("canvas");
       canvas.width = img.naturalWidth || img.width;
       canvas.height = img.naturalHeight || img.height;
@@ -903,84 +1076,38 @@ export default function MapView(props) {
       }
 
       ctx.putImageData(imgData, 0, 0);
-      if (!isCancelled) {
-        setFilteredRadarUrl(canvas.toDataURL("image/png"));
-      }
+      if (!cancelled) onResult(canvas.toDataURL("image/png"));
     };
 
     img.onerror = () => {
-      if (!isCancelled) setFilteredRadarUrl(radarRawUrl);
+      if (!cancelled) onResult(url);
     };
 
     return () => {
-      isCancelled = true;
+      cancelled = true;
     };
-  }, [siteBase, currentRadarFrame]);
-
-  // Simulated SAR layer for custom user-selected zones
-  const [customSarUrl, setCustomSarUrl] = useState(null);
+  }, []);
 
   useEffect(() => {
-    if (!zone?.isCustom) {
-      setCustomSarUrl(null);
-      return;
-    }
+    return stripBlackEdges(
+      currentRadarFrame ? siteBase + currentRadarFrame : null,
+      setFilteredRadarUrl
+    );
+  }, [siteBase, currentRadarFrame, stripBlackEdges]);
 
-    const canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 400;
-    const ctx = canvas.getContext("2d");
+  useEffect(() => {
+    return stripBlackEdges(
+      startRadarFrame ? siteBase + startRadarFrame : null,
+      setFilteredStartRadarUrl
+    );
+  }, [siteBase, startRadarFrame, stripBlackEdges]);
 
-    // Background radar backscatter texture (purple/green speckle)
-    const imgData = ctx.createImageData(400, 400);
-    const d = imgData.data;
-    for (let i = 0; i < d.length; i += 4) {
-      const noise = (Math.random() * 40) | 0;
-      d[i] = 30 + noise;     // HH (red)
-      d[i + 1] = 60 + noise; // HV (green)
-      d[i + 2] = 40 + noise; // Blue
-      d[i + 3] = 120;        // Semi-transparent radar swath
-    }
-    ctx.putImageData(imgData, 0, 0);
-
-    // Draw detected clusters for active classes
-    if (activeClasses?.includes("vegetation_gain")) {
-      ctx.fillStyle = "rgba(40, 200, 60, 0.85)";
-      ctx.beginPath();
-      ctx.ellipse(140, 160, 45, 30, Math.PI / 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    if (activeClasses?.includes("vegetation_loss")) {
-      ctx.fillStyle = "rgba(230, 50, 50, 0.85)";
-      ctx.beginPath();
-      ctx.ellipse(260, 240, 50, 35, -Math.PI / 6, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    if (activeClasses?.includes("burned")) {
-      ctx.fillStyle = "rgba(110, 30, 10, 0.85)";
-      ctx.beginPath();
-      ctx.ellipse(210, 110, 35, 25, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    if (activeClasses?.includes("flooded")) {
-      ctx.fillStyle = "rgba(0, 150, 255, 0.85)";
-      ctx.beginPath();
-      ctx.ellipse(120, 290, 40, 25, Math.PI / 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    if (activeClasses?.includes("water")) {
-      ctx.fillStyle = "rgba(40, 70, 160, 0.85)";
-      ctx.beginPath();
-      ctx.ellipse(310, 150, 30, 40, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    setCustomSarUrl(canvas.toDataURL("image/png"));
-  }, [zone?.isCustom, activeClasses]);
+  useEffect(() => {
+    return stripBlackEdges(
+      endRadarFrame ? siteBase + endRadarFrame : null,
+      setFilteredEndRadarUrl
+    );
+  }, [siteBase, endRadarFrame, stripBlackEdges]);
 
   useEffect(() => {
     if (!zone?.changemap) {
@@ -991,13 +1118,18 @@ export default function MapView(props) {
     const changemapRawUrl = siteBase + zone.changemap;
 
     const validLegend = (zone.legend || []).filter(
-      (l) => l.color !== null && l.color !== undefined && l.hectares > 0
+      (l) => l.color !== null && l.color !== undefined && (l.hectares > 0 || zone?.isCustom)
     );
+
+    const isClassActive = (clsId) => {
+      if (!activeClasses || activeClasses.length === 0) return false;
+      return activeClasses.some((c) => c == clsId || String(c) === String(clsId));
+    };
 
     // If activeClasses contains all non-stable legend classes, use raw URL directly
     const allActive =
       validLegend.length > 0 &&
-      validLegend.every((l) => activeClasses?.includes(l.cls));
+      validLegend.every((l) => isClassActive(l.cls));
 
     if (allActive) {
       setFilteredChangemapUrl(changemapRawUrl);
@@ -1028,7 +1160,7 @@ export default function MapView(props) {
 
       // Extract colors for active classes only
       const activeColors = validLegend
-        .filter((l) => activeClasses.includes(l.cls))
+        .filter((l) => isClassActive(l.cls))
         .map((l) => l.color);
 
       // Mask out pixels of inactive classes
@@ -1044,9 +1176,9 @@ export default function MapView(props) {
         for (let c = 0; c < activeColors.length; c++) {
           const ac = activeColors[c];
           if (
-            Math.abs(r - ac[0]) < 30 &&
-            Math.abs(g - ac[1]) < 30 &&
-            Math.abs(b - ac[2]) < 30
+            Math.abs(r - ac[0]) < 35 &&
+            Math.abs(g - ac[1]) < 35 &&
+            Math.abs(b - ac[2]) < 35
           ) {
             matched = true;
             break;
@@ -1067,7 +1199,7 @@ export default function MapView(props) {
     return () => {
       isCancelled = true;
     };
-  }, [siteBase, zone?.changemap, zone?.legend, activeClasses]);
+  }, [siteBase, zone?.changemap, zone?.legend, zone?.isCustom, activeClasses]);
 
   return (
     <div
@@ -1096,13 +1228,20 @@ export default function MapView(props) {
         <MapResizerAndFitBounds bounds={bounds} />
         <TileLayer url={BASEMAP_URL} maxZoom={18} />
 
+        {/* Draw zone interactive handler */}
+        <MapDrawZoneHandler
+          isDrawing={isDrawingZone}
+          onZoneDrawn={onZoneDrawn}
+          onCancel={onCancelDrawZone}
+        />
+
         {/* A7: Swipe mode — two classification overlays clipped around the divider.
             Hidden in period mode; period layers hidden in swipe mode. */}
         {mode === "swipe" && !isInvalidDateRange && zone.layers?.classification && (
           <>
             <SwipeClipHandler applyClip={applyClip} />
             {/* Start-date image: clipped on the right → shows LEFT of divider */}
-            <ImageOverlay
+            <SmartImageOverlay
               ref={startOverlayRef}
               key={`swipe-start-${startDate}`}
               url={fillTemplate(zone.layers.classification, startDate)}
@@ -1114,7 +1253,7 @@ export default function MapView(props) {
               }}
             />
             {/* End-date image: clipped on the left → shows RIGHT of divider */}
-            <ImageOverlay
+            <SmartImageOverlay
               ref={endOverlayRef}
               key={`swipe-end-${endDate}`}
               url={fillTemplate(zone.layers.classification, endDate)}
@@ -1134,12 +1273,12 @@ export default function MapView(props) {
             <SwipeClipHandler applyClip={applyClip} />
             {/* Start-date radar pass: clipped on right → shows LEFT of divider */}
             {startRadarFrame && (
-              <ImageOverlay
+              <SmartImageOverlay
                 ref={startOverlayRef}
                 key={`swipe-start-radar-${startRadarFrame}`}
-                url={siteBase + startRadarFrame}
+                url={filteredStartRadarUrl || (siteBase + startRadarFrame)}
                 bounds={bounds}
-                opacity={1}
+                opacity={opacity}
                 className="pixelated"
                 eventHandlers={{
                   add: () => requestAnimationFrame(applyClip),
@@ -1148,12 +1287,12 @@ export default function MapView(props) {
             )}
             {/* End-date radar pass: clipped on left → shows RIGHT of divider */}
             {endRadarFrame && (
-              <ImageOverlay
+              <SmartImageOverlay
                 ref={endOverlayRef}
                 key={`swipe-end-radar-${endRadarFrame}`}
-                url={siteBase + endRadarFrame}
+                url={filteredEndRadarUrl || (siteBase + endRadarFrame)}
                 bounds={bounds}
-                opacity={1}
+                opacity={opacity}
                 className="pixelated"
                 eventHandlers={{
                   add: () => requestAnimationFrame(applyClip),
@@ -1162,7 +1301,7 @@ export default function MapView(props) {
             )}
             {/* AI Changemap: clipped on left → shows RIGHT of divider over end-date radar */}
             {filteredChangemapUrl && (
-              <ImageOverlay
+              <SmartImageOverlay
                 ref={changemapOverlayRef}
                 key={`swipe-changemap-${zone.site || zone.id}`}
                 url={filteredChangemapUrl}
@@ -1183,7 +1322,7 @@ export default function MapView(props) {
               const maskTemplate = zone.layers?.[`mask_${clsId}`];
               if (!maskTemplate || !endDate) return null;
               return (
-                <ImageOverlay
+                <SmartImageOverlay
                   key={`mask-${clsId}-${endDate}`}
                   url={fillTemplate(maskTemplate, endDate)}
                   bounds={bounds}
@@ -1195,7 +1334,7 @@ export default function MapView(props) {
           : activeClasses?.length > 0 &&
             endDate &&
             zone.layers?.classification && (
-              <ImageOverlay
+              <SmartImageOverlay
                 key={`class-${endDate}`}
                 url={fillTemplate(zone.layers.classification, endDate)}
                 bounds={bounds}
@@ -1206,7 +1345,7 @@ export default function MapView(props) {
 
         {/* Event layer — hidden in swipe mode */}
         {mode !== "swipe" && eventDataUrl && (
-          <ImageOverlay
+          <SmartImageOverlay
             key={`event-${selectedEvent?.id}-${startDate}-${endDate}`}
             url={eventDataUrl}
             bounds={bounds}
@@ -1219,7 +1358,7 @@ export default function MapView(props) {
         {zone.changemap && mode !== "swipe" && (
           <>
             {currentRadarFrame && (
-              <ImageOverlay
+              <SmartImageOverlay
                 key={`radar-${currentRadarFrame}`}
                 url={filteredRadarUrl || (siteBase + currentRadarFrame)}
                 bounds={bounds}
@@ -1228,7 +1367,7 @@ export default function MapView(props) {
               />
             )}
             {activeSpecialLayer === "changemap" && filteredChangemapUrl && (
-              <ImageOverlay
+              <SmartImageOverlay
                 key={`changemap-${zone.site || zone.id}`}
                 url={filteredChangemapUrl}
                 bounds={bounds}
@@ -1237,7 +1376,7 @@ export default function MapView(props) {
               />
             )}
             {activeSpecialLayer === "displacement" && zone.layers?.displacement && (
-              <ImageOverlay
+              <SmartImageOverlay
                 key={`displacement-${zone.site || zone.id}`}
                 url={siteBase + zone.layers.displacement.file}
                 bounds={bounds}
@@ -1246,7 +1385,7 @@ export default function MapView(props) {
               />
             )}
             {activeSpecialLayer === "fringes" && zone.layers?.fringes && (
-              <ImageOverlay
+              <SmartImageOverlay
                 key={`fringes-${zone.site || zone.id}`}
                 url={siteBase + zone.layers.fringes.file}
                 bounds={bounds}
@@ -1255,17 +1394,6 @@ export default function MapView(props) {
               />
             )}
           </>
-        )}
-
-        {/* Custom user-selected zone simulated SAR radar overlay */}
-        {zone?.isCustom && customSarUrl && mode !== "swipe" && (
-          <ImageOverlay
-            key={`custom-sar-${zone.id}`}
-            url={customSarUrl}
-            bounds={bounds}
-            opacity={opacity}
-            className="pixelated"
-          />
         )}
 
         {/* 4. AOI GeoJSON boundary outline */}
@@ -1312,7 +1440,68 @@ export default function MapView(props) {
 
       {/* Zoom / Recenter / Fullscreen buttons — outside MapContainer so absolute
           positioning resolves against the outer wrapper div, not Leaflet's control div */}
-      <ZoomButtons mapRef={mapRef} bounds={bounds} />
+      <ZoomButtons
+        mapRef={mapRef}
+        bounds={bounds}
+        isDrawingZone={isDrawingZone}
+        onToggleDrawZone={
+          onStartDrawZone
+            ? () => (isDrawingZone ? onCancelDrawZone?.() : onStartDrawZone?.())
+            : undefined
+        }
+      />
+
+      {/* Floating banner when Draw Zone mode is active */}
+      {isDrawingZone && (
+        <div
+          style={{
+            position: "absolute",
+            top: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            background: "rgba(15, 23, 42, 0.95)",
+            backdropFilter: "blur(12px)",
+            border: "1.5px solid #57f1db",
+            borderRadius: 12,
+            padding: "8px 16px",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+            color: "#dce2f6",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 12,
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ color: "#57f1db", fontSize: 20 }}
+          >
+            crop_free
+          </span>
+          <span>
+            <strong>Mode sélection :</strong> Cliquez sur 2 coins opposés pour tracer la zone
+          </span>
+          <button
+            type="button"
+            onClick={onCancelDrawZone}
+            style={{
+              marginLeft: 8,
+              background: "rgba(255, 180, 171, 0.15)",
+              border: "1px solid rgba(255, 180, 171, 0.4)",
+              color: "#ffb4ab",
+              borderRadius: 6,
+              padding: "3px 8px",
+              cursor: "pointer",
+              fontSize: 11,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            Annuler
+          </button>
+        </div>
+      )}
 
       {/* Earthquake Layer Switcher Pill (for sites with interferometry displacement or fringes like Venezuela) */}
       {zone?.layers && (zone.layers.displacement || zone.layers.fringes) && (
@@ -1413,8 +1602,8 @@ export default function MapView(props) {
           split={split}
           onSplitChange={setSplit}
           mapContainerRef={mapContainerRef}
-          startDate={startDate}
-          endDate={endDate}
+          startDate={effectiveStartDate}
+          endDate={effectiveEndDate}
         />
       )}
 

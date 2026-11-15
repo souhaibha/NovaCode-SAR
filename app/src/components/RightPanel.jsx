@@ -11,15 +11,21 @@ import EvaluationPanel from './EvaluationPanel';
 import AnalyzePanel from './AnalyzePanel';
 
 const TABS = [
-  { key: 'legend',  label: 'Legend' },
-  { key: 'info',    label: 'Info' },
-  { key: 'help',    label: 'Help' },
-  { key: 'story',   label: 'Story' },
+  { key: 'legend',  label: 'Légende' },
+  { key: 'info',    label: 'Infos' },
+  { key: 'help',    label: 'Aide' },
+  { key: 'story',   label: 'Récit' },
   { key: 'scores',  label: 'Scores' },
-  { key: 'analyze', label: 'Analyze' },
+  { key: 'analyze', label: 'Analyser' },
 ];
 
-export default function RightPanel({ zone, onJobResult }) {
+export default function RightPanel({
+  zone,
+  onJobResult,
+  isDrawing = false,
+  onStartDrawZone,
+  onCancelDrawZone,
+}) {
   const [activeTab, setActiveTab] = useState(() => (zone?.isCustom ? 'analyze' : 'legend'));
 
   // If custom zone selected on globe, land directly on Analyze tab
@@ -134,7 +140,13 @@ export default function RightPanel({ zone, onJobResult }) {
         )}
 
         {activeTab === 'analyze' && (
-          <AnalyzePanel bbox={zone?.bbox || zone?.bounds} onJobResult={onJobResult} />
+          <AnalyzePanel
+            bbox={zone?.bbox || zone?.bounds}
+            onJobResult={onJobResult}
+            isDrawing={isDrawing}
+            onStartDrawZone={onStartDrawZone}
+            onCancelDrawZone={onCancelDrawZone}
+          />
         )}
       </div>
     </div>

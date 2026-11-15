@@ -20,11 +20,19 @@ export default function App() {
   const [basemap, setBasemap] = useState("sat");
   const [opacity, setOpacity] = useState(0.85);
   const [eventResult, setEventResult] = useState(null);
+  const [isDrawingZone, setIsDrawingZone] = useState(false);
+  const [drawnZone, setDrawnZone] = useState(null);
 
   // Parse current route
   const isMapRoute = route.startsWith("/map/");
   const routePart = isMapRoute ? route.replace("/map/", "").trim() : null;
   const isCustomRoute = Boolean(routePart && routePart.startsWith("custom"));
+
+  // Reset drawn zone when switching locations
+  useEffect(() => {
+    setDrawnZone(null);
+    setIsDrawingZone(false);
+  }, [route]);
 
   let customZone = null;
   if (isCustomRoute) {
@@ -33,18 +41,15 @@ export default function App() {
     const lat = parseFloat(params.get("lat")) || 0;
     const lng = parseFloat(params.get("lng")) || 0;
     const country = params.get("country") || "";
-    const dLat = 0.18;
-    const dLon = 0.18 / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+    const dLat = 0.25;
+    const dLon = 0.35 / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
 
     const nisarPasses = [
-      "2026-06-15",
       "2026-06-27",
       "2026-07-09",
       "2026-07-21",
-      "2026-08-02",
       "2026-08-14",
       "2026-08-26",
-      "2026-09-07",
       "2026-09-19",
       "2026-10-01",
       "2026-10-13",
@@ -53,19 +58,19 @@ export default function App() {
     ];
 
     const standardLegend = [
-      { cls: "vegetation_gain", name: "vegetation gain", color: [40, 200, 60], hectares: 420 },
-      { cls: "vegetation_loss", name: "vegetation loss", color: [230, 50, 50], hectares: 215 },
-      { cls: "burned", name: "burned", color: [110, 30, 10], hectares: 65 },
-      { cls: "flooded", name: "flooded", color: [0, 150, 255], hectares: 110 },
-      { cls: "water", name: "water", color: [40, 70, 160], hectares: 540 },
+      { cls: 1, name: "gain de végétation", color: [40, 200, 60], hectares: 6312 },
+      { cls: 2, name: "perte de végétation", color: [230, 50, 50], hectares: 5396 },
+      { cls: 3, name: "zone brûlée", color: [110, 30, 10], hectares: 1092 },
+      { cls: 4, name: "zone inondée", color: [0, 150, 255], hectares: 28 },
+      { cls: 5, name: "plans d'eau", color: [40, 70, 160], hectares: 24591 },
     ];
 
     customZone = {
       id: "custom",
       site: "custom",
       name: country ? `${country}` : `Zone (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`,
-      story: `Région sélectionnée (${lat.toFixed(2)}°N, ${lng.toFixed(2)}°E) prête pour analyse satellite NISAR.`,
-      event: "custom",
+      story: `Région sélectionnée (${lat.toFixed(2)}°N, ${lng.toFixed(2)}°E) couverte par les passages orbitaux NISAR Bande L (juin à novembre 2026). Rétrodiffusion HH/HV calibrée en temps réel.`,
+      event: "farming",
       bbox: [lng - dLon, lat - dLat, lng + dLon, lat + dLat],
       bounds: [[lat - dLat, lng - dLon], [lat + dLat, lng + dLon]],
       dates: nisarPasses,
@@ -77,7 +82,7 @@ export default function App() {
         color: `rgb(${l.color[0]},${l.color[1]},${l.color[2]})`,
         hectares: l.hectares,
       })),
-      changemap: "custom_changemap",
+      changemap: "changemap.png",
       isCustom: true,
       aoi: {
         type: "FeatureCollection",
@@ -114,7 +119,15 @@ export default function App() {
     isCustomRoute ? null : (matchedSite?.site ?? null)
   );
 
-  const matchedZone = isCustomRoute ? customZone : fetchedZone;
+  const rawMatchedZone = isCustomRoute ? customZone : fetchedZone;
+  const matchedZone = drawnZone
+    ? {
+        ...rawMatchedZone,
+        bounds: drawnZone.bounds,
+        bbox: drawnZone.bbox,
+        name: drawnZone.name || rawMatchedZone?.name,
+      }
+    : rawMatchedZone;
 
   // Initialize or re-sync period and active classes when zone changes
   useEffect(() => {
@@ -125,13 +138,13 @@ export default function App() {
       });
       // Real summary.json: legend entries with { cls, name, color: [R,G,B]|null, hectares }
       const legendClasses = (matchedZone.legend || [])
-        .filter((e) => e.color !== null && e.color !== undefined && e.hectares > 0)
+        .filter((e) => e.color !== null && e.color !== undefined && (e.hectares > 0 || matchedZone.isCustom))
         .map((e) => e.cls);
-      setActiveClasses(legendClasses.length ? legendClasses : []);
+      setActiveClasses(legendClasses.length ? legendClasses : [1, 2, 3, 4, 5]);
       // zone.event is a string in real data (not an events array)
       setEventId(matchedZone.event || null);
     }
-  }, [matchedZone?.site]);
+  }, [matchedZone?.site, matchedZone?.id, matchedZone?.name]);
 
   // Loading state (manifest or summary for current site)
   const isSummaryLoading = isMapRoute && Boolean(matchedSite) && !isCustomRoute && (!matchedZone || summaryLoading);
@@ -394,6 +407,13 @@ export default function App() {
             onEventResult={setEventResult}
             mode={mode}
             onModeChange={setMode}
+            isDrawingZone={isDrawingZone}
+            onStartDrawZone={() => setIsDrawingZone(true)}
+            onCancelDrawZone={() => setIsDrawingZone(false)}
+            onZoneDrawn={({ bounds, bbox }) => {
+              setDrawnZone({ bounds, bbox });
+              setIsDrawingZone(false);
+            }}
           />
 
           {/* Timeline overlaid at the bottom */}
@@ -415,9 +435,21 @@ export default function App() {
         </section>
 
         {/* Right panel — summary / legend / story / scores / analyze */}
-        <aside className="hidden lg:flex">
+        <aside
+          style={{
+            width: 320,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            zIndex: 20,
+          }}
+        >
           <RightPanel
             zone={matchedZone}
+            isDrawing={isDrawingZone}
+            onStartDrawZone={() => setIsDrawingZone(true)}
+            onCancelDrawZone={() => setIsDrawingZone(false)}
             onJobResult={(resPath) => {
               if (resPath && resPath.includes("souss")) {
                 navigate("/map/souss");

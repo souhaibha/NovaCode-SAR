@@ -3,8 +3,8 @@
 *.npy
 *.npz
 *.h5
-data/
-raw/
+/data/
+/raw/
 __pycache__/
 .amlignore*
 node_modules/

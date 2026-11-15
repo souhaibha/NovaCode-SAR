@@ -115,7 +115,7 @@ export default function TopBar({ zone, showBack = false }) {
               style={{ background: "#57f1db" }}
             />
           </span>
-          NISAR L-BAND PASS
+          NISAR BANDE L
         </div>
 
         <nav className="hidden lg:flex items-center gap-4">
@@ -128,7 +128,7 @@ export default function TopBar({ zone, showBack = false }) {
               textDecoration: "none",
             }}
           >
-            Map View
+            Vue Carte
           </a>
           <a
             href="#"
@@ -139,7 +139,7 @@ export default function TopBar({ zone, showBack = false }) {
               textDecoration: "none",
             }}
           >
-            About the data
+            Données NISAR
           </a>
         </nav>
 

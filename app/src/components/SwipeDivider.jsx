@@ -71,21 +71,26 @@ export default function SwipeDivider({ split, onSplitChange, mapContainerRef, st
   const onPointerDown = useCallback((e) => {
     e.preventDefault();
     isDragging.current = true;
-    handleRef.current?.setPointerCapture(e.pointerId);
-  }, []);
 
-  const onPointerMove = useCallback((e) => {
-    if (!isDragging.current) return;
-    const mapEl = mapContainerRef.current;
-    if (!mapEl) return;
-    const rect = mapEl.getBoundingClientRect();
-    const raw = (e.clientX - rect.left) / rect.width;
-    onSplitChange(Math.min(1, Math.max(0, raw)));
+    const onMove = (ev) => {
+      const mapEl = mapContainerRef.current;
+      if (!mapEl) return;
+      const rect = mapEl.getBoundingClientRect();
+      const raw = (ev.clientX - rect.left) / rect.width;
+      onSplitChange(Math.min(0.98, Math.max(0.02, raw)));
+    };
+
+    const onUp = () => {
+      isDragging.current = false;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   }, [mapContainerRef, onSplitChange]);
-
-  const onPointerUp = useCallback(() => {
-    isDragging.current = false;
-  }, []);
 
   // ── Keyboard: left/right arrow ±2% ────────────────────────────────────
   const onKeyDown = useCallback((e) => {
@@ -133,9 +138,6 @@ export default function SwipeDivider({ split, onSplitChange, mapContainerRef, st
           className={`${STYLES.handle} ${STYLES.handleFocusRing}`}
           style={STYLES.handleStyle}
           onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
           onKeyDown={onKeyDown}
         >
           {/* Double-arrow icon */}

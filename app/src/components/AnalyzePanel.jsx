@@ -148,7 +148,13 @@ function PanelCard({ children, style }) {
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export default function AnalyzePanel({ bbox = null, onJobResult }) {
+export default function AnalyzePanel({
+  bbox = null,
+  onJobResult,
+  isDrawing = false,
+  onStartDrawZone,
+  onCancelDrawZone,
+}) {
   const today = todayISO();
 
   // ── State ──
@@ -290,21 +296,66 @@ export default function AnalyzePanel({ bbox = null, onJobResult }) {
         }
       `}</style>
 
-      {/* ── 1. Zone size ── */}
+      {/* ── 1. Zone size / Draw zone ── */}
       <PanelCard>
-        <SectionLabel>Analysis zone</SectionLabel>
+        <SectionLabel>1 · Analysis zone</SectionLabel>
+        <button
+          type="button"
+          onClick={() => {
+            if (isDrawing) {
+              onCancelDrawZone && onCancelDrawZone();
+            } else {
+              onStartDrawZone && onStartDrawZone();
+            }
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            width: "100%",
+            padding: "9px 12px",
+            borderRadius: 8,
+            border: isDrawing ? `1.5px solid ${T.accent}` : `1px solid ${T.border}`,
+            background: isDrawing ? "rgba(87,241,219,0.18)" : "rgba(35,42,57,0.7)",
+            color: isDrawing ? T.accent : "#dce2f6",
+            fontFamily: T.mono,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+            marginBottom: 6,
+            transition: "all 0.15s ease",
+            outline: "none",
+          }}
+        >
+          <span className="material-symbols-outlined text-[16px]">
+            {isDrawing ? "close" : "crop_free"}
+          </span>
+          {isDrawing ? "Annuler le dessin" : "Draw zone on map"}
+        </button>
+        <p style={{ fontSize: 10, color: T.muted, margin: "0 0 6px 0", lineHeight: 1.4 }}>
+          {isDrawing
+            ? "Mode actif : Cliquez deux coins opposés sur la carte."
+            : "Use 'Draw zone on map', then click two opposite corners."}
+        </p>
+
         {!dims ? (
-          <span style={{ color: T.muted, fontSize: 12 }}>
+          <span style={{ color: T.muted, fontSize: 11, fontFamily: T.mono }}>
             Draw a rectangle on the map to select a zone
           </span>
         ) : zoneTooLarge ? (
-          <span style={{ color: T.error, fontSize: 12, fontFamily: T.mono }}>
-            Zone too large (max 50 × 50 km)
+          <span style={{ color: T.error, fontSize: 11, fontFamily: T.mono }}>
+            Zone too large ({dims.wKm} × {dims.hKm} km — max 50 × 50 km)
           </span>
         ) : (
-          <span style={{ color: T.accent, fontFamily: T.mono, fontSize: 12 }}>
-            {dims.wKm} km × {dims.hKm} km
-          </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0c1321", padding: "5px 8px", borderRadius: 6 }}>
+            <span style={{ color: T.accent, fontFamily: T.mono, fontSize: 12, fontWeight: 700 }}>
+              ✓ {dims.wKm} km × {dims.hKm} km
+            </span>
+            <span style={{ color: T.dim, fontSize: 10, fontFamily: T.mono }}>
+              ~{Math.round(dims.wKm * dims.hKm)} km²
+            </span>
+          </div>
         )}
       </PanelCard>
 

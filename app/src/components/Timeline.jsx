@@ -92,7 +92,7 @@ export default function Timeline({ zone, period, setPeriod }) {
   function formatDate(d) {
     if (!d) return "—";
     const [y, m, day] = d.split("-");
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const months = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
     return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
   }
 
@@ -270,7 +270,7 @@ export default function Timeline({ zone, period, setPeriod }) {
           info
         </span>
         <span className="italic truncate">
-          Ticks indicate actual NISAR acquisition dates. Animation between dates is visual only.
+          Passages orbitaux NISAR (cycle de 12 jours). Détection temporelle des variations de rétrodiffusion radar.
         </span>
       </div>
     </div>
