@@ -8,15 +8,22 @@ import React, {
   forwardRef,
 } from "react";
 import Globe from "react-globe.gl";
-import { buildWorldTexture } from "../lib/worldTexture";
 import { countryAt } from "../lib/countryAt";
 import { normalizeFeatures } from "../lib/geoWinding";
 
 const BASE = import.meta.env.BASE_URL + "data/";
+const TEXTURES_DIR = import.meta.env.BASE_URL + "textures/";
+
+const TEXTURES = {
+  earthRealistic: `${TEXTURES_DIR}earth-blue-marble.jpg`,
+  earthNight: `${TEXTURES_DIR}earth-night.jpg`,
+  earthTopology: `${TEXTURES_DIR}earth-topology.png`,
+  nightSky: `${TEXTURES_DIR}night-sky.png`,
+};
 
 // Single CSS definitions block
 const CSS = {
-  container: "relative w-full h-full overflow-hidden select-none",
+  container: "relative w-full h-full overflow-hidden select-none bg-[#02050e]",
   fallback:
     "flex flex-col items-center justify-center h-full w-full p-6 text-center bg-[#070e1c] text-[#dce2f6]",
   fallbackCard:
@@ -24,6 +31,14 @@ const CSS = {
   fallbackIcon: "material-symbols-outlined text-[48px] text-[#57f1db]",
   fallbackTitle: "text-lg font-bold font-sans",
   fallbackText: "text-xs font-mono text-[#bacac5] leading-relaxed",
+  modeToggle:
+    "absolute bottom-4 right-6 z-20 flex items-center gap-1.5 p-1 rounded-xl bg-[#0b1322]/85 backdrop-blur-md border border-[rgba(60,74,70,0.5)] shadow-lg text-xs font-mono text-[#bacac5]",
+  modeBtn:
+    "px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 text-[11px]",
+  modeBtnActive:
+    "bg-[#1c293d] text-[#57f1db] font-semibold border border-[rgba(87,241,219,0.3)] shadow-sm",
+  modeBtnInactive:
+    "text-[#8e9eb0] hover:text-[#dce2f6] hover:bg-[#151f30]/60",
 };
 
 // Check WebGL availability
@@ -37,23 +52,6 @@ function checkWebGLSupport() {
   } catch {
     return false;
   }
-}
-
-// 1x1 flat ocean fallback texture until baked texture is ready
-function createFlatOceanTexture() {
-  if (typeof document === "undefined") return null;
-  const canvas = document.createElement("canvas");
-  canvas.width = 2;
-  canvas.height = 2;
-  const ctx = canvas.getContext("2d");
-  const computed = window.getComputedStyle
-    ? window.getComputedStyle(document.documentElement)
-    : null;
-  ctx.fillStyle =
-    computed?.getPropertyValue("--color-surface-container-lowest")?.trim() ||
-    "#070e1c";
-  ctx.fillRect(0, 0, 2, 2);
-  return canvas.toDataURL("image/png");
 }
 
 // Module-level stable ring accessors
@@ -114,11 +112,11 @@ const GlobeInner = forwardRef(function GlobeInner(
   const rawFeaturesRef = useRef([]);
 
   const [hoverZoneId, setHoverZoneId] = useState(null);
+  const [textureMode, setTextureMode] = useState("realistic");
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
-  const [textureUrl, setTextureUrl] = useState(() => createFlatOceanTexture());
 
   // Cap renderer pixel ratio at 1.5
   useEffect(() => {
@@ -171,14 +169,7 @@ const GlobeInner = forwardRef(function GlobeInner(
     };
   }, []);
 
-  // Zone country names list for baked texture highlight
-  const zoneCountryNames = useMemo(() => {
-    return zones
-      .map((z) => z.country)
-      .filter(Boolean);
-  }, [zones]);
-
-  // Load world.geojson, normalize winding, and bake 2048x1024 texture once
+  // Load world.geojson for country identification on click
   useEffect(() => {
     let active = true;
     fetch(`${BASE}world.geojson`)
@@ -188,24 +179,15 @@ const GlobeInner = forwardRef(function GlobeInner(
       })
       .then((data) => {
         if (!active || !data?.features) return;
-        const features = normalizeFeatures(data.features);
-        rawFeaturesRef.current = features;
-
-        const bakedUrl = buildWorldTexture(features, {
-          zoneCountryNames,
-        });
-
-        if (active && bakedUrl) {
-          setTextureUrl(bakedUrl);
-        }
+        rawFeaturesRef.current = normalizeFeatures(data.features);
       })
       .catch((err) => {
-        console.warn("World texture loading skipped, using flat globe:", err);
+        console.warn("World geojson lookup loading skipped:", err);
       });
     return () => {
       active = false;
     };
-  }, [zoneCountryNames]);
+  }, []);
 
   // Auto-rotate with prefers-reduced-motion check and idle-resume
   useEffect(() => {
@@ -334,16 +316,23 @@ const GlobeInner = forwardRef(function GlobeInner(
     setHoverZoneId((prev) => (prev === nextId ? prev : nextId));
   }, []);
 
+  const activeGlobeImage =
+    textureMode === "night" ? TEXTURES.earthNight : TEXTURES.earthRealistic;
+
   return (
     <div ref={containerRef} className={CSS.container}>
       <Globe
         ref={globeEl}
         width={dimensions.width}
         height={dimensions.height}
-        backgroundColor="#070e1c"
-        globeImageUrl={textureUrl}
-        showAtmosphere={false}
-        rendererConfig={{ powerPreference: "high-performance" }}
+        backgroundColor="#000003"
+        backgroundImageUrl={TEXTURES.nightSky}
+        globeImageUrl={activeGlobeImage}
+        bumpImageUrl={TEXTURES.earthTopology}
+        showAtmosphere={true}
+        atmosphereColor="#3a86ff"
+        atmosphereAltitude={0.16}
+        rendererConfig={{ powerPreference: "high-performance", antialias: true }}
         // Zone points using stable string attribute accessors
         pointsData={pointsData}
         pointLat="lat"
@@ -364,6 +353,32 @@ const GlobeInner = forwardRef(function GlobeInner(
         // Interaction
         onGlobeClick={handleGlobeClick}
       />
+
+      {/* Realistic Earth / Night mode switcher floating over space */}
+      <div className={CSS.modeToggle}>
+        <button
+          type="button"
+          onClick={() => setTextureMode("realistic")}
+          className={`${CSS.modeBtn} ${
+            textureMode === "realistic" ? CSS.modeBtnActive : CSS.modeBtnInactive
+          }`}
+          title="Terre vue satellite réelle (Blue Marble)"
+        >
+          <span className="material-symbols-outlined text-[14px]">public</span>
+          <span>Terre réelle</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setTextureMode("night")}
+          className={`${CSS.modeBtn} ${
+            textureMode === "night" ? CSS.modeBtnActive : CSS.modeBtnInactive
+          }`}
+          title="Terre vue de nuit (Lumières des villes)"
+        >
+          <span className="material-symbols-outlined text-[14px]">dark_mode</span>
+          <span>Vue nuit</span>
+        </button>
+      </div>
     </div>
   );
 });

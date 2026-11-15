@@ -5,29 +5,29 @@ import { nearestZone, NEAR_KM } from "../lib/geo";
 
 const GlobeView = lazy(() => import("../components/GlobeView"));
 
-// Single CSS definitions block for Landing page (solid backgrounds, no expensive backdrop-blur or heavy box-shadows)
+// Single CSS definitions block for Landing page
 const CSS = {
   container:
-    "relative w-screen h-screen overflow-hidden bg-[#070e1c] text-[#dce2f6] flex flex-col font-sans select-none",
+    "relative w-screen h-screen overflow-hidden bg-black text-[#dce2f6] flex flex-col font-sans select-none",
   header:
     "absolute top-0 left-0 right-0 z-30 flex flex-col md:flex-row items-center justify-between p-4 md:px-8 pointer-events-none gap-4",
   brandRow:
-    "flex items-center gap-3 pointer-events-auto bg-[#151b2a] px-3.5 py-2 rounded-2xl border border-[rgba(60,74,70,0.5)]",
+    "flex items-center gap-3 pointer-events-auto bg-[#0a101d]/85 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-[rgba(60,74,70,0.5)] shadow-xl",
   logoBox:
-    "w-9 h-9 rounded-xl flex items-center justify-center bg-[#232a39] border border-[rgba(60,74,70,0.4)] text-[#57f1db]",
+    "w-9 h-9 rounded-xl flex items-center justify-center bg-[#1c2637] border border-[rgba(60,74,70,0.4)] text-[#57f1db]",
   title: "text-lg font-bold tracking-tight text-[#dce2f6]",
   tagline:
-    "hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#232a39] text-[#57f1db] text-[10px] font-mono tracking-wider border border-[rgba(60,74,70,0.4)] uppercase",
+    "hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#1c2637] text-[#57f1db] text-[10px] font-mono tracking-wider border border-[rgba(60,74,70,0.4)] uppercase",
   demoBadge:
     "px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider uppercase bg-[#ffb4ab]/15 text-[#ffb4ab] border border-[#ffb4ab]/30",
   pickerWrapper: "pointer-events-auto w-full md:w-96 flex justify-center",
   globeContainer: "w-full h-full relative z-10",
   loaderBox:
-    "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#070e1c] z-20 text-[#bacac5]",
+    "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#02050e] z-20 text-[#bacac5]",
   loaderIcon: "material-symbols-outlined text-[42px] text-[#57f1db] animate-spin",
   loaderText: "font-mono text-xs text-[#bacac5] tracking-wide",
   footerHint:
-    "absolute bottom-4 left-6 z-20 pointer-events-none hidden sm:flex items-center gap-2 text-[11px] font-mono text-[#bacac5] bg-[#151b2a] px-3 py-1.5 rounded-lg border border-[rgba(60,74,70,0.4)]",
+    "absolute bottom-4 left-6 z-20 pointer-events-none hidden sm:flex items-center gap-2 text-[11px] font-mono text-[#bacac5] bg-[#0a101d]/85 backdrop-blur-md px-3 py-1.5 rounded-lg border border-[rgba(60,74,70,0.4)] shadow-lg",
 };
 
 export default function Landing({ manifest, onNavigateToZone, onNavigateToCustomZone }) {
