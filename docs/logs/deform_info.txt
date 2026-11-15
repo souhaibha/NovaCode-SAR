@@ -1,0 +1,45 @@
+disk free GB: 30 | pairs: 8
+downloading 20260709 -> 20260721
+downloading 20260721 -> 20260814
+downloading 20260814 -> 20260826
+downloading 20260826 -> 20260907
+downloading 20260907 -> 20260919
+downloading 20260919 -> 20261001
+downloading 20261001 -> 20261013
+pair | days | coherence median all/cropland | valid % | iono removed | noise on stable land before->after cm | cropland std cm
+20260627->20260709 | 12 | 0.84/0.67 | 97 | True | 6.58->2.28 | 2.41
+20260709->20260721 | 12 | 0.85/0.67 | 97 | True | 5.26->1.90 | 2.12
+20260721->20260814 | 24 | 0.80/0.61 | 97 | True | 8.55->2.29 | 1.75
+20260814->20260826 | 12 | 0.83/0.67 | 97 | True | 19.83->2.30 | 1.47
+20260826->20260907 | 12 | 0.10/0.10 | 1 | True | 2.75->1.15 | 0.69
+20260907->20260919 | 12 | 0.10/0.09 | 1 | False | 2.42->2.30 | 2.34
+20260919->20261001 | 12 | 0.85/0.69 | 98 | True | 10.58->2.21 | 1.88
+20261001->20261013 | 12 | 0.80/0.67 | 97 | True | 33.49->1.36 | 1.37
+pairs kept: ['20260627->20260709', '20260709->20260721', '20260721->20260814', '20260814->20260826', '20260826->20260907', '20260907->20260919', '20260919->20261001', '20261001->20261013'] | dropped: []
+== MOTION OVER 108 DAYS, cm along line of sight (smoothed 440 m) ==
+valid: all 95%  cropland 90%
+stable flat land  p1 p5 p50 p95 p99: -10.09 -6.95 -0.60 +6.46 +11.86
+cropland          p1 p5 p50 p95 p99: -10.26 -7.93 -1.17 +5.34 +9.37
+built             p1 p5 p50 p95 p99: -9.49 -8.12 -1.07 +3.11 +5.91
+noise level (std on stable flat land): 4.19 cm
+split-half correlation, cropland: +0.652  (16 px)
+split-half correlation, stable flat land: +0.122  (728 px)
+== AWAY from satellite (possible sinking): beyond 2.5 x noise, 30 areas, 4210 ha ==
+-9.0823 | 30.5034 | 2936 ha | -12.32 cm | 1st half -8.58 2nd half +nan | cropland 28%
+-9.1846 | 30.4308 | 261 ha | -11.29 cm | 1st half -7.77 2nd half +nan | cropland 30%
+-9.1891 | 30.4731 | 153 ha | -10.90 cm | 1st half -6.82 2nd half +nan | cropland 50%
+-9.1964 | 30.4931 | 132 ha | -11.51 cm | 1st half -7.24 2nd half +nan | cropland 35%
+-9.1890 | 30.4573 | 110 ha | -11.10 cm | 1st half -7.61 2nd half +nan | cropland 26%
+-9.1625 | 30.5074 | 68 ha | -10.99 cm | 1st half -6.77 2nd half +nan | cropland 18%
+-9.2314 | 30.4103 | 61 ha | -10.90 cm | 1st half -6.79 2nd half +nan | cropland 41%
+-9.1790 | 30.4193 | 60 ha | -10.81 cm | 1st half -6.97 2nd half +nan | cropland 38%
+== TOWARD satellite: beyond 2.5 x noise, 16 areas, 4893 ha ==
+-8.4371 | 30.7226 | 4522 ha | +12.65 cm | 1st half +2.09 2nd half +nan | cropland 22%
+-8.3930 | 30.7128 | 98 ha | +10.85 cm | 1st half +0.75 2nd half +nan | cropland 72%
+-8.3797 | 30.7297 | 79 ha | +10.66 cm | 1st half +1.32 2nd half +nan | cropland 0%
+-8.5513 | 30.7193 | 64 ha | +11.46 cm | 1st half +0.79 2nd half +nan | cropland 18%
+-8.5461 | 30.7172 | 30 ha | +11.20 cm | 1st half +1.95 2nd half +nan | cropland 9%
+-8.5854 | 30.4479 | 22 ha | +10.79 cm | 1st half +0.53 2nd half +nan | cropland 7%
+-8.5630 | 30.7116 | 16 ha | +10.64 cm | 1st half +1.18 2nd half +nan | cropland 0%
+-8.4808 | 30.7367 | 15 ha | +11.27 cm | 1st half +1.62 2nd half +nan | cropland 0%
+saved deformation.tif, web/deformation.png, web/coherence.png; summary.json updated

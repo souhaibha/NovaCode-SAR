@@ -1,0 +1,34 @@
+train px 2116423 (gain 82334, loss 34089) | test px 1922087 (gain 28106, loss 10774)
+== HELD-OUT TEST, all land ==
+rule 3 dB              gain P=0.27 R=0.38 F1=0.31 IoU=0.19 | loss P=0.29 R=0.37 F1=0.33 IoU=0.20 | meanF1=0.321
+model HH only          gain P=0.52 R=0.27 F1=0.36 IoU=0.22 | loss P=0.39 R=0.28 F1=0.33 IoU=0.20 | meanF1=0.341
+model HV only          gain P=0.58 R=0.36 F1=0.45 IoU=0.29 | loss P=0.41 R=0.34 F1=0.37 IoU=0.23 | meanF1=0.408
+model HH+HV            gain P=0.57 R=0.38 F1=0.45 IoU=0.29 | loss P=0.41 R=0.32 F1=0.36 IoU=0.22 | meanF1=0.408
+model HH+HV+context    gain P=0.56 R=0.39 F1=0.46 IoU=0.30 | loss P=0.43 R=0.34 F1=0.38 IoU=0.23 | meanF1=0.420
+== HELD-OUT TEST, cropland only ==
+rule 3 dB              gain P=0.45 R=0.52 F1=0.48 IoU=0.32 | loss P=0.42 R=0.46 F1=0.44 IoU=0.28 | meanF1=0.460
+model HH+HV+context    gain P=0.60 R=0.54 F1=0.57 IoU=0.40 | loss P=0.47 R=0.42 F1=0.44 IoU=0.28 | meanF1=0.507
+== PRECISION / RECALL BY PROBABILITY THRESHOLD (full model, all land) ==
+gain p>0.3: P=0.49 R=0.45 | gain p>0.5: P=0.56 R=0.39 | gain p>0.7: P=0.65 R=0.32 | gain p>0.9: P=0.77 R=0.12 | 
+loss p>0.3: P=0.40 R=0.37 | loss p>0.5: P=0.43 R=0.34 | loss p>0.7: P=0.46 R=0.30 | loss p>0.9: P=0.51 R=0.24 | 
+== FEATURE IMPORTANCE (drop in macro-F1 when shuffled) ==
+HV_std           0.1055
+slope            0.0583
+dHV_5x5          0.0523
+HV_late          0.0320
+HH_median        0.0175
+HH_std           0.0174
+dHH_5x5          0.0151
+dHV              0.0150
+HV_early         0.0068
+RVI_early        0.0055
+landcover        0.0055
+HH_early         0.0045
+== FINAL MAP ==
+stable                    1208410 ha  94.92%
+vegetation gain             12918 ha  1.01%
+vegetation loss              5931 ha  0.47%
+other surface change        21268 ha  1.67%
+water                       24591 ha  1.93%
+other surface change by land cover: trees:12% shrub:14% grass:28% cropland:30% built:4% bare:11%
+saved changemap.tif, probability.tif, changemap.png, stage2_model.joblib in ~/data/souss

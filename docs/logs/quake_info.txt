@@ -1,0 +1,13 @@
+nohup: ignoring input
+pairs spanning the event: ['track 54 frame 83 20260617->20260629', 'track 61 frame 7 20260618->20260630', 'track 126 frame 83 20260622->20260704', 'track 162 frame 7 20260613->20260625']
+pair | site covered % | median coherence | score
+track 54 frame 83 20260617->20260629 | 8 | 0.16 | 0.01
+(61, 7, '20260618', '20260630') different projection or no overlap
+track 126 frame 83 20260622->20260704 | 95 | 0.35 | 0.33
+track 162 frame 7 20260613->20260625 | 32 | 0.38 | 0.12
+chosen: (126, 83, '20260622', '20260704') | pre-event pairs on that track: ['20260517->20260529', '20260529->20260610', '20260610->20260622']
+pre-event pair 20260610->20260622: noise (std) 1.89 cm | ionosphere removed: True
+== DISPLACEMENT across the quake, cm along line of sight (p1 p5 p50 p95 p99): -6.2 -4.7 +0.0 +27.0 +38.9
+valid 55% | area moved >5 cm: 331209 ha | >10 cm: 196355 ha
+== COHERENCE: before 0.32, across quake 0.35 | area with drop >0.3: 4567 ha | >0.5: 378 ha
+saved quake.npz and images; colour scale for displacement: +- 38.9 cm

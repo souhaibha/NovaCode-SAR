@@ -1,0 +1,317 @@
+picked: NISAR_L2_PR_GCOV_035_023_D_073_2005_DHDH_M_20261106T192031_20261106T192107_P05036_N_F_J_001.h5
+== HDF5 LAYOUT == 1.83 GB
+science/LSAR/GCOV/grids/frequencyA/HHHH  (17100, 17424) float32 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyA/HVHV  (17100, 17424) float32 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyA/inputDataExceptionMask  (17100, 17424) uint16 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyA/listOfCovarianceTerms  (2,) |S4 chunks=None = [b'HHHH' b'HVHV']
+science/LSAR/GCOV/grids/frequencyA/listOfPolarizations  (2,) |S2 chunks=None = [b'HH' b'HV']
+science/LSAR/GCOV/grids/frequencyA/mask  (17100, 17424) uint8 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyA/numberOfLooks  (17100, 17424) float32 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyA/numberOfSubSwaths  () uint8 chunks=None = 1
+science/LSAR/GCOV/grids/frequencyA/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/grids/frequencyA/rtcGammaToSigmaFactor  (17100, 17424) float32 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyA/xCoordinateSpacing  () float64 chunks=None = 20.0
+science/LSAR/GCOV/grids/frequencyA/xCoordinates  (17424,) float64 chunks=None
+science/LSAR/GCOV/grids/frequencyA/yCoordinateSpacing  () float64 chunks=None = -20.0
+science/LSAR/GCOV/grids/frequencyA/yCoordinates  (17100,) float64 chunks=None
+science/LSAR/GCOV/grids/frequencyB/HHHH  (4275, 4356) float32 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyB/HVHV  (4275, 4356) float32 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyB/inputDataExceptionMask  (4275, 4356) uint16 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyB/listOfCovarianceTerms  (2,) |S4 chunks=None = [b'HHHH' b'HVHV']
+science/LSAR/GCOV/grids/frequencyB/listOfPolarizations  (2,) |S2 chunks=None = [b'HH' b'HV']
+science/LSAR/GCOV/grids/frequencyB/mask  (4275, 4356) uint8 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyB/numberOfLooks  (4275, 4356) float32 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyB/numberOfSubSwaths  () uint8 chunks=None = 1
+science/LSAR/GCOV/grids/frequencyB/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/grids/frequencyB/rtcGammaToSigmaFactor  (4275, 4356) float32 chunks=(512, 512)
+science/LSAR/GCOV/grids/frequencyB/xCoordinateSpacing  () float64 chunks=None = 80.0
+science/LSAR/GCOV/grids/frequencyB/xCoordinates  (4356,) float64 chunks=None
+science/LSAR/GCOV/grids/frequencyB/yCoordinateSpacing  () float64 chunks=None = -80.0
+science/LSAR/GCOV/grids/frequencyB/yCoordinates  (4275,) float64 chunks=None
+science/LSAR/GCOV/metadata/attitude/attitudeType  () |S10 chunks=None = Custom
+science/LSAR/GCOV/metadata/attitude/eulerAngles  (74, 3) float64 chunks=None
+science/LSAR/GCOV/metadata/attitude/quaternions  (74, 4) float64 chunks=None
+science/LSAR/GCOV/metadata/attitude/time  (74,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/crosstalk/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/calibrationInformation/crosstalk/rxHorizontalCrosspol  (343, 349) complex64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/crosstalk/rxVerticalCrosspol  (343, 349) complex64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/crosstalk/txHorizontalCrosspol  (343, 349) complex64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/crosstalk/txVerticalCrosspol  (343, 349) complex64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/crosstalk/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/crosstalk/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HH/differentialDelay  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HH/differentialPhase  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HH/rfiLikelihood  () float64 chunks=None = 6.04463433292044
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HH/scaleFactor  () float64 chunks=None = 27030.051422175486
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HH/scaleFactorSlope  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HV/differentialDelay  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HV/differentialPhase  () float64 chunks=None = -2.91469985083053
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HV/rfiLikelihood  () float64 chunks=None = 17.10448741662821
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HV/scaleFactor  () float64 chunks=None = 27830.271371186518
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HV/scaleFactorSlope  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/VH/differentialDelay  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/VH/differentialPhase  () float64 chunks=None = 0.19198621771937624
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/VH/scaleFactor  () float64 chunks=None = 26868.267666307194
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/VH/scaleFactorSlope  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/VV/differentialDelay  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/VV/differentialPhase  () float64 chunks=None = -2.722713633111154
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/VV/scaleFactor  () float64 chunks=None = 27663.058562835096
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/VV/scaleFactorSlope  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/commonDelay  () float64 chunks=None = -53.24
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/HH  (343, 349) complex64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/HV  (343, 349) complex64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/faradayRotation  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/HH  (343, 349) float32 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/HV  (343, 349) float32 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HH/differentialDelay  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HH/differentialPhase  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HH/rfiLikelihood  () float64 chunks=None = 9.939922017389028
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HH/scaleFactor  () float64 chunks=None = 28877.79221288178
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HH/scaleFactorSlope  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HV/differentialDelay  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HV/differentialPhase  () float64 chunks=None = -2.91469985083053
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HV/rfiLikelihood  () float64 chunks=None = 18.173770222493904
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HV/scaleFactor  () float64 chunks=None = 29732.45734538552
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HV/scaleFactorSlope  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/VH/differentialDelay  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/VH/differentialPhase  () float64 chunks=None = 0.19198621771937624
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/VH/scaleFactor  () float64 chunks=None = 28705.060684059994
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/VH/scaleFactorSlope  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/VV/differentialDelay  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/VV/differentialPhase  () float64 chunks=None = -2.722713633111154
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/VV/scaleFactor  () float64 chunks=None = 29554.022200903135
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/VV/scaleFactorSlope  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/commonDelay  () float64 chunks=None = -19.65
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/HH  (343, 349) complex64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/HV  (343, 349) complex64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/faradayRotation  () float64 chunks=None = 0.0
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/HH  (343, 349) float32 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/HV  (343, 349) float32 chunks=(343, 349)
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/ceosAnalysisReadyData/boundingBox  () |S96 chunks=None = POLYGON ((349200 3566880 0,349200 3224880 0,697680 3224880 0,697680 3566880 0,349200 3566880 0))
+science/LSAR/GCOV/metadata/ceosAnalysisReadyData/ceosAnalysisReadyDataDocumentIdentifier  () |S86 chunks=None = https://ceos.org/ard/files/PFS/SAR/v1.0/CEOS-ARD_PFS_Synthetic_Aperture_Radar_v1.0.pdf
+science/LSAR/GCOV/metadata/ceosAnalysisReadyData/ceosAnalysisReadyDataProductType  () |S34 chunks=None = Normalised Radar Backscatter (NRB)
+science/LSAR/GCOV/metadata/ceosAnalysisReadyData/geometricAccuracy/bias/x  () float32 chunks=None = nan
+science/LSAR/GCOV/metadata/ceosAnalysisReadyData/geometricAccuracy/bias/y  () float32 chunks=None = nan
+science/LSAR/GCOV/metadata/ceosAnalysisReadyData/geometricAccuracy/standardDeviation/x  () float32 chunks=None = nan
+science/LSAR/GCOV/metadata/ceosAnalysisReadyData/geometricAccuracy/standardDeviation/y  () float32 chunks=None = nan
+science/LSAR/GCOV/metadata/ceosAnalysisReadyData/outputBackscatterDecibelConversionFormula  () |S21 chunks=None = 10*log10(<GCOV_TERM>)
+science/LSAR/GCOV/metadata/orbit/interpMethod  () |S7 chunks=None = Hermite
+science/LSAR/GCOV/metadata/orbit/orbitType  () |S3 chunks=None = MOE
+science/LSAR/GCOV/metadata/orbit/position  (40, 3) float64 chunks=None
+science/LSAR/GCOV/metadata/orbit/time  (40,) float64 chunks=None
+science/LSAR/GCOV/metadata/orbit/velocity  (40, 3) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/algorithms/demInterpolation  () |S9 chunks=None = biquintic
+science/LSAR/GCOV/metadata/processingInformation/algorithms/geocoding  () |S92 chunks=None = Area-Based SAR Geocoding with Adaptive Multilooking (GEO-AP). DOI: 10.1109/TGRS.2022.3147472
+science/LSAR/GCOV/metadata/processingInformation/algorithms/geocodingAlgorithmReference  () |S278 chunks=None = Gustavo H. X. Shiroma, Marco Lavalle, and Sean M. Buckley, "An Area-Based Projection Algorithm for SAR Radiometric Terra
+science/LSAR/GCOV/metadata/processingInformation/algorithms/polarimetricSymmetrization  () |S8 chunks=None = disabled
+science/LSAR/GCOV/metadata/processingInformation/algorithms/radiometricTerrainCorrection  () |S86 chunks=None = Area-Based SAR Radiometric Terrain Correction (RTC-AP). DOI: 10.1109/TGRS.2022.3147472
+science/LSAR/GCOV/metadata/processingInformation/algorithms/radiometricTerrainCorrectionAlgorithmReference  () |S278 chunks=None = Gustavo H. X. Shiroma, Marco Lavalle, and Sean M. Buckley, "An Area-Based Projection Algorithm for SAR Radiometric Terra
+science/LSAR/GCOV/metadata/processingInformation/algorithms/softwareVersion  () |S7 chunks=None = 0.25.21
+science/LSAR/GCOV/metadata/processingInformation/inputs/configFiles  (1,) |S162 chunks=None = [b'/data/work/jobs/2026/11/12/04/24/SCIFLO_GCOV__release-r05.03.5-gcov_gslc_035_023_073_full_mixed_L_20_DH_05_DH_0_state
+science/LSAR/GCOV/metadata/processingInformation/inputs/demSource  () |S1185 chunks=None = Modified Copernicus Digital Elevation Model for the NASA-ISRO NISAR mission, version 1.3, based on the Copernicus DEM 30
+science/LSAR/GCOV/metadata/processingInformation/inputs/l1SlcGranules  (1,) |S94 chunks=None = [b'NISAR_L1_PR_RSLC_035_023_D_073_2005_DHDH_M_20261106T192031_20261106T192107_P05036_N_F_J_001.h5']
+science/LSAR/GCOV/metadata/processingInformation/inputs/orbitFiles  (1,) |S218 chunks=None = [b'/data/work/jobs/2026/11/12/04/24/SCIFLO_GCOV__release-r05.03.5-gcov_gslc_035_023_073_full_mixed_L_20_DH_05_DH_0_state
+science/LSAR/GCOV/metadata/processingInformation/inputs/tecFiles  (1,) |S219 chunks=None = [b'/data/work/jobs/2026/11/12/04/24/SCIFLO_GCOV__release-r05.03.5-gcov_gslc_035_023_073_full_mixed_L_20_DH_05_DH_0_state
+science/LSAR/GCOV/metadata/processingInformation/parameters/azimuthIonosphericGeolocationCorrectionApplied  () |S4 chunks=None = True
+science/LSAR/GCOV/metadata/processingInformation/parameters/dryTroposphericGeolocationCorrectionApplied  () |S4 chunks=None = True
+science/LSAR/GCOV/metadata/processingInformation/parameters/faradayRotationApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/frequencyA/dopplerCentroid  (343, 349) float64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/processingInformation/parameters/frequencyA/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/processingInformation/parameters/frequencyA/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/parameters/frequencyA/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/parameters/frequencyB/dopplerCentroid  (343, 349) float64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/processingInformation/parameters/frequencyB/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/processingInformation/parameters/frequencyB/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/parameters/frequencyB/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/parameters/geo2rdr/convergenceThreshold  () float64 chunks=None = 1e-07
+science/LSAR/GCOV/metadata/processingInformation/parameters/geo2rdr/deltaRange  () float64 chunks=None = 1e-08
+science/LSAR/GCOV/metadata/processingInformation/parameters/geo2rdr/maxNumberOfIterations  () uint64 chunks=None = 50
+science/LSAR/GCOV/metadata/processingInformation/parameters/geocoding/geogridUpsampling  () float64 chunks=None = 1.0
+science/LSAR/GCOV/metadata/processingInformation/parameters/geocoding/isSourceDataUpsampled  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/geocoding/maxBlockSize  () uint64 chunks=None = 268435456
+science/LSAR/GCOV/metadata/processingInformation/parameters/geocoding/memoryMode  () |S4 chunks=None = auto
+science/LSAR/GCOV/metadata/processingInformation/parameters/geocoding/minBlockSize  () uint64 chunks=None = 33554432
+science/LSAR/GCOV/metadata/processingInformation/parameters/isFullCovariance  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/noiseCorrectionApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/polarimetricSymmetrizationApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/polarizationOrientationCorrectionApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/postProcessingFilteringApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/preprocessing/frequencyA/numberOfAzimuthLooks  () uint64 chunks=None = 1
+science/LSAR/GCOV/metadata/processingInformation/parameters/preprocessing/frequencyA/numberOfRangeLooks  () uint64 chunks=None = 1
+science/LSAR/GCOV/metadata/processingInformation/parameters/preprocessing/frequencyB/numberOfAzimuthLooks  () uint64 chunks=None = 1
+science/LSAR/GCOV/metadata/processingInformation/parameters/preprocessing/frequencyB/numberOfRangeLooks  () uint64 chunks=None = 1
+science/LSAR/GCOV/metadata/processingInformation/parameters/preprocessingMultilookingApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/processingInformation/parameters/radiometricTerrainCorrectionApplied  () |S4 chunks=None = True
+science/LSAR/GCOV/metadata/processingInformation/parameters/rangeIonosphericGeolocationCorrectionApplied  () |S4 chunks=None = True
+science/LSAR/GCOV/metadata/processingInformation/parameters/referenceTerrainHeight  (343, 349) float32 chunks=(343, 349)
+science/LSAR/GCOV/metadata/processingInformation/parameters/rfiMitigationApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/rtc/geogridUpsampling  () float64 chunks=None = 2.0
+science/LSAR/GCOV/metadata/processingInformation/parameters/rtc/inputBackscatterNormalizationConvention  () |S5 chunks=None = beta0
+science/LSAR/GCOV/metadata/processingInformation/parameters/rtc/memoryMode  () |S4 chunks=None = auto
+science/LSAR/GCOV/metadata/processingInformation/parameters/rtc/minRtcAreaNormalizationFactorInDB  () float64 chunks=None = -30.0
+science/LSAR/GCOV/metadata/processingInformation/parameters/rtc/outputBackscatterExpressionConvention  () |S12 chunks=None = Linear power
+science/LSAR/GCOV/metadata/processingInformation/parameters/rtc/outputBackscatterNormalizationConvention  () |S6 chunks=None = gamma0
+science/LSAR/GCOV/metadata/processingInformation/parameters/runConfigurationContents  () |S5965 chunks=None = #s3://nisar-static-repo/LSAR_PARAMETER_SET/05036/GCOV/NISAR_ParameterSet_GCOV_20000101_diag_20_v0.1.yaml was used to gen
+science/LSAR/GCOV/metadata/processingInformation/parameters/shadowMaskingApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/validSamplesSubSwathMaskingApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/wetTroposphericGeolocationCorrectionApplied  () |S5 chunks=None = False
+science/LSAR/GCOV/metadata/processingInformation/parameters/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/parameters/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyA/azimuthIonosphere  (343, 349) float64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyA/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyA/slantRangeIonosphere  (343, 349) float64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyA/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyA/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyB/azimuthIonosphere  (343, 349) float64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyB/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyB/slantRangeIonosphere  (343, 349) float64 chunks=(343, 349)
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyB/xCoordinates  (349,) float64 chunks=None
+science/LSAR/GCOV/metadata/processingInformation/timingCorrections/frequencyB/yCoordinates  (343,) float64 chunks=None
+science/LSAR/GCOV/metadata/radarGrid/alongTrackUnitVectorX  (21, 696, 709) float32 chunks=(1, 512, 512)
+science/LSAR/GCOV/metadata/radarGrid/alongTrackUnitVectorY  (21, 696, 709) float32 chunks=(1, 512, 512)
+science/LSAR/GCOV/metadata/radarGrid/elevationAngle  (21, 696, 709) float32 chunks=(1, 512, 512)
+science/LSAR/GCOV/metadata/radarGrid/groundTrackVelocity  (21, 696, 709) float64 chunks=(1, 512, 512)
+science/LSAR/GCOV/metadata/radarGrid/heightAboveEllipsoid  (21,) float64 chunks=None
+science/LSAR/GCOV/metadata/radarGrid/incidenceAngle  (21, 696, 709) float32 chunks=(1, 512, 512)
+science/LSAR/GCOV/metadata/radarGrid/losUnitVectorX  (21, 696, 709) float32 chunks=(1, 512, 512)
+science/LSAR/GCOV/metadata/radarGrid/losUnitVectorY  (21, 696, 709) float32 chunks=(1, 512, 512)
+science/LSAR/GCOV/metadata/radarGrid/projection  () uint32 chunks=None = 32629
+science/LSAR/GCOV/metadata/radarGrid/slantRange  (21, 696, 709) float64 chunks=(1, 512, 512)
+science/LSAR/GCOV/metadata/radarGrid/xCoordinates  (709,) float64 chunks=None
+science/LSAR/GCOV/metadata/radarGrid/yCoordinates  (696,) float64 chunks=None
+science/LSAR/GCOV/metadata/radarGrid/zeroDopplerAzimuthTime  (21, 696, 709) float64 chunks=(1, 512, 512)
+science/LSAR/GCOV/metadata/sourceData/granuleId  () |S91 chunks=None = NISAR_L1_PR_RSLC_035_023_D_073_2005_DHDH_M_20261106T192031_20261106T192107_P05036_N_F_J_001
+science/LSAR/GCOV/metadata/sourceData/lookDirection  () |S4 chunks=None = Left
+science/LSAR/GCOV/metadata/sourceData/processingCenter  () |S1 chunks=None = J
+science/LSAR/GCOV/metadata/sourceData/processingDateTime  () |S19 chunks=None = 2026-11-11T18:10:17
+science/LSAR/GCOV/metadata/sourceData/processingInformation/algorithms/azimuthCompression  () |S26 chunks=None = time-domain backprojection
+science/LSAR/GCOV/metadata/sourceData/processingInformation/algorithms/azimuthPresumming  () |S3 chunks=None = BLU
+science/LSAR/GCOV/metadata/sourceData/processingInformation/algorithms/dopplerCentroidEstimation  () |S9 chunks=None = geometric
+science/LSAR/GCOV/metadata/sourceData/processingInformation/algorithms/elevationAntennaPatternCorrection  () |S7 chunks=None = enabled
+science/LSAR/GCOV/metadata/sourceData/processingInformation/algorithms/rangeCompression  () |S15 chunks=None = FFT convolution
+science/LSAR/GCOV/metadata/sourceData/processingInformation/algorithms/rangeSpreadingLossCorrection  () |S7 chunks=None = enabled
+science/LSAR/GCOV/metadata/sourceData/processingInformation/algorithms/rfiDetection  () |S9 chunks=None = tone-rank
+science/LSAR/GCOV/metadata/sourceData/processingInformation/algorithms/rfiMitigation  () |S9 chunks=None = tone-rank
+science/LSAR/GCOV/metadata/sourceData/processingInformation/algorithms/softwareVersion  () |S7 chunks=None = 0.25.21
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/frequencyA/dopplerCentroid  (73, 108) float64 chunks=None
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/frequencyA/slantRange  (108,) float64 chunks=None
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/frequencyA/zeroDopplerTime  (73,) float64 chunks=None
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/frequencyB/dopplerCentroid  (73, 108) float64 chunks=None
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/frequencyB/slantRange  (108,) float64 chunks=None
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/frequencyB/zeroDopplerTime  (73,) float64 chunks=None
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/referenceTerrainHeight  (73,) float32 chunks=None
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/runConfigurationContents  () |S10966 chunks=None = input_file_group:
+    input_file_path:
+    -   /data/work/jobs/2026/11/11/18/08/SCIFLO_RSLC__release-r05.03.5-track_fram
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/slantRange  (108,) float64 chunks=None
+science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/zeroDopplerTime  (73,) float64 chunks=None
+science/LSAR/GCOV/metadata/sourceData/productDoi  () |S19 chunks=None = 10.5067/NIL1RSLC-V1
+science/LSAR/GCOV/metadata/sourceData/productGeometry  () |S11 chunks=None = Slant range
+science/LSAR/GCOV/metadata/sourceData/productLevel  () |S2 chunks=None = L1
+science/LSAR/GCOV/metadata/sourceData/productType  () |S4 chunks=None = RSLC
+science/LSAR/GCOV/metadata/sourceData/productVersion  () |S6 chunks=None = 1.0.20
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/acquiredRangeBandwidth  () float64 chunks=None = 40000000.0
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/centerFrequency  () float64 chunks=None = 1229000000.0
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/farRangeIncidenceAngle  () float64 chunks=None = 47.15824186083596
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/listOfPolarizations  (2,) |S2 chunks=None = [b'HH' b'HV']
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/nearRangeIncidenceAngle  () float64 chunks=None = 33.41828536754406
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/numberOfRangeSamples  () uint64 chunks=None = 26323
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/processedAzimuthBandwidth  () float64 chunks=None = 1262.7116377665445
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/processedRangeBandwidth  () float64 chunks=None = 20000000.0
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/rangeResolution  () float64 chunks=None = 7.49481145
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/sceneCenterAlongTrackResolution  () float64 chunks=None = 5.36049000376432
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/sceneCenterAlongTrackSpacing  () float64 chunks=None = 4.453127047292391
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/sceneCenterGroundRangeSpacing  () float64 chunks=None = 9.46351750846386
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/slantRangeSpacing  () float64 chunks=None = 6.245676208333333
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA/slantRangeStart  () float64 chunks=None = 883438.4083163333
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/acquiredRangeBandwidth  () float64 chunks=None = 5000000.0
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/centerFrequency  () float64 chunks=None = 1293500000.0
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/farRangeIncidenceAngle  () float64 chunks=None = 47.157455462720016
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/listOfPolarizations  (2,) |S2 chunks=None = [b'HV' b'HH']
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/nearRangeIncidenceAngle  () float64 chunks=None = 33.41828536754406
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/numberOfRangeSamples  () uint64 chunks=None = 6581
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/processedAzimuthBandwidth  () float64 chunks=None = 1262.7116377665445
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/processedRangeBandwidth  () float64 chunks=None = 5000000.0
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/rangeResolution  () float64 chunks=None = 29.9792458
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/sceneCenterAlongTrackResolution  () float64 chunks=None = 5.360489997207782
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/sceneCenterAlongTrackSpacing  () float64 chunks=None = 4.45312704184567
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/sceneCenterGroundRangeSpacing  () float64 chunks=None = 37.85445122501481
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/slantRangeSpacing  () float64 chunks=None = 24.982704833333333
+science/LSAR/GCOV/metadata/sourceData/swaths/frequencyB/slantRangeStart  () float64 chunks=None = 883438.4083163333
+science/LSAR/GCOV/metadata/sourceData/swaths/numberOfAzimuthLines  () uint64 chunks=None = 56240
+science/LSAR/GCOV/metadata/sourceData/swaths/zeroDopplerEndTime  () |S29 chunks=None = 2026-11-06T19:21:07.999342105
+science/LSAR/GCOV/metadata/sourceData/swaths/zeroDopplerStartTime  () |S29 chunks=None = 2026-11-06T19:20:31.000000000
+science/LSAR/GCOV/metadata/sourceData/swaths/zeroDopplerTimeSpacing  () float64 chunks=None = 0.0006578947368421052
+science/LSAR/identification/absoluteOrbitNumber  () uint32 chunks=None = 6696
+science/LSAR/identification/boundingPolygon  () |S2136 chunks=None = POLYGON ((-9.72842300033545 32.1834232267129 46.6463241091278,-9.79980605392181 31.9652799577281 47.0047568972895,-9.870
+science/LSAR/identification/compositeReleaseId  () |S6 chunks=None = P05036
+science/LSAR/identification/diagnosticModeFlag  () uint32 chunks=None = 0
+science/LSAR/identification/frameNumber  () uint16 chunks=None = 73
+science/LSAR/identification/granuleId  () |S91 chunks=None = NISAR_L2_PR_GCOV_035_023_D_073_2005_DHDH_M_20261106T192031_20261106T192107_P05036_N_F_J_001
+science/LSAR/identification/hasInputDataException  () uint8 chunks=None = 0
+science/LSAR/identification/instrumentName  () |S4 chunks=None = LSAR
+science/LSAR/identification/isDithered  () |S4 chunks=None = True
+science/LSAR/identification/isFullFrame  () |S4 chunks=None = True
+science/LSAR/identification/isGeocoded  () |S4 chunks=None = True
+science/LSAR/identification/isJointObservation  () |S4 chunks=None = True
+science/LSAR/identification/isMixedMode  () |S4 chunks=None = True
+science/LSAR/identification/isUrgentObservation  () |S5 chunks=None = False
+science/LSAR/identification/listOfFrequencies  (2,) |S1 chunks=None = [b'A' b'B']
+science/LSAR/identification/listOfObservationModes  (1,) |S15 chunks=None = [b'(NOT SPECIFIED)']
+science/LSAR/identification/lookDirection  () |S4 chunks=None = Left
+science/LSAR/identification/missionId  () |S5 chunks=None = NISAR
+science/LSAR/identification/orbitPassDirection  () |S10 chunks=None = Descending
+science/LSAR/identification/plannedDatatakeId  (3,) |S18 chunks=None = [b'dtid_2026310191700' b'dtid_2026310191700' b'dtid_2026310191700']
+science/LSAR/identification/plannedObservationId  (3,) |S17 chunks=None = [b'oid_2026310192028' b'oid_2026310192040' b'oid_2026310192044']
+science/LSAR/identification/platformName  () |S5 chunks=None = NISAR
+science/LSAR/identification/processingCenter  () |S3 chunks=None = JPL
+science/LSAR/identification/processingDateTime  () |S19 chunks=None = 2026-11-12T04:39:52
+science/LSAR/identification/processingType  () |S7 chunks=None = Nominal
+science/LSAR/identification/productDoi  () |S19 chunks=None = 10.5067/NIL2GCOV-V1
+science/LSAR/identification/productLevel  () |S2 chunks=None = L2
+science/LSAR/identification/productSpecificationVersion  () |S5 chunks=None = 1.6.0
+science/LSAR/identification/productType  () |S4 chunks=None = GCOV
+science/LSAR/identification/productVersion  () |S6 chunks=None = 1.0.20
+science/LSAR/identification/radarBand  () |S1 chunks=None = L
+science/LSAR/identification/staticLayersDataAccess  () |S161 chunks=None = https://nisar-services.earthdata.nasa.gov/redirect/NISAR_L2_STATIC/NISAR_L2_PR_GCOV_035_023_D_073_2005_DHDH_M_20261106T1
+science/LSAR/identification/trackNumber  () uint32 chunks=None = 23
+science/LSAR/identification/zeroDopplerEndTime  () |S29 chunks=None = 2026-11-06T19:21:07.999342105
+science/LSAR/identification/zeroDopplerStartTime  () |S29 chunks=None = 2026-11-06T19:20:31.000000000
+== ATTRS OF 2D GRIDS ==
+science/LSAR/GCOV/grids/frequencyA/HHHH {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.float32(nan), 'description': 'Covariance between HH and HH', 'grid_mapping': 'projection', 'long_name': 'Geocoded polarimetric covariance term HHHH', 'max_value': np.float32(2320.7617), 'mean_value': np.float32(0.13049987), 'min_value': np.float32(0.0), 'sample_stddev': np.float32(0.91726214), 'units': '1', 'valid_min': np.float32(0.0)}
+science/LSAR/GCOV/grids/frequencyA/HVHV {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.float32(nan), 'description': 'Covariance between HV and HV', 'grid_mapping': 'projection', 'long_name': 'Geocoded polarimetric covariance term HVHV', 'max_value': np.float32(555.34106), 'mean_value': np.float32(0.019027295), 'min_value': np.float32(0.0), 'sample_stddev': np.float32(0.121263675), 'units': '1', 'valid_min': np.float32(0.0)}
+science/LSAR/GCOV/grids/frequencyA/inputDataExceptionMask {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.uint16(65535), 'description': 'Bitwise OR of input data exception codes for each image pixel (0: no anomaly, 2: NISAR LSAR qFSP-H1 sample slip). Also includes OR of validity mask bits, where each bit is set on for fully-focused data or off for partially focused or missing data (256:HH, 512:HV, 1024:VH, 2048:VV, 4096:LH, 8192:LV, 16384:RH, 32768:RV)', 'grid_mapping': 'projection', 'raw_valid_pulse_fraction_hh': np.float64(1.0), 'raw_valid_pulse_fraction_hv': np.float64(1.0), 'rslc_valid_pixel_fraction_hh': np.float64(0.9612703484110219), 'rslc_valid_pixel_fraction_hv': np.float64(0.9612703484110219), 'valid_min': np.uint16(0)}
+science/LSAR/GCOV/grids/frequencyA/mask {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.uint8(255), 'description': 'Mask indicating the subswath number associated with valid GCOV samples. A GCOV sample is only considered valid if it is generated from fully-focused radar samples. If at least one radar sample in the averaging set is partially focused or invalid, the corresponding mask pixel will contain the value 0. GCOV pixels outside of the radar acquisition extent are filled with the value 255', 'grid_mapping': 'projection', 'long_name': 'Valid samples subswath mask', 'valid_min': np.uint8(0)}
+science/LSAR/GCOV/grids/frequencyA/numberOfLooks {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.float32(nan), 'description': 'Number of averaged radar-grid pixels for covariance estimation', 'grid_mapping': 'projection', 'long_name': 'Number of radar looks', 'max_value': np.float32(26.888918), 'mean_value': np.float32(9.369425), 'min_value': np.float32(3.786021e-12), 'sample_stddev': np.float32(2.384586), 'units': '1', 'valid_min': np.float32(0.0)}
+science/LSAR/GCOV/grids/frequencyA/rtcGammaToSigmaFactor {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.float32(nan), 'description': 'Radiometric terrain correction (RTC) scaling factor to normalize backscatter coefficients from gamma0 to sigma0, accounting for local terrain', 'grid_mapping': 'projection', 'long_name': 'Radiometric terrain correction area normalization factor gamma0 to sigma0', 'max_value': np.float32(0.99891126), 'mean_value': np.float32(0.70972985), 'min_value': np.float32(0.0007978152), 'sample_stddev': np.float32(0.14502297), 'units': '1', 'valid_min': np.float32(0.0)}
+science/LSAR/GCOV/grids/frequencyB/HHHH {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.float32(nan), 'description': 'Covariance between HH and HH', 'grid_mapping': 'projection', 'long_name': 'Geocoded polarimetric covariance term HHHH', 'max_value': np.float32(565.88367), 'mean_value': np.float32(0.14937349), 'min_value': np.float32(0.0), 'sample_stddev': np.float32(0.4575295), 'units': '1', 'valid_min': np.float32(0.0)}
+science/LSAR/GCOV/grids/frequencyB/HVHV {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.float32(nan), 'description': 'Covariance between HV and HV', 'grid_mapping': 'projection', 'long_name': 'Geocoded polarimetric covariance term HVHV', 'max_value': np.float32(116.515915), 'mean_value': np.float32(0.02273205), 'min_value': np.float32(0.0), 'sample_stddev': np.float32(0.065254934), 'units': '1', 'valid_min': np.float32(0.0)}
+science/LSAR/GCOV/grids/frequencyB/inputDataExceptionMask {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.uint16(65535), 'description': 'Bitwise OR of input data exception codes for each image pixel (0: no anomaly, 2: NISAR LSAR qFSP-H1 sample slip). Also includes OR of validity mask bits, where each bit is set on for fully-focused data or off for partially focused or missing data (256:HH, 512:HV, 1024:VH, 2048:VV, 4096:LH, 8192:LV, 16384:RH, 32768:RV)', 'grid_mapping': 'projection', 'raw_valid_pulse_fraction_hh': np.float64(1.0), 'raw_valid_pulse_fraction_hv': np.float64(1.0), 'rslc_valid_pixel_fraction_hh': np.float64(0.9818653255859847), 'rslc_valid_pixel_fraction_hv': np.float64(0.9818653255859847), 'valid_min': np.uint16(0)}
+science/LSAR/GCOV/grids/frequencyB/mask {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.uint8(255), 'description': 'Mask indicating the subswath number associated with valid GCOV samples. A GCOV sample is only considered valid if it is generated from fully-focused radar samples. If at least one radar sample in the averaging set is partially focused or invalid, the corresponding mask pixel will contain the value 0. GCOV pixels outside of the radar acquisition extent are filled with the value 255', 'grid_mapping': 'projection', 'long_name': 'Valid samples subswath mask', 'valid_min': np.uint8(0)}
+science/LSAR/GCOV/grids/frequencyB/numberOfLooks {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.float32(nan), 'description': 'Number of averaged radar-grid pixels for covariance estimation', 'grid_mapping': 'projection', 'long_name': 'Number of radar looks', 'max_value': np.float32(85.61222), 'mean_value': np.float32(37.26154), 'min_value': np.float32(3.306352e-07), 'sample_stddev': np.float32(8.681012), 'units': '1', 'valid_min': np.float32(0.0)}
+science/LSAR/GCOV/grids/frequencyB/rtcGammaToSigmaFactor {'DIMENSION_LIST': array([array([<HDF5 object reference>], dtype=object),
+       array([<HDF5 object reference>], dtype=object)], dtype=object), '_FillValue': np.float32(nan), 'description': 'Radiometric terrain correction (RTC) scaling factor to normalize backscatter coefficients from gamma0 to sigma0, accounting for local terrain', 'grid_mapping': 'projection', 'long_name': 'Radiometric terrain correction area normalization factor gamma0 to sigma0', 'max_value': np.float32(0.99533767), 'mean_value': np.float32(0.7265118), 'min_value': np.float32(0.0023479254), 'sample_stddev': np.float32(0.13306612), 'units': '1', 'valid_min': np.float32(0.0)}

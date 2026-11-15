@@ -1,0 +1,13 @@
+== cambodia: flood on 2026-09-27 | grid 2767 x 2721 at 40 m
+land cover %: {10: 22.0, 20: 0.0, 30: 19.4, 40: 46.7, 50: 0.8, 60: 0.2, 80: 2.5, 90: 8.3}
+  sentinel-1 2026-07-14/2026-09-07: 38 items
+  sentinel-1 2026-09-13/2026-10-11: 24 items
+S1 dates pre/post: 14 9 | water share pre 0.013 post 0.052
+== LABELS ==
+stable               677675 ha  56.26%
+vegetation gain           0 ha   0.00%
+vegetation loss           0 ha   0.00%
+burned                    0 ha   0.00%
+flooded               19531 ha   1.62%
+ignore               507436 ha  42.12%
+saved context.npz, labels.npz, cambodia_labels.png

@@ -1,0 +1,49 @@
+GUNW on track 23: 8
+NISAR_L2_PR_GUNW_024_023_D_073_025_2000_SH_20260627T192033_20260627T192109_20260709T192032_20260709T192108_P05023_N_F_J_001.h5 2.18 GB
+NISAR_L2_PR_GUNW_025_023_D_073_026_2000_SH_20260709T192032_20260709T192108_20260721T192031_20260721T192107_P05023_N_F_J_001.h5 2.20 GB
+NISAR_L2_PR_GUNW_026_023_D_073_028_2000_SH_20260721T192031_20260721T192107_20260814T192030_20260814T192106_P05023_F_F_J_001.h5 2.21 GB
+NISAR_L2_PR_GUNW_028_023_D_073_029_2000_SH_20260814T192030_20260814T192106_20260826T192030_20260826T192106_P05023_N_F_J_001.h5 2.20 GB
+NISAR_L2_PR_GUNW_029_023_D_073_030_2000_SH_20260826T192030_20260826T192106_20260907T192030_20260907T192106_P05023_N_F_J_001.h5 2.21 GB
+NISAR_L2_PR_GUNW_030_023_D_073_031_2000_SH_20260907T192030_20260907T192106_20260919T192030_20260919T192106_P05023_F_F_J_001.h5 2.21 GB
+NISAR_L2_PR_GUNW_031_023_D_073_032_2000_SH_20260919T192030_20260919T192106_20261001T192030_20261001T192106_P05023_N_F_J_001.h5 2.21 GB
+NISAR_L2_PR_GUNW_032_023_D_073_033_2000_SH_20261001T192030_20261001T192106_20261013T192030_20261013T192106_P05023_N_F_J_001.h5 2.20 GB
+== LAYOUT (grids, 2D and larger) ==
+science/LSAR/GUNW/grids/frequencyA/centerFrequency = 1229000000.0
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/alongTrackOffset (4275, 4356) float32 {'_FillValue': np.float64(nan), 'description': 'Along-track offset', 'units': 'meters'}
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/correlationSurfacePeak (4275, 4356) float32 {'_FillValue': np.float64(nan), 'description': 'Normalized cross-correlation surface peak', 'units': '1'}
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/projection = 32629
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/slantRangeOffset (4275, 4356) float32 {'_FillValue': np.float64(nan), 'description': 'Slant range offset', 'units': 'meters'}
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/xCoordinateSpacing = 80.0
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/yCoordinateSpacing = -80.0
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/mask (4275, 4356) uint32 {'_FillValue': np.int64(255), 'description': 'Combination of a water mask, a mask of subswaths of valid samples, and data anomalies in the reference RSLC and the geometrically coregistered secondary RSLC. Each pixel value is encoded as a 32-bit unsigned integer. Bits 0-7 represent subswath encoding, where the most significant digit represents the water flag of that pixel in the reference RSLC, where 1 is water and 0 is non-water; the second most significant digit corresponds to the subswath number of the reference RSLC, and the least significant digit corresponds to the subswath number of the secondary RSLC; a value of 0 in either digit indicates an invalid sample in the corresponding RSLC. Bits 8-15 represent bitwise anomaly flags for the secondary RSLC, and bits 16-23 represent bitwise anomaly flags for the reference RSLC, with each bit corresponding to a specific anomaly condition. A value of 0 in the anomaly bits indicates that no anomaly is detected in the corresponding RSLC. Bits 24-31 are reserved for future use'}
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/projection = 32629
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/xCoordinateSpacing = 80.0
+science/LSAR/GUNW/grids/frequencyA/pixelOffsets/yCoordinateSpacing = -80.0
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/HH/coherenceMagnitude (4275, 4356) float32 {'_FillValue': np.float64(nan), 'description': 'Coherence magnitude between HH layers', 'units': '1'}
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/HH/connectedComponents (4275, 4356) uint16 {'_FillValue': np.int64(65535), 'description': 'Connected components for HH layer', 'units': '1'}
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/HH/ionospherePhaseScreen (4275, 4356) float32 {'_FillValue': np.float64(nan), 'description': 'Ionosphere phase screen', 'units': 'radians'}
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/HH/ionospherePhaseScreenUncertainty (4275, 4356) float32 {'_FillValue': np.float64(nan), 'description': 'Uncertainty of the ionosphere phase screen', 'units': 'radians'}
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/HH/projection = 32629
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/HH/unwrappedPhase (4275, 4356) float32 {'_FillValue': np.float64(nan), 'description': 'Unwrapped interferogram between HH layers', 'units': 'radians'}
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/HH/xCoordinateSpacing = 80.0
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/HH/yCoordinateSpacing = -80.0
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/mask (4275, 4356) uint32 {'_FillValue': np.int64(255), 'description': 'Combination of a water mask, a mask of subswaths of valid samples, and data anomalies in the reference RSLC and the geometrically coregistered secondary RSLC. Each pixel value is encoded as a 32-bit unsigned integer. Bits 0-7 represent subswath encoding, where the most significant digit represents the water flag of that pixel in the reference RSLC, where 1 is water and 0 is non-water; the second most significant digit corresponds to the subswath number of the reference RSLC, and the least significant digit corresponds to the subswath number of the secondary RSLC; a value of 0 in either digit indicates an invalid sample in the corresponding RSLC. Bits 8-15 represent bitwise anomaly flags for the secondary RSLC, and bits 16-23 represent bitwise anomaly flags for the reference RSLC, with each bit corresponding to a specific anomaly condition. A value of 0 in the anomaly bits indicates that no anomaly is detected in the corresponding RSLC. Bit 24 indicates a bit mask for ionospheric phase mask used during filtering of ionospheric phase. This ionospheric phase mask indicates pixels which were masked out and filled with interpolated data. Bits 25-31 are reserved for future use'}
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/projection = 32629
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/xCoordinateSpacing = 80.0
+science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/yCoordinateSpacing = -80.0
+science/LSAR/GUNW/grids/frequencyA/wrappedInterferogram/HH/coherenceMagnitude (17100, 17424) float32 {'_FillValue': np.float64(nan), 'description': 'Coherence magnitude between HH layers', 'units': '1'}
+science/LSAR/GUNW/grids/frequencyA/wrappedInterferogram/HH/projection = 32629
+science/LSAR/GUNW/grids/frequencyA/wrappedInterferogram/HH/wrappedInterferogram (17100, 17424) complex64 {'_FillValue': np.complex64(nan+nanj), 'description': 'Complex wrapped interferogram between HH layers', 'units': '1'}
+science/LSAR/GUNW/grids/frequencyA/wrappedInterferogram/HH/xCoordinateSpacing = 20.0
+science/LSAR/GUNW/grids/frequencyA/wrappedInterferogram/HH/yCoordinateSpacing = -20.0
+science/LSAR/GUNW/grids/frequencyA/wrappedInterferogram/mask (17100, 17424) uint32 {'_FillValue': np.int64(255), 'description': 'Combination of a water mask, a mask of subswaths of valid samples, and data anomalies in the reference RSLC and the geometrically coregistered secondary RSLC. Each pixel value is encoded as a 32-bit unsigned integer. Bits 0-7 represent subswath encoding, where the most significant digit represents the water flag of that pixel in the reference RSLC, where 1 is water and 0 is non-water; the second most significant digit corresponds to the subswath number of the reference RSLC, and the least significant digit corresponds to the subswath number of the secondary RSLC; a value of 0 in either digit indicates an invalid sample in the corresponding RSLC. Bits 8-15 represent bitwise anomaly flags for the secondary RSLC, and bits 16-23 represent bitwise anomaly flags for the reference RSLC, with each bit corresponding to a specific anomaly condition. A value of 0 in the anomaly bits indicates that no anomaly is detected in the corresponding RSLC. Bits 24-31 are reserved for future use'}
+science/LSAR/GUNW/grids/frequencyA/wrappedInterferogram/projection = 32629
+science/LSAR/GUNW/grids/frequencyA/wrappedInterferogram/xCoordinateSpacing = 20.0
+science/LSAR/GUNW/grids/frequencyA/wrappedInterferogram/yCoordinateSpacing = -20.0
+science/LSAR/GUNW/metadata/processingInformation/parameters/reference/frequencyA/slantRangeSpacing = 6.245676208333333
+science/LSAR/GUNW/metadata/processingInformation/parameters/reference/frequencyA/zeroDopplerTimeSpacing = 0.0006578947368421052
+science/LSAR/GUNW/metadata/processingInformation/parameters/secondary/frequencyA/slantRangeSpacing = 6.245676208333333
+science/LSAR/GUNW/metadata/processingInformation/parameters/secondary/frequencyA/zeroDopplerTimeSpacing = 0.0006578947368421052
+science/LSAR/GUNW/metadata/radarGrid/projection = 32629
+science/LSAR/identification/referenceZeroDopplerStartTime = 2026-06-27T19:20:33.000000000
+science/LSAR/identification/secondaryZeroDopplerStartTime = 2026-07-09T19:20:32.000000000

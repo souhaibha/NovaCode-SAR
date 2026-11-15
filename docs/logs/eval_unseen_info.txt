@@ -1,0 +1,65 @@
+nohup: ignoring input
+souss loaded
+cambodia loaded
+avila loaded
+== THRESHOLDS chosen on the tuning half (best F1 per class) ==
+   vegetation gain  threshold 0.90 (tuning F1 0.38)
+   vegetation loss  threshold 0.85 (tuning F1 0.22)
+   burned           threshold 0.80 (tuning F1 0.82)
+   flooded          threshold 0.95 (tuning F1 0.76)
+== SCORING HALF, before (plain argmax) ==  class | n | precision | recall | F1
+   stable              845888 | 0.99 | 0.88 | 0.93
+   vegetation gain       7139 | 0.08 | 0.75 | 0.15
+   vegetation loss       5763 | 0.09 | 0.40 | 0.14
+   burned               25908 | 0.61 | 0.91 | 0.73
+   flooded              15118 | 0.64 | 0.97 | 0.77
+   mean F1 over event classes: 0.448
+   true stable           -> predicted: stable:88% vegeta:7% vegeta:3% burned:2% floode:1%
+   true vegetation gain  -> predicted: stable:21% vegeta:75% vegeta:4% burned:1% floode:0%
+   true vegetation loss  -> predicted: stable:41% vegeta:7% vegeta:40% burned:11% floode:0%
+   true burned           -> predicted: stable:7% vegeta:0% vegeta:2% burned:91% floode:0%
+   true flooded          -> predicted: stable:3% vegeta:0% vegeta:0% burned:0% floode:97%
+== SCORING HALF, after (thresholds) ==  class | n | precision | recall | F1
+   stable              845888 | 0.98 | 0.99 | 0.98
+   vegetation gain       7139 | 0.49 | 0.26 | 0.34
+   vegetation loss       5763 | 0.32 | 0.18 | 0.23
+   burned               25908 | 0.90 | 0.81 | 0.86
+   flooded              15118 | 0.83 | 0.85 | 0.84
+   mean F1 over event classes: 0.567
+   true stable           -> predicted: stable:99% vegeta:0% vegeta:0% burned:0% floode:0%
+   true vegetation gain  -> predicted: stable:73% vegeta:26% vegeta:1% burned:0% floode:0%
+   true vegetation loss  -> predicted: stable:80% vegeta:0% vegeta:18% burned:1% floode:0%
+   true burned           -> predicted: stable:19% vegeta:0% vegeta:0% burned:81% floode:0%
+   true flooded          -> predicted: stable:15% vegeta:0% vegeta:0% burned:0% floode:85%
+== scoring half, souss, after ==  class | n | precision | recall | F1
+   stable              390787 | 0.98 | 1.00 | 0.99
+   vegetation gain       6865 | 0.70 | 0.27 | 0.39
+   vegetation loss       2348 | 0.53 | 0.44 | 0.48
+   mean F1 over event classes: 0.435
+   true stable           -> predicted: stable:100% vegeta:0% vegeta:0% burned:0% floode:0%
+   true vegetation gain  -> predicted: stable:73% vegeta:27% vegeta:1% burned:0% floode:0%
+   true vegetation loss  -> predicted: stable:54% vegeta:1% vegeta:44% burned:0% floode:0%
+== scoring half, cambodia, after ==  class | n | precision | recall | F1
+   stable              332266 | 0.99 | 0.98 | 0.99
+   flooded              15118 | 0.83 | 0.85 | 0.84
+   mean F1 over event classes: 0.840
+   true stable           -> predicted: stable:98% vegeta:0% vegeta:0% burned:0% floode:1%
+   true flooded          -> predicted: stable:15% vegeta:0% vegeta:0% burned:0% floode:85%
+== scoring half, avila, after ==  class | n | precision | recall | F1
+   stable              122835 | 0.94 | 0.99 | 0.96
+   vegetation gain        274 | 0.47 | 0.03 | 0.05
+   vegetation loss       3415 | 0.14 | 0.00 | 0.01
+   burned               25908 | 0.93 | 0.81 | 0.87
+   mean F1 over event classes: 0.310
+   true stable           -> predicted: stable:99% vegeta:0% vegeta:0% burned:1% floode:0%
+   true vegetation gain  -> predicted: stable:95% vegeta:3% vegeta:0% burned:3% floode:0%
+   true vegetation loss  -> predicted: stable:98% vegeta:0% vegeta:0% burned:2% floode:0%
+   true burned           -> predicted: stable:19% vegeta:0% vegeta:0% burned:81% floode:0%
+cambodia_t148 dates used: 6
+== UNSEEN cambodia_t148: unseen track and unseen 5 km blocks ==  class | n | precision | recall | F1
+   stable             1070180 | 0.99 | 0.99 | 0.99
+   flooded              23584 | 0.82 | 0.43 | 0.56
+   mean F1 over event classes: 0.561
+   true stable           -> predicted: stable:99% vegeta:1% vegeta:0% burned:0% floode:0%
+   true flooded          -> predicted: stable:57% vegeta:0% vegeta:0% burned:0% floode:43%
+predicted share of land: stable 92.71% vegetation gain 0.62% vegetation loss 0.33% burned 0.27% flooded 6.08%

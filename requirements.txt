@@ -1,0 +1,16 @@
+numpy
+scipy
+h5py
+pyproj
+pillow
+asf_search
+scikit-learn
+joblib
+rasterio
+odc-stac
+pystac-client
+planetary-computer
+dask
+shapely
+fastapi
+uvicorn[standard]

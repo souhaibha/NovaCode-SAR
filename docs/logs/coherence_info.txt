@@ -1,0 +1,23 @@
+20260627->20260709 median coherence 0.84 kept
+20260709->20260721 median coherence 0.85 kept
+20260721->20260814 median coherence 0.80 kept
+20260814->20260826 median coherence 0.83 kept
+20260826->20260907 median coherence 0.10 DROPPED
+20260907->20260919 median coherence 0.10 DROPPED
+20260919->20261001 median coherence 0.85 kept
+20261001->20261013 median coherence 0.80 kept
+== MEAN COHERENCE BY LAND COVER (p10 p50 p90) ==
+trees     0.56 0.76 0.90
+shrub     0.70 0.86 0.93
+grass     0.70 0.86 0.93
+cropland  0.48 0.66 0.80
+built     0.60 0.78 0.89
+bare      0.54 0.79 0.90
+water     0.09 0.11 0.13
+== MEAN COHERENCE BY CHANGE CLASS (median) ==
+stable               0.83   (cropland only: 0.67)
+vegetation gain      0.55   (cropland only: 0.53)
+vegetation loss      0.57   (cropland only: 0.56)
+other change, flat   0.64   (cropland only: 0.61)
+slope wetting        0.87   (cropland only: 0.82)
+saved coherence.tif and web/coherence.png; removed web/deformation.png; summary.json updated

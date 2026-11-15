@@ -1,0 +1,12 @@
+.edl_token
+.netrc
+*.npy
+*.npz
+*.h5
+data/
+raw/
+__pycache__/
+.amlignore*
+node_modules/
+dist/
+.DS_Store

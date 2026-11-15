@@ -1,0 +1,65 @@
+dates: 11 ['2026-06-27', '2026-07-09', '2026-07-21', '2026-08-14', '2026-08-26', '2026-09-07', '2026-09-19', '2026-10-01', '2026-10-13', '2026-10-25', '2026-11-06']
+downloading 2026-06-27
+downloading 2026-07-09
+downloading 2026-07-21
+downloading 2026-08-14
+downloading 2026-08-26
+downloading 2026-09-07
+downloading 2026-09-19
+downloading 2026-10-01
+downloading 2026-10-13
+downloading 2026-10-25
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "~/build_stack.py", line 79, in <module>
+    import matplotlib; matplotlib.use("Agg")
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/__init__.py", line 131, in <module>
+    from . import _api, _version, cbook, _docstring, rcsetup
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/rcsetup.py", line 27, in <module>
+    from matplotlib.colors import Colormap, is_color_like
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/colors.py", line 56, in <module>
+    from matplotlib import _api, _cm, cbook, scale
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/scale.py", line 22, in <module>
+    from matplotlib.ticker import (
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/ticker.py", line 138, in <module>
+    from matplotlib import transforms as mtransforms
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/transforms.py", line 49, in <module>
+    from matplotlib._path import (
+AttributeError: _ARRAY_API not found
+crop: 3890 rows x 8182 cols, origin x=432630.0 y=3418950.0, spacing 20.0 -20.0
+date | grid_shift_px | valid_% | HH_median_dB | HV_median_dB | crid
+2026-06-27 | +0.000,+0.000 | 100.0 | -10.09 | -17.04 | P05023
+2026-07-09 | +0.000,+0.000 | 100.0 | -10.02 | -17.30 | P05023
+2026-07-21 | +0.000,+0.000 | 100.0 | -10.09 | -17.18 | P05023
+2026-08-14 | +0.000,+0.000 | 100.0 | -9.59 | -17.29 | P05023
+2026-08-26 | +0.000,+0.000 | 100.0 | -9.68 | -16.82 | P05023
+2026-09-07 | +0.000,+0.000 | 100.0 | -2.68 | -12.89 | P05023
+2026-09-19 | +0.000,+0.000 | 100.0 | -9.49 | -17.15 | P05023
+2026-10-01 | +0.000,+0.000 | 100.0 | -9.55 | -17.41 | P05023
+2026-10-13 | +0.000,+0.000 | 100.0 | -9.22 | -17.00 | P05023
+2026-10-25 | +0.000,+0.000 | 100.0 | -9.80 | -17.51 | P05036
+2026-11-06 | +0.000,+0.000 | 100.0 | -9.70 | -17.48 | P05036
+Traceback (most recent call last):
+  File "~/build_stack.py", line 79, in <module>
+    import matplotlib; matplotlib.use("Agg")
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/__init__.py", line 131, in <module>
+    from . import _api, _version, cbook, _docstring, rcsetup
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/rcsetup.py", line 27, in <module>
+    from matplotlib.colors import Colormap, is_color_like
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/colors.py", line 56, in <module>
+    from matplotlib import _api, _cm, cbook, scale
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/scale.py", line 22, in <module>
+    from matplotlib.ticker import (
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/ticker.py", line 138, in <module>
+    from matplotlib import transforms as mtransforms
+  File "/anaconda/envs/azureml_py38/lib/python3.10/site-packages/matplotlib/transforms.py", line 49, in <module>
+    from matplotlib._path import (
+ImportError: numpy.core.multiarray failed to import

@@ -1,0 +1,15 @@
+== avila_t23: fire on 2026-07-22 | grid 1278 x 1510 at 40 m
+land cover %: {10: 35.6, 20: 2.9, 30: 55.1, 40: 4.9, 50: 1.1, 60: 0.1, 80: 0.3}
+  sentinel-2 2026-06-12/2026-07-20 (nbr): 27 items
+  sentinel-2 2026-08-03/2026-09-10 (nbr): 25 items
+  sentinel-2 2026-06-12/2026-07-20 (ndvi): 27 items
+  sentinel-2 2026-08-03/2026-09-10 (ndvi): 25 items
+dNBR p5 p50 p95 p99: -0.02 0.03 0.45 0.83
+== LABELS ==
+stable               159587 ha  51.69%
+vegetation gain         298 ha   0.10%
+vegetation loss        4790 ha   1.55%
+burned                28257 ha   9.15%
+flooded                   0 ha   0.00%
+ignore               115833 ha  37.52%
+saved context.npz, labels.npz, avila_t23_labels.png

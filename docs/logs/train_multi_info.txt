@@ -1,0 +1,64 @@
+nohup: ignoring input
+souss: grid 1945x4091 | labelled px: {'stable': 6807850, 'vegetation gain': 110440, 'vegetation loss': 44863}
+cambodia: grid 2767x2721 | labelled px: {'stable': 2818390, 'flooded': 121247}
+avila: grid 1278x1510 | labelled px: {'stable': 997417, 'vegetation gain': 1860, 'vegetation loss': 29935, 'burned': 176609}
+training samples per class: {'stable': 450000, 'vegetation gain': 83672, 'vegetation loss': 56146, 'burned': 126017, 'flooded': 97735}
+== HELD-OUT 5 km BLOCKS, all training sites ==  class | n | precision | recall | F1
+   stable             1401532 | 0.99 | 0.75 | 0.85
+   vegetation gain      10175 | 0.04 | 0.82 | 0.08
+   vegetation loss      11577 | 0.05 | 0.57 | 0.09
+   burned               50592 | 0.55 | 0.90 | 0.68
+   flooded              19463 | 0.49 | 0.99 | 0.66
+   mean F1 over event classes: 0.378
+   true stable           -> predicted: stable:75% vegeta:13% vegeta:9% burned:3% floode:1%
+   true vegetation gain  -> predicted: stable:11% vegeta:82% vegeta:6% burned:2% floode:0%
+   true vegetation loss  -> predicted: stable:22% vegeta:9% vegeta:57% burned:13% floode:0%
+   true burned           -> predicted: stable:4% vegeta:1% vegeta:6% burned:90% floode:0%
+   true flooded          -> predicted: stable:1% vegeta:0% vegeta:0% burned:0% floode:99%
+== held-out blocks: souss ==  class | n | precision | recall | F1
+   stable              586648 | 1.00 | 0.81 | 0.89
+   vegetation gain       9653 | 0.11 | 0.84 | 0.19
+   vegetation loss       3699 | 0.06 | 0.71 | 0.11
+   mean F1 over event classes: 0.150
+   true stable           -> predicted: stable:81% vegeta:11% vegeta:7% burned:1% floode:0%
+   true vegetation gain  -> predicted: stable:10% vegeta:84% vegeta:5% burned:1% floode:0%
+   true vegetation loss  -> predicted: stable:6% vegeta:21% vegeta:71% burned:2% floode:0%
+== held-out blocks: cambodia ==  class | n | precision | recall | F1
+   stable              580537 | 1.00 | 0.74 | 0.85
+   flooded              19463 | 0.49 | 0.99 | 0.66
+   mean F1 over event classes: 0.659
+   true stable           -> predicted: stable:74% vegeta:18% vegeta:4% burned:1% floode:3%
+   true flooded          -> predicted: stable:1% vegeta:0% vegeta:0% burned:0% floode:99%
+== held-out blocks: avila ==  class | n | precision | recall | F1
+   stable              234347 | 0.97 | 0.62 | 0.75
+   vegetation gain        522 | 0.02 | 0.43 | 0.04
+   vegetation loss       7878 | 0.07 | 0.50 | 0.12
+   burned               50592 | 0.62 | 0.90 | 0.73
+   mean F1 over event classes: 0.295
+   true stable           -> predicted: stable:62% vegeta:5% vegeta:23% burned:11% floode:0%
+   true vegetation gain  -> predicted: stable:26% vegeta:43% vegeta:17% burned:13% floode:0%
+   true vegetation loss  -> predicted: stable:29% vegeta:3% vegeta:50% burned:18% floode:0%
+   true burned           -> predicted: stable:4% vegeta:1% vegeta:6% burned:90% floode:0%
+== FEATURE IMPORTANCE (drop in macro-F1) == cp_dHV_5x5 0.163, slope 0.045, cp_dHH_5x5 0.045, cp_score 0.028, landcover 0.018, HV_std 0.018, cp_HV_after 0.015, cp_dHH 0.008, HH_std 0.005, cp_HH_after 0.005, HHminusHV_median 0.004, cp_dratio 0.003
+   avila_t23: same area as a training site, scored only on its held-out blocks
+== UNSEEN avila_t23 (model never saw this track/zone) ==  class | n | precision | recall | F1
+   stable              234347 | 0.95 | 0.63 | 0.76
+   vegetation gain        522 | 0.01 | 0.40 | 0.01
+   vegetation loss       7878 | 0.05 | 0.20 | 0.08
+   burned               50592 | 0.67 | 0.87 | 0.76
+   mean F1 over event classes: 0.283
+   true stable           -> predicted: stable:63% vegeta:16% vegeta:12% burned:9% floode:0%
+   true vegetation gain  -> predicted: stable:26% vegeta:40% vegeta:26% burned:7% floode:0%
+   true vegetation loss  -> predicted: stable:56% vegeta:15% vegeta:20% burned:9% floode:0%
+   true burned           -> predicted: stable:6% vegeta:3% vegeta:4% burned:87% floode:0%
+== UNSEEN avila_t23: predicted share of land: stable 54.42% vegetation gain 13.87% vegetation loss 12.38% burned 19.31% flooded 0.02%
+   cambodia_t148: same area as a training site, scored only on its held-out blocks
+== UNSEEN cambodia_t148: predicted share of land: stable nan% vegetation gain nan% vegetation loss nan% burned nan% flooded nan%
+== UNSEEN venezuela75: predicted share of land: stable 48.35% vegetation gain 32.49% vegetation loss 14.71% burned 4.43% flooded 0.02%
+final model -> souss: saved pred.npy, proba.npy
+final model -> cambodia: saved pred.npy, proba.npy
+final model -> avila: saved pred.npy, proba.npy
+final model -> avila_t23: saved pred.npy, proba.npy
+final model -> cambodia_t148: saved pred.npy, proba.npy
+final model -> venezuela75: saved pred.npy, proba.npy
+saved ~/data/multi_model.joblib

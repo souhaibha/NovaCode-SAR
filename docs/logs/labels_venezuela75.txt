@@ -1,0 +1,11 @@
+== venezuela75: earthquake on 2026-06-24 | grid 2518 x 4941 at 40 m
+land cover %: {10: 50.8, 20: 8.4, 30: 9.8, 40: 0.3, 50: 2.8, 60: 0.0, 80: 16.5, 90: 0.2}
+no optical/radar labels for this event type (earthquake uses the interferogram step)
+== LABELS ==
+stable                    0 ha   0.00%
+vegetation gain           0 ha   0.00%
+vegetation loss           0 ha   0.00%
+burned                    0 ha   0.00%
+flooded                   0 ha   0.00%
+ignore              1990630 ha  100.00%
+saved context.npz, labels.npz, venezuela75_labels.png

@@ -1,0 +1,5 @@
+souss: 10 frames | vegetation gain 6312 ha vegetation loss 5396 ha burned 1092 ha flooded 28 ha water 24591 ha | {'vegetation gain': 0.51, 'vegetation loss': 0.43, 'burned': 0.09, 'flooded': 0.0}
+cambodia: 10 frames | vegetation gain 818 ha vegetation loss 2546 ha burned 386 ha flooded 121565 ha water 29757 ha | {'vegetation gain': 0.07, 'vegetation loss': 0.22, 'burned': 0.03, 'flooded': 10.35}
+avila: 9 frames | vegetation gain 35 ha vegetation loss 129 ha burned 29670 ha flooded 2 ha water 988 ha | {'vegetation gain': 0.01, 'vegetation loss': 0.04, 'burned': 9.64, 'flooded': 0.0}
+venezuela75: 10 frames | vegetation gain 25057 ha vegetation loss 846 ha burned 6975 ha flooded 102 ha water 328341 ha earthquake ground displacement 261168 ha | {'vegetation gain': 1.74, 'vegetation loss': 0.02, 'burned': 0.48, 'flooded': 0.01}
+web total MB: 40.1

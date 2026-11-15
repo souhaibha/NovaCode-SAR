@@ -1,0 +1,40 @@
+nohup: ignoring input
+== avila_t23: fire on 2026-07-22 | track 23 frame 68 | 9 dates: ['2026-06-27', '2026-07-09', '2026-07-21', '2026-08-26', '2026-09-07', '2026-09-19', '2026-10-01', '2026-10-13', '2026-10-25']
+EPSG:32630 | crop 2556 x 3020 px at 20 m -> 1278 x 1510 at 40 m
+   2026-06-27 done (1/9)
+   2026-07-09 done (2/9)
+   2026-07-21 done (3/9)
+   2026-08-26 done (4/9)
+   2026-09-07 done (5/9)
+   2026-09-19 done (6/9)
+   2026-10-01 done (7/9)
+   2026-10-13 done (8/9)
+   2026-10-25 done (9/9)
+date | valid% | HH med dB | HV med dB | dHH vs median | dHV vs median | rfiHH | rfiHV | grid shift | % px HH<-3dB | % px HV<-3dB | % px HH>+3dB | flag
+2026-06-27 | 100 | -9.10 | -14.86 | -0.18 | +0.02 | 1.09 | 1.11 | 0.000 | 0.46 | 0.11 | 0.15 | 
+2026-07-09 | 100 | -9.18 | -14.81 | -0.27 | +0.06 | 1.17 | 1.4 | 0.000 | 0.45 | 0.08 | 0.12 | 
+2026-07-21 | 100 | -9.14 | -14.81 | -0.25 | +0.05 | 1.01 | 1.27 | 0.000 | 0.38 | 0.07 | 0.13 | 
+2026-08-26 | 100 | -8.84 | -14.93 | +0.00 | +0.02 | 1.06 | 1.03 | 0.000 | 0.10 | 0.05 | 0.20 | 
+2026-09-07 | 42 | -1.10 | -7.56 | +10.59 | +10.67 | 109 | 2.82e+14 | 0.000 | 2.30 | 1.70 | 31.13 | BAD
+2026-09-19 | 100 | -8.95 | -15.22 | -0.05 | -0.14 | 2.08e+11 | 2.43e+11 | 0.000 | 0.18 | 0.18 | 0.04 | BAD
+2026-10-01 | 100 | -8.83 | -15.35 | +0.00 | -0.28 | 0.95 | 1.82 | 0.000 | 0.15 | 0.38 | 0.19 | 
+2026-10-13 | 100 | -7.99 | -14.94 | +0.75 | +0.03 | 0.96 | 1.53 | 0.000 | 0.07 | 0.37 | 2.39 | 
+2026-10-25 | 100 | -8.42 | -15.26 | +0.28 | -0.16 | 0.867 | 1.63 | 0.000 | 0.31 | 1.02 | 1.83 | 
+== before 3 dates vs after 4 dates: % valid px | HH -3dB 0.25 +3dB 1.65 | HV -3dB 1.69 +3dB 0.17
+saved ~/data/avila_t23 | images in .
+== cambodia_t148: flood on 2026-09-27 | track 148 frame 82 | 11 dates: ['2026-06-24', '2026-07-06', '2026-07-18', '2026-08-11', '2026-08-23', '2026-09-04', '2026-09-16', '2026-09-28', '2026-10-10', '2026-10-22', '2026-11-03']
+EPSG:32648 | crop 5534 x 5442 px at 20 m -> 2767 x 2721 at 40 m
+   2026-06-24 done (1/11)
+Traceback (most recent call last):
+  File "~/site_stack.py", line 78, in <module>
+    v = f[G + "/" + nm][b0:b1, a0:a1].astype(np.float32); v[bad | ~(v > 0)] = np.nan
+  File "~/sar/lib/python3.10/site-packages/h5py/_hl/group.py", line 407, in __getitem__
+    return self._get(name)
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "~/sar/lib/python3.10/site-packages/h5py/_hl/group.py", line 421, in _get
+    oid = h5o.open(self.id, self._e(name), lapl=lapl)
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py/h5o.pyx", line 255, in h5py.h5o.open
+KeyError: "Unable to synchronously open object (object 'HVHV' doesn't exist)"

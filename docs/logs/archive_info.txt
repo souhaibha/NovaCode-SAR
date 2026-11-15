@@ -1,0 +1,11 @@
+== sizes before ==
+21G	~/data/gcov
+18G	~/data/gunw
+3.8G	~/data/souss
+/dev/root       119G  104G   15G  88% /
+== copying ==
+== verifying ==
+web/souss files in archive: 13 (expect 13)
+scripts copied: 13
+1.1G	~/cloudfiles/code/Users/user/souss_archive
+ARCHIVE OK

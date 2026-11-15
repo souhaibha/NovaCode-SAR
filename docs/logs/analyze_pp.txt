@@ -1,0 +1,63 @@
+nohup: ignoring input
+[searching] Looking for NISAR passes over the zone
+   track 148 frame 82: 9 dual-pol dates, covers 100% of the zone | pol codes {'DH': 14, 'SH': 4}
+   track 148 frame 83: 9 dual-pol dates, covers 97% of the zone | pol codes {'DH': 9}
+   track 83 frame 7: 8 dual-pol dates, covers 95% of the zone | pol codes {'DH': 8}
+   track 83 frame 8: 8 dual-pol dates, covers 56% of the zone | pol codes {'DH': 16}
+   track 155 frame 8: 8 dual-pol dates, covers 9% of the zone | pol codes {'DH': 9}
+[downloading] Reading 8 radar passes from track 83 frame 7
+== phnom_penh_north: unknown on 2026-09-12 | track 83 frame 7 | 8 dates: ['2026-07-25', '2026-08-18', '2026-08-30', '2026-09-11', '2026-09-23', '2026-10-05', '2026-10-17', '2026-10-29']
+EPSG:32648 | crop 4204 x 4360 px at 20 m -> 2102 x 2180 at 40 m
+   2026-07-25 done (1/8)
+   2026-08-18 done (2/8)
+   2026-08-30 done (3/8)
+   2026-09-11 done (4/8)
+   2026-09-23 done (5/8)
+   2026-10-05 done (6/8)
+   2026-10-17 done (7/8)
+   2026-10-29 done (8/8)
+date | valid% | HH med dB | HV med dB | dHH vs median | dHV vs median | rfiHH | rfiHV | grid shift | % px HH<-3dB | % px HV<-3dB | % px HH>+3dB | flag
+2026-07-25 | 95 | -9.60 | -18.47 | +0.73 | +0.71 | 425 | 645 | 0.000 | 4.38 | 2.93 | 30.56 | 
+2026-08-18 | 95 | -10.32 | -19.49 | +0.63 | +0.35 | 7.7 | 2.89 | 0.000 | 3.21 | 2.51 | 19.56 | 
+2026-08-30 | 84 | -12.26 | -21.37 | -0.53 | -0.29 | 8.77 | 5.04 | 0.000 | 10.64 | 5.63 | 7.89 | 
+2026-09-11 | 88 | -12.98 | -22.14 | -0.14 | -0.28 | 15.9 | 2.68 | 0.000 | 7.81 | 6.51 | 3.29 | 
+2026-09-23 | 87 | -13.67 | -22.56 | -0.25 | -0.37 | 13 | 3.35 | 0.000 | 10.36 | 7.73 | 2.12 | 
+2026-10-05 | 83 | -12.80 | -21.74 | -0.02 | -0.03 | 27.4 | 12.9 | 0.000 | 5.20 | 2.80 | 3.33 | 
+2026-10-17 | 78 | -12.38 | -21.47 | -0.07 | +0.03 | 12.2 | 9.98 | 0.000 | 6.21 | 2.20 | 4.07 | 
+2026-10-29 | 88 | -12.19 | -20.98 | +0.00 | +0.14 | 14 | 5.87 | 0.000 | 6.34 | 2.73 | 6.06 | 
+== before 4 dates vs after 4 dates: % valid px | HH -3dB 24.36 +3dB 3.26 | HV -3dB 18.19 +3dB 3.05
+saved ~/data/phnom_penh_north | images in .
+[processing] Adding land cover and slope
+== phnom_penh_north: unknown on 2026-09-12 | grid 2102 x 2180 at 40 m
+land cover %: {10: 14.1, 20: 0.0, 30: 10.9, 40: 56.8, 50: 5.8, 60: 1.9, 80: 6.1, 90: 4.4}
+no optical/radar labels for this event type (earthquake uses the interferogram step)
+== LABELS ==
+stable                    0 ha   0.00%
+vegetation gain           0 ha   0.00%
+vegetation loss           0 ha   0.00%
+burned                    0 ha   0.00%
+flooded                   0 ha   0.00%
+ignore               733178 ha  100.00%
+saved context.npz, labels.npz, phnom_penh_north_labels.png
+[predicting] Running the multi-event model
+   detected (ha): {'vegetation gain': 3310, 'vegetation loss': 3551, 'burned': 1270, 'flooded': 39756}
+[processing] Writing map files for the app
+phnom_penh_north: 8 frames | vegetation gain 3310 ha vegetation loss 3551 ha burned 1270 ha flooded 39756 ha water 44373 ha | {'vegetation gain': 0.48, 'vegetation loss': 0.52, 'burned': 0.18, 'flooded': 5.77}
+web total MB: 44.5
+[done] Analysis ready in web/phnom_penh_north/
+== phnom_penh_north: flood on 2026-09-27 | grid 2102 x 2180 at 40 m
+land cover %: {10: 14.1, 20: 0.0, 30: 10.9, 40: 56.8, 50: 5.8, 60: 1.9, 80: 6.1, 90: 4.4}
+  sentinel-1 2026-07-14/2026-09-07: 31 items
+  sentinel-1 2026-09-13/2026-10-11: 18 items
+S1 dates pre/post: 14 9 | water share pre 0.058 post 0.111
+== LABELS ==
+stable               340010 ha  46.37%
+vegetation gain           0 ha   0.00%
+vegetation loss           0 ha   0.00%
+burned                    0 ha   0.00%
+flooded                6992 ha   0.95%
+ignore               386176 ha  52.67%
+saved context.npz, labels.npz, phnom_penh_north_labels.png
+== TEST MODE phnom_penh_north: model map vs independent reference (flood) ==  class | n | precision | recall | F1
+   stable            2125061 | 0.98 | 0.94 | 0.96
+   flooded             43513 | 0.04 | 0.09 | 0.06
