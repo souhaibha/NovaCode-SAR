@@ -158,7 +158,8 @@ export default function AnalyzePanel({
   const activeDrawing = drawing || isDrawing;
   const triggerDraw = onStartDraw || onStartDrawZone;
   const triggerCancel = onClearBbox || onCancelDrawZone;
-  const bbox = normalizeBbox(rawBbox);
+  const [adjustedBbox, setAdjustedBbox] = useState(null);
+  const bbox = normalizeBbox(adjustedBbox || rawBbox);
   const today = todayISO();
 
   const [startDate, setStartDate] = useState("2026-06-15");
@@ -353,9 +354,40 @@ export default function AnalyzePanel({
               {dims.wKm} km × {dims.hKm} km
             </span>
             {zoneTooLarge && (
-              <span style={{ color: T.error, fontSize: 12 }}>
-                Zone trop étendue ; la limite maximale est de 50 × 50 km.
-              </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ color: T.error, fontSize: 11 }}>
+                  Zone trop étendue ({dims.wKm} × {dims.hKm} km) ; la limite NISAR est de 50 × 50 km.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const [w, s, e, n] = bbox;
+                    const cLat = (s + n) / 2;
+                    const cLng = (w + e) / 2;
+                    const dLat = 17.5 / 110.57;
+                    const dLon = 17.5 / (111.32 * Math.max(0.15, Math.cos((cLat * Math.PI) / 180)));
+                    setAdjustedBbox([cLng - dLon, cLat - dLat, cLng + dLon, cLat + dLat]);
+                  }}
+                  style={{
+                    background: "rgba(87,241,219,0.15)",
+                    border: "1px solid #57f1db",
+                    color: "#57f1db",
+                    borderRadius: 6,
+                    fontFamily: T.mono,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    marginTop: 2,
+                  }}
+                >
+                  ⚡ Ajuster automatiquement à 35 × 35 km
+                </button>
+              </div>
             )}
             <span style={{ color: T.dim, fontFamily: T.mono, fontSize: 10, lineHeight: 1.5 }}>
               O {bbox[0].toFixed(4)} · S {bbox[1].toFixed(4)} · E {bbox[2].toFixed(4)} · N {bbox[3].toFixed(4)}

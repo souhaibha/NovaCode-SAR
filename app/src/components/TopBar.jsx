@@ -64,6 +64,22 @@ export default function TopBar({ zone, showBack = false }) {
         >
           Radar Change Map
         </span>
+        <span
+          className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded"
+          style={{
+            background: "rgba(87,241,219,0.08)",
+            color: "#57f1db",
+            fontSize: 10,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            border: "1px solid rgba(87,241,219,0.35)",
+            boxShadow: "0 0 10px rgba(87,241,219,0.15)",
+          }}
+        >
+          ★ NASA Space Apps 2026
+        </span>
       </div>
 
       {/* Center: zone name */}

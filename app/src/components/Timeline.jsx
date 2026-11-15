@@ -214,47 +214,57 @@ export default function Timeline({ zone, period, setPeriod }) {
           </div>
 
           {/* Date ticks */}
-          <div className="relative w-full flex justify-between mt-1">
+          <div className="relative w-full flex justify-between mt-1 h-5">
             {dates.map((date, i) => {
               const pct = idxToPercent(i);
               const isStart = date === period.start;
               const isEnd = date === period.end;
               const isActive = isStart || isEnd;
+              // Prevent label collision: show first, last, and nicely spaced intermediate dates
+              const step = totalDates > 10 ? 3 : totalDates > 6 ? 2 : 1;
+              const showText = i === 0 || i === totalDates - 1 || (i % step === 0);
+
               return (
                 <div
                   key={date}
                   onClick={() => setPeriod((p) => ({ ...p, end: date }))}
-                  className="flex flex-col items-center cursor-pointer"
+                  title={`Passage NISAR : ${formatDate(date)}`}
+                  className="flex flex-col items-center cursor-pointer group"
                   style={{
                     position: "absolute",
                     left: `${pct}%`,
                     transform: "translateX(-50%)",
-                    opacity: isActive ? 1 : 0.6,
-                    transition: "opacity 0.2s",
+                    opacity: isActive ? 1 : 0.65,
+                    transition: "opacity 0.15s ease",
+                    zIndex: isActive ? 8 : 2,
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = isActive ? "1" : "0.6")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = isActive ? "1" : "0.65")}
                 >
                   <span
-                    className="rounded-full mb-0.5"
+                    className="rounded-full mb-1 transition-all group-hover:scale-125"
                     style={{
                       width: isEnd ? 7 : 5,
                       height: isEnd ? 7 : 5,
-                      background: isEnd ? "#FF5A5F" : isStart ? "#57f1db" : "#57f1db",
-                      border: isEnd ? "2px solid #57f1db" : "none",
+                      background: isEnd ? "#57f1db" : isStart ? "#38bdf8" : "rgba(87,241,219,0.7)",
+                      border: isEnd ? "2px solid #070e1c" : "none",
+                      boxShadow: isEnd ? "0 0 8px #57f1db" : "none",
                     }}
                   />
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontWeight: isActive ? 700 : 400,
-                      color: isActive ? "#57f1db" : "#bacac5",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {formatDate(date).split(" ").slice(0, 2).join(" ")}
-                  </span>
+                  {showText && (
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: isActive ? 700 : 500,
+                        color: isActive ? "#57f1db" : "#859490",
+                        whiteSpace: "nowrap",
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      {formatDate(date).split(" ").slice(0, 2).join(" ")}
+                    </span>
+                  )}
                 </div>
               );
             })}

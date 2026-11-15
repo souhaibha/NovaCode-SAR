@@ -1,0 +1,125 @@
+{
+ "site": "local_test_zone",
+ "name": "local_test_zone",
+ "story": "Automatic analysis from 2026-06-15 to 2026-10-28. Detected (ha): vegetation gain 15, vegetation loss 3, burned 1.",
+ "event": "unknown",
+ "event_date": "2026-08-21",
+ "bounds": [
+  [
+   30.432247345853064,
+   -9.652093537000894
+  ],
+  [
+   30.649710223103114,
+   -9.400855245115949
+  ]
+ ],
+ "dates": [
+  "2026-06-24",
+  "2026-07-06",
+  "2026-07-18",
+  "2026-08-11",
+  "2026-08-23",
+  "2026-09-04",
+  "2026-09-16",
+  "2026-09-28",
+  "2026-10-10",
+  "2026-10-22"
+ ],
+ "frames": [
+  "radar_2026-06-24.jpg",
+  "radar_2026-07-06.jpg",
+  "radar_2026-07-18.jpg",
+  "radar_2026-08-11.jpg",
+  "radar_2026-08-23.jpg",
+  "radar_2026-09-04.jpg",
+  "radar_2026-09-16.jpg",
+  "radar_2026-09-28.jpg",
+  "radar_2026-10-10.jpg",
+  "radar_2026-10-22.jpg"
+ ],
+ "changemap": "changemap.png",
+ "legend": [
+  {
+   "cls": 0,
+   "name": "stable",
+   "color": null,
+   "hectares": 56439
+  },
+  {
+   "cls": 1,
+   "name": "vegetation gain",
+   "color": [
+    40,
+    200,
+    60
+   ],
+   "hectares": 15
+  },
+  {
+   "cls": 2,
+   "name": "vegetation loss",
+   "color": [
+    230,
+    50,
+    50
+   ],
+   "hectares": 3
+  },
+  {
+   "cls": 3,
+   "name": "burned",
+   "color": [
+    110,
+    30,
+    10
+   ],
+   "hectares": 1
+  },
+  {
+   "cls": 4,
+   "name": "flooded",
+   "color": [
+    0,
+    150,
+    255
+   ],
+   "hectares": 0
+  },
+  {
+   "cls": 5,
+   "name": "water",
+   "color": [
+    40,
+    70,
+    160
+   ],
+   "hectares": 1142
+  },
+  {
+   "cls": 6,
+   "name": "earthquake ground displacement",
+   "color": [
+    255,
+    0,
+    200
+   ],
+   "hectares": 0
+  }
+ ],
+ "layers": {},
+ "excluded_dates": [],
+ "frame_colors": "R=HH, G=HV, B=HH-HV (dB)",
+ "evaluation": {
+  "note": "No reference map for this zone. Showcase test scores: burned F1 0.85 on an unseen track, flooded F1 0.84, vegetation change F1 0.39 to 0.48."
+ },
+ "earthquake": null,
+ "event_share_of_land_percent": {
+  "vegetation gain": 0.03,
+  "vegetation loss": 0.01,
+  "burned": 0.0,
+  "flooded": 0.0
+ },
+ "source": "NISAR L2 GCOV track 145 frame 17, L-band, 40 m",
+ "model_version": "multi-event v2"
+}

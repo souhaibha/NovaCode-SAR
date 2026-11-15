@@ -1,138 +1,172 @@
 [
-  {
-    "site": "souss",
-    "name": "Souss-Massa, Morocco",
-    "event": "farming",
-    "event_date": null,
-    "bounds": [
-      [
-        30.19795272007633,
-        -9.70507246145817
-      ],
-      [
-        30.903974693593103,
-        -7.992754380276461
-      ]
-    ],
-    "folder": "souss/"
-  },
-  {
-    "site": "cambodia",
-    "name": "Tonle Sap floodplain, Cambodia",
-    "event": "flood",
-    "event_date": "2026-09-27",
-    "bounds": [
-      [
-        12.099259581858632,
-        104.3974140581758
-      ],
-      [
-        13.100954899021367,
-        105.40130498391132
-      ]
-    ],
-    "folder": "cambodia/"
-  },
-  {
-    "site": "avila",
-    "name": "\u00c1vila, Spain",
-    "event": "fire",
-    "event_date": "2026-07-22",
-    "bounds": [
-      [
-        40.18953998199677,
-        -5.114303459587469
-      ],
-      [
-        40.66074432085179,
-        -4.390497336007089
-      ]
-    ],
-    "folder": "avila/"
-  },
-  {
-    "site": "venezuela75",
-    "name": "Northern Venezuela",
-    "event": "earthquake",
-    "event_date": "2026-06-24",
-    "bounds": [
-      [
-        9.832643177886519,
-        -67.60410701297053
-      ],
-      [
-        10.755462087274955,
-        -65.7940471983994
-      ]
-    ],
-    "folder": "venezuela75/"
-  },
-  {
-    "site": "kampong_cham",
-    "name": "kampong_cham",
-    "event": "unknown",
-    "event_date": "2026-09-12",
-    "bounds": [
-      [
-        11.69929265296772,
-        105.44926110333023
-      ],
-      [
-        12.08108397766272,
-        105.85121406903286
-      ]
-    ],
-    "folder": "kampong_cham/"
-  },
-  {
-    "site": "phnom_penh_north",
-    "name": "phnom_penh_north",
-    "event": "unknown",
-    "event_date": "2026-09-12",
-    "bounds": [
-      [
-        11.319535447241345,
-        104.69952391797375
-      ],
-      [
-        12.08027212382638,
-        105.50070849728348
-      ]
-    ],
-    "folder": "phnom_penh_north/"
-  },
-  {
-    "site": "test_niger",
-    "name": "test_niger",
-    "event": "unknown",
-    "event_date": "2026-08-30",
-    "bounds": [
-      [
-        16.181802208845703,
-        7.997895751129797
-      ],
-      [
-        16.399509367957904,
-        8.223582834769767
-      ]
-    ],
-    "folder": "test_niger/"
-  },
-  {
-    "site": "curl_test_ebd591",
-    "name": "curl_test_ebd591",
-    "event": "unknown",
-    "event_date": "2026-08-30",
-    "bounds": [
-      [
-        16.181802208845703,
-        7.997895751129797
-      ],
-      [
-        16.399509367957904,
-        8.223582834769767
-      ]
-    ],
-    "folder": "curl_test_ebd591/"
-  }
+ {
+  "site": "souss",
+  "name": "Souss-Massa, Morocco",
+  "event": "farming",
+  "event_date": null,
+  "bounds": [
+   [
+    30.19795272007633,
+    -9.70507246145817
+   ],
+   [
+    30.903974693593103,
+    -7.992754380276461
+   ]
+  ],
+  "folder": "souss/"
+ },
+ {
+  "site": "cambodia",
+  "name": "Tonle Sap floodplain, Cambodia",
+  "event": "flood",
+  "event_date": "2026-09-27",
+  "bounds": [
+   [
+    12.099259581858632,
+    104.3974140581758
+   ],
+   [
+    13.100954899021367,
+    105.40130498391132
+   ]
+  ],
+  "folder": "cambodia/"
+ },
+ {
+  "site": "avila",
+  "name": "\u00c1vila, Spain",
+  "event": "fire",
+  "event_date": "2026-07-22",
+  "bounds": [
+   [
+    40.18953998199677,
+    -5.114303459587469
+   ],
+   [
+    40.66074432085179,
+    -4.390497336007089
+   ]
+  ],
+  "folder": "avila/"
+ },
+ {
+  "site": "venezuela75",
+  "name": "Northern Venezuela",
+  "event": "earthquake",
+  "event_date": "2026-06-24",
+  "bounds": [
+   [
+    9.832643177886519,
+    -67.60410701297053
+   ],
+   [
+    10.755462087274955,
+    -65.7940471983994
+   ]
+  ],
+  "folder": "venezuela75/"
+ },
+ {
+  "site": "kampong_cham",
+  "name": "kampong_cham",
+  "event": "unknown",
+  "event_date": "2026-09-12",
+  "bounds": [
+   [
+    11.69929265296772,
+    105.44926110333023
+   ],
+   [
+    12.08108397766272,
+    105.85121406903286
+   ]
+  ],
+  "folder": "kampong_cham/"
+ },
+ {
+  "site": "phnom_penh_north",
+  "name": "phnom_penh_north",
+  "event": "unknown",
+  "event_date": "2026-09-12",
+  "bounds": [
+   [
+    11.319535447241345,
+    104.69952391797375
+   ],
+   [
+    12.08027212382638,
+    105.50070849728348
+   ]
+  ],
+  "folder": "phnom_penh_north/"
+ },
+ {
+  "site": "test_niger",
+  "name": "test_niger",
+  "event": "unknown",
+  "event_date": "2026-08-30",
+  "bounds": [
+   [
+    16.181802208845703,
+    7.997895751129797
+   ],
+   [
+    16.399509367957904,
+    8.223582834769767
+   ]
+  ],
+  "folder": "test_niger/"
+ },
+ {
+  "site": "curl_test_ebd591",
+  "name": "curl_test_ebd591",
+  "event": "unknown",
+  "event_date": "2026-08-30",
+  "bounds": [
+   [
+    16.181802208845703,
+    7.997895751129797
+   ],
+   [
+    16.399509367957904,
+    8.223582834769767
+   ]
+  ],
+  "folder": "curl_test_ebd591/"
+ },
+ {
+  "site": "agadir_zone",
+  "name": "agadir_zone",
+  "event": "unknown",
+  "event_date": "2026-08-21",
+  "bounds": [
+   [
+    30.432247345853064,
+    -9.652093537000894
+   ],
+   [
+    30.649710223103114,
+    -9.400855245115949
+   ]
+  ],
+  "folder": "agadir_zone/"
+ },
+ {
+  "site": "local_test_zone",
+  "name": "local_test_zone",
+  "event": "unknown",
+  "event_date": "2026-08-21",
+  "bounds": [
+   [
+    30.432247345853064,
+    -9.652093537000894
+   ],
+   [
+    30.649710223103114,
+    -9.400855245115949
+   ]
+  ],
+  "folder": "local_test_zone/"
+ }
 ]

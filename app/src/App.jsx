@@ -41,8 +41,10 @@ export default function App() {
     const lat = parseFloat(params.get("lat")) || 0;
     const lng = parseFloat(params.get("lng")) || 0;
     const country = params.get("country") || "";
-    const dLat = 0.25;
-    const dLon = 0.35 / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+    // Guaranteed 35 km x 35 km bounding box (strictly within the 50 km NISAR limit)
+    const targetRadiusKm = 17.5;
+    const dLat = targetRadiusKm / 110.57;
+    const dLon = targetRadiusKm / (111.32 * Math.max(0.15, Math.cos((lat * Math.PI) / 180)));
 
     const nisarPasses = [
       "2026-06-18",
