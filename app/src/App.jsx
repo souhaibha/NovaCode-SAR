@@ -121,8 +121,19 @@ export default function App() {
     isCustomRoute ? "custom" : (matchedSite?.site || routeZoneId || null)
   );
 
+  // When a custom route is active, use the fetched summary's own bounds/bbox
+  // (which match the pre-generated radar images) instead of overriding with
+  // the user-clicked coordinates.  Only fall back to the customZone coords
+  // when the summary has no positional data at all.
   const rawMatchedZone = isCustomRoute
-    ? (fetchedZone ? { ...fetchedZone, bounds: customZone.bounds, bbox: customZone.bbox, name: customZone.name } : customZone)
+    ? (fetchedZone
+        ? {
+            ...fetchedZone,
+            bounds: fetchedZone.bounds || fetchedZone.bbox ? fetchedZone.bounds : customZone.bounds,
+            bbox: fetchedZone.bbox || (fetchedZone.bounds ? undefined : customZone.bbox),
+            name: customZone.name,
+          }
+        : customZone)
     : fetchedZone;
   const matchedZone = drawnZone
     ? {

@@ -160,6 +160,11 @@ def generate_custom_dataset(dest_dirs):
         "story": "Série temporelle radar NISAR Bande L (juin à novembre 2026). Surveillance de la rétrodiffusion polarimétrique HH/HV et classification IA multi-classes par parcelles.",
         "event": "farming",
         "event_date": "2026-08-15",
+        "bounds": [
+            [34.1415, -6.4580],
+            [34.4585, -6.1420]
+        ],
+        "bbox": [-6.4580, 34.1415, -6.1420, 34.4585],
         "dates": dates,
         "frames": [f"radar_{d}.jpg" for d in dates],
         "changemap": "changemap.png",
