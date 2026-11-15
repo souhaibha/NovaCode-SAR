@@ -1788,7 +1788,7 @@ export default function MapView(props) {
       )}
 
       {/* Classification Legend (Bottom-Left, positioned cleanly above timeline) */}
-      <div className="absolute bottom-28 left-5 z-[500] pointer-events-none">
+      <div className="absolute bottom-32 left-5 z-[500] pointer-events-none hidden xl:block">
         <div
           className="pointer-events-auto flex flex-col gap-2 p-3 rounded-xl min-w-[210px]"
           style={{
