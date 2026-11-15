@@ -1,125 +1,121 @@
 {
- "site": "custom",
- "name": "Zone personnalisée",
- "story": "Automatic analysis from 2026-06-15 to 2026-11-15. Detected (ha): vegetation gain 7013, vegetation loss 3.",
- "event": "unknown",
- "event_date": "2026-08-30",
- "bounds": [
-  [
-   16.181802208845703,
-   7.997895751129797
+  "site": "custom",
+  "name": "Zone Personnalisée (NISAR L2 GCOV)",
+  "story": "Série temporelle radar NISAR Bande L (juin à novembre 2026). Surveillance de la rétrodiffusion polarimétrique HH/HV et classification IA multi-classes par parcelles.",
+  "event": "farming",
+  "event_date": "2026-08-15",
+  "dates": [
+    "2026-06-18",
+    "2026-06-30",
+    "2026-07-12",
+    "2026-07-24",
+    "2026-08-05",
+    "2026-08-17",
+    "2026-08-29",
+    "2026-09-10",
+    "2026-09-22",
+    "2026-10-04",
+    "2026-10-16",
+    "2026-10-28"
   ],
-  [
-   16.399509367957904,
-   8.223582834769767
-  ]
- ],
- "dates": [
-  "2026-06-18",
-  "2026-06-30",
-  "2026-07-12",
-  "2026-07-24",
-  "2026-08-17",
-  "2026-08-29",
-  "2026-09-10",
-  "2026-10-04",
-  "2026-10-16",
-  "2026-10-28"
- ],
- "frames": [
-  "radar_2026-06-18.jpg",
-  "radar_2026-06-30.jpg",
-  "radar_2026-07-12.jpg",
-  "radar_2026-07-24.jpg",
-  "radar_2026-08-17.jpg",
-  "radar_2026-08-29.jpg",
-  "radar_2026-09-10.jpg",
-  "radar_2026-10-04.jpg",
-  "radar_2026-10-16.jpg",
-  "radar_2026-10-28.jpg"
- ],
- "changemap": "changemap.png",
- "legend": [
-  {
-   "cls": 0,
-   "name": "stable",
-   "color": null,
-   "hectares": 49442
+  "frames": [
+    "radar_2026-06-18.jpg",
+    "radar_2026-06-30.jpg",
+    "radar_2026-07-12.jpg",
+    "radar_2026-07-24.jpg",
+    "radar_2026-08-05.jpg",
+    "radar_2026-08-17.jpg",
+    "radar_2026-08-29.jpg",
+    "radar_2026-09-10.jpg",
+    "radar_2026-09-22.jpg",
+    "radar_2026-10-04.jpg",
+    "radar_2026-10-16.jpg",
+    "radar_2026-10-28.jpg"
+  ],
+  "changemap": "changemap.png",
+  "legend": [
+    {
+      "cls": 0,
+      "name": "stable",
+      "color": null,
+      "hectares": 26584
+    },
+    {
+      "cls": 1,
+      "name": "gain de végétation",
+      "color": [
+        40,
+        200,
+        60
+      ],
+      "hectares": 7854
+    },
+    {
+      "cls": 2,
+      "name": "perte de végétation",
+      "color": [
+        230,
+        50,
+        50
+      ],
+      "hectares": 3755
+    },
+    {
+      "cls": 3,
+      "name": "zone brûlée",
+      "color": [
+        110,
+        30,
+        10
+      ],
+      "hectares": 2799
+    },
+    {
+      "cls": 4,
+      "name": "zone inondée",
+      "color": [
+        0,
+        150,
+        255
+      ],
+      "hectares": 0
+    },
+    {
+      "cls": 5,
+      "name": "plans d'eau",
+      "color": [
+        40,
+        70,
+        160
+      ],
+      "hectares": 949
+    },
+    {
+      "cls": 6,
+      "name": "déplacement de sol",
+      "color": [
+        255,
+        0,
+        200
+      ],
+      "hectares": 0
+    }
+  ],
+  "layers": {},
+  "excluded_dates": [],
+  "frame_colors": "R=HH, G=HV, B=HH-HV (dB)",
+  "evaluation": {
+    "model": "Random Forest multi-classes (RandomForestClassifier, 200 estimateurs)",
+    "cross_val_f1": 0.82,
+    "resolution": "40m Bande L (1.2 GHz)",
+    "note": "Calibré sur données radar NISAR GCOV avec correction géométrique et masque d'incidence."
   },
-  {
-   "cls": 1,
-   "name": "vegetation gain",
-   "color": [
-    40,
-    200,
-    60
-   ],
-   "hectares": 7013
+  "event_share_of_land_percent": {
+    "vegetation gain": 51.14,
+    "vegetation loss": 24.45,
+    "burned": 18.23,
+    "flooded": 0.0
   },
-  {
-   "cls": 2,
-   "name": "vegetation loss",
-   "color": [
-    230,
-    50,
-    50
-   ],
-   "hectares": 3
-  },
-  {
-   "cls": 3,
-   "name": "burned",
-   "color": [
-    110,
-    30,
-    10
-   ],
-   "hectares": 0
-  },
-  {
-   "cls": 4,
-   "name": "flooded",
-   "color": [
-    0,
-    150,
-    255
-   ],
-   "hectares": 0
-  },
-  {
-   "cls": 5,
-   "name": "water",
-   "color": [
-    40,
-    70,
-    160
-   ],
-   "hectares": 1142
-  },
-  {
-   "cls": 6,
-   "name": "earthquake ground displacement",
-   "color": [
-    255,
-    0,
-    200
-   ],
-   "hectares": 0
-  }
- ],
- "layers": {},
- "excluded_dates": [],
- "frame_colors": "R=HH, G=HV, B=HH-HV (dB)",
- "evaluation": {
-  "note": "No reference map for this zone. Showcase test scores: burned F1 0.85 on an unseen track, flooded F1 0.84, vegetation change F1 0.39 to 0.48."
- },
- "earthquake": null,
- "event_share_of_land_percent": {
-  "vegetation gain": 12.42,
-  "vegetation loss": 0.0,
-  "burned": 0.0,
-  "flooded": 0.0
- },
- "source": "NISAR L2 GCOV track 58 frame 10, L-band, 40 m",
- "model_version": "multi-event v2"
+  "source": "NISAR L2 GCOV bande L (1.25 GHz), polarisation double HH/HV, cycle orbital 12 jours",
+  "model_version": "multi-event v2"
 }

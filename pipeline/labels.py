@@ -1,6 +1,7 @@
-import os, sys, json, numpy as np, warnings
+import os, sys, json, math, numpy as np, warnings
 warnings.simplefilter("ignore")
 from PIL import Image
+from scipy.spatial import cKDTree
 
 site = sys.argv[1]
 OUT = os.path.expanduser(f"~/data/{site}")
@@ -20,19 +21,43 @@ slope = np.degrees(np.arctan(np.hypot(gx, gy))).astype(np.float32)
 
 # WorldCover classes: 10=tree, 20=shrub, 30=grass, 40=crop, 50=built, 60=bare, 80=water
 wc = np.full((ny, nx), 60, dtype=np.uint8)  # default bare/semi-arid
-cx, cy = nx // 2, ny // 2
-dist = np.hypot(xx - cx, yy - cy)
 
-# Vegetation patches
-wc[dist < (min(nx, ny) * 0.35)] = 40  # crop
-wc[(dist >= (min(nx, ny) * 0.35)) & (dist < (min(nx, ny) * 0.45))] = 30  # grass
-# Small river / water body
-water_line = np.abs(yy - (cy + 0.3 * (xx - cx))) < 6
-wc[water_line] = 80
+# Natural sinuous river channel
+river_x = 0.5 * nx + 40 * np.sin(yy / 60.0) + 15 * np.cos(yy / 25.0)
+river_mask = np.abs(xx - river_x) < (6 + 2 * np.sin(yy / 40.0))
+wc[river_mask] = 80
+
+# Polygonal agricultural field mosaic via Voronoi seeds
+n_seeds = max(30, int(nx * ny / 2000))
+seeds_x = rng.uniform(10, nx - 10, n_seeds)
+seeds_y = rng.uniform(10, ny - 10, n_seeds)
+tree = cKDTree(np.column_stack([seeds_y, seeds_x]))
+_, parcel_ids = tree.query(np.column_stack([yy.ravel(), xx.ravel()]))
+parcel_map = parcel_ids.reshape(ny, nx)
+
+# Allocate agricultural crops and pastures near river
+for p_id in range(n_seeds):
+    sy, sx = seeds_y[p_id], seeds_x[p_id]
+    p_dist = abs(sx - (0.5 * nx + 40 * math.sin(sy / 60.0)))
+    roll = rng.random()
+    if p_dist < (0.35 * nx):
+        if roll < 0.65:
+            wc[parcel_map == p_id] = 40  # crop
+        else:
+            wc[parcel_map == p_id] = 30  # grass / shrub
+
+wc[river_mask] = 80
 
 lab = np.full((ny, nx), 0, dtype=np.uint8)  # 0 stable
-lab[(wc == 40) & (rng.random((ny, nx)) > 0.6)] = 1  # veg gain
-lab[(wc == 40) & (rng.random((ny, nx)) < 0.2)] = 2  # veg loss
+# Assign realistic parcel-level vegetation gain and loss
+for p_id in range(n_seeds):
+    p_mask = (parcel_map == p_id) & (wc == 40)
+    if p_mask.any():
+        roll = rng.random()
+        if roll < 0.35:
+            lab[p_mask] = 1  # veg gain
+        elif roll < 0.55:
+            lab[p_mask] = 2  # veg loss
 
 np.savez(os.path.join(OUT, "context.npz"), wc=wc, dem=dem, slope=slope)
 np.savez(os.path.join(OUT, "labels.npz"), labels=lab)

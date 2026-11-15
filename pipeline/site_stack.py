@@ -86,12 +86,21 @@ for i, d in enumerate(dates):
     h_date = base_hh + temporal_noise_h
     v_date = base_hv + temporal_noise_v
     if d > cfg.get("event_date", "2026-08-01"):
-        # Distinct change patterns in agricultural/vegetated zones
-        cx, cy = nx2 // 2, ny2 // 2
-        dist = np.hypot(xx - cx, yy - cy)
-        mask_veg = dist < (min(nx2, ny2) * 0.3)
-        h_date[mask_veg] += float(rng.uniform(1.5, 3.2))
-        v_date[mask_veg] += float(rng.uniform(1.8, 3.8))
+        # Distinct parcel-level change patterns in agricultural zones
+        from scipy.spatial import cKDTree
+        n_seeds = max(20, int(nx2 * ny2 / 1500))
+        seeds_x = rng.uniform(10, nx2 - 10, n_seeds)
+        seeds_y = rng.uniform(10, ny2 - 10, n_seeds)
+        tree = cKDTree(np.column_stack([seeds_y, seeds_x]))
+        _, parcel_ids = tree.query(np.column_stack([yy.ravel(), xx.ravel()]))
+        parcel_map = parcel_ids.reshape(ny2, nx2)
+        
+        # Select 35% of parcels for crop maturation
+        for pid in range(n_seeds):
+            if (pid * 7 + 3) % 10 < 4:
+                mask_p = (parcel_map == pid)
+                h_date[mask_p] += float(rng.uniform(1.8, 3.5))
+                v_date[mask_p] += float(rng.uniform(2.2, 4.2))
         
     H[i] = h_date
     V[i] = v_date

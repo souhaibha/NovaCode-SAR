@@ -220,9 +220,9 @@ export default function Timeline({ zone, period, setPeriod }) {
               const isStart = date === period.start;
               const isEnd = date === period.end;
               const isActive = isStart || isEnd;
-              // Prevent label collision: show first, last, and nicely spaced intermediate dates
-              const step = totalDates > 10 ? 3 : totalDates > 6 ? 2 : 1;
-              const showText = i === 0 || i === totalDates - 1 || (i % step === 0);
+              // Prevent label collision: always show first and last dates cleanly.
+              // Intermediate ticks remain interactive dots with tooltips; the active date is displayed in the floating bubble above.
+              const showText = i === 0 || i === totalDates - 1;
 
               return (
                 <div

@@ -1873,30 +1873,29 @@ export default function MapView(props) {
         </div>
       </div>
 
-      {/* Échelle / Scale & Coordinates (Far Right with lower opacity / discreet footprint) */}
+      {/* Échelle / Scale & Coordinates (Top Right HUD, cleanly aligned with map controls) */}
       <div
-        className="absolute bottom-28 right-5 z-[500] pointer-events-auto flex flex-col items-end gap-1 px-2.5 py-1.5 rounded-lg transition-opacity hover:opacity-100"
+        className="absolute top-4 right-16 z-[1000] pointer-events-auto flex flex-col items-end gap-0.5 px-2.5 py-1.5 rounded-xl transition-opacity hover:opacity-100"
         style={{
-          background: "rgba(15, 23, 42, 0.65)",
-          backdropFilter: "blur(8px)",
-          border: "1px solid rgba(60, 74, 70, 0.25)",
-          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.25)",
-          opacity: 0.75,
+          background: "rgba(15, 23, 42, 0.88)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(60, 74, 70, 0.45)",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
         }}
       >
         <div className="flex items-center gap-2">
           {/* Bar width is driven by scaleBar.barPx — the exact pixel count for scaleBar.label */}
           <div
-            style={{ width: scaleBar.barPx, height: 2, background: "rgba(220,226,246,0.8)", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}
+            style={{ width: scaleBar.barPx, height: 2, background: "#57f1db", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}
           >
-            <div style={{ width: 2, height: 6, background: "rgba(220,226,246,0.8)" }} />
-            <div style={{ width: 2, height: 6, background: "rgba(220,226,246,0.8)" }} />
+            <div style={{ width: 2, height: 6, background: "#57f1db" }} />
+            <div style={{ width: 2, height: 6, background: "#57f1db" }} />
           </div>
-          <span className="font-mono text-[9px] text-on-surface/90 font-medium">
+          <span className="font-mono text-[9px] text-[#57f1db] font-bold">
             {scaleBar.label}
           </span>
         </div>
-        <span className="font-mono text-[8.5px] text-outline/80">
+        <span className="font-mono text-[8.5px] text-[#859490]">
           {center[0].toFixed(2)}°N {Math.abs(center[1]).toFixed(2)}°W • WGS84
         </span>
       </div>
