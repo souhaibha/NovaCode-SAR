@@ -459,6 +459,7 @@ export default function MapView(props) {
   const [split, setSplit] = useState(0.5);
   const startOverlayRef = useRef(null);
   const endOverlayRef = useRef(null);
+  const changemapOverlayRef = useRef(null);
   const mapContainerRef = useRef(null);
 
   // Leaflet map instance ref — set via MapContainer ref prop
@@ -537,9 +538,9 @@ export default function MapView(props) {
     return classes.some((cls) => Boolean(zone?.layers?.[`mask_${cls.id}`]));
   }, [classes, zone?.layers]);
 
-  // Check if date selection is valid: start must be strictly before end
+  // Check if date selection is valid: start must be earlier than or equal to end
   const isInvalidDateRange = Boolean(
-    startDate && endDate && startDate >= endDate
+    startDate && endDate && startDate > endDate
   );
 
   // Clear clicked point when zone, dates, or event change
@@ -552,20 +553,31 @@ export default function MapView(props) {
   // dividerX = left edge of map container + split fraction of its width (screen px).
   // Start image: clip its right side so only pixels left of dividerX show.
   // End   image: clip its left  side so only pixels right of dividerX show.
+  // Changemap:   clip its left  side so only pixels right of dividerX show.
   const applyClip = useCallback(() => {
-    const startEl = startOverlayRef.current?.getElement?.();
-    const endEl   = endOverlayRef.current?.getElement?.();
-    const mapEl   = mapContainerRef.current;
-    if (!startEl || !endEl || !mapEl) return;
+    const startEl  = startOverlayRef.current?.getElement?.();
+    const endEl    = endOverlayRef.current?.getElement?.();
+    const changeEl = changemapOverlayRef.current?.getElement?.();
+    const mapEl    = mapContainerRef.current;
+    if (!mapEl) return;
 
     const mapRect  = mapEl.getBoundingClientRect();
     const dividerX = mapRect.left + split * mapRect.width;
 
-    const sr = startEl.getBoundingClientRect();
-    startEl.style.clipPath = `inset(0 ${Math.max(0, sr.right  - dividerX)}px 0 0)`;
+    if (startEl) {
+      const sr = startEl.getBoundingClientRect();
+      startEl.style.clipPath = `inset(0 ${Math.max(0, sr.right - dividerX)}px 0 0)`;
+    }
 
-    const er = endEl.getBoundingClientRect();
-    endEl.style.clipPath   = `inset(0 0 0 ${Math.max(0, dividerX - er.left)}px)`;
+    if (endEl) {
+      const er = endEl.getBoundingClientRect();
+      endEl.style.clipPath = `inset(0 0 0 ${Math.max(0, dividerX - er.left)}px)`;
+    }
+
+    if (changeEl) {
+      const cr = changeEl.getBoundingClientRect();
+      changeEl.style.clipPath = `inset(0 0 0 ${Math.max(0, dividerX - cr.left)}px)`;
+    }
   }, [split]);
 
   // Re-apply clip whenever split changes (while in swipe mode)
@@ -573,13 +585,15 @@ export default function MapView(props) {
     if (mode === "swipe") applyClip();
   }, [split, mode, applyClip]);
 
-  // Clean up clipPath on both overlays when leaving swipe mode
+  // Clean up clipPath on overlays when leaving swipe mode
   useEffect(() => {
     if (mode !== "swipe") {
       startOverlayRef.current?.getElement?.()
         && (startOverlayRef.current.getElement().style.clipPath = "");
       endOverlayRef.current?.getElement?.()
         && (endOverlayRef.current.getElement().style.clipPath = "");
+      changemapOverlayRef.current?.getElement?.()
+        && (changemapOverlayRef.current.getElement().style.clipPath = "");
     }
   }, [mode]);
   // ─────────────────────────────────────────────────────────────────────────
@@ -752,6 +766,18 @@ export default function MapView(props) {
       ? zone.frames[dateIdx]
       : zone.frames?.[0];
 
+  const startDateIdx = zone.dates ? zone.dates.indexOf(startDate) : 0;
+  const startRadarFrame =
+    startDateIdx >= 0 && zone.frames?.[startDateIdx]
+      ? zone.frames[startDateIdx]
+      : zone.frames?.[0];
+
+  const endDateIdx = zone.dates ? zone.dates.indexOf(endDate) : -1;
+  const endRadarFrame =
+    endDateIdx >= 0 && zone.frames?.[endDateIdx]
+      ? zone.frames[endDateIdx]
+      : (zone.frames ? zone.frames[zone.frames.length - 1] : zone.frames?.[0]);
+
   // Dynamic filter for changemap based on activeClasses
   const [filteredChangemapUrl, setFilteredChangemapUrl] = useState(null);
 
@@ -898,6 +924,55 @@ export default function MapView(props) {
                 add: () => requestAnimationFrame(applyClip),
               }}
             />
+          </>
+        )}
+
+        {/* Swipe mode for real NISAR sites (frames + changemap) */}
+        {mode === "swipe" && !isInvalidDateRange && (zone.changemap || zone.frames) && (
+          <>
+            <SwipeClipHandler applyClip={applyClip} />
+            {/* Start-date radar pass: clipped on right → shows LEFT of divider */}
+            {startRadarFrame && (
+              <ImageOverlay
+                ref={startOverlayRef}
+                key={`swipe-start-radar-${startRadarFrame}`}
+                url={siteBase + startRadarFrame}
+                bounds={bounds}
+                opacity={1}
+                className="pixelated"
+                eventHandlers={{
+                  add: () => requestAnimationFrame(applyClip),
+                }}
+              />
+            )}
+            {/* End-date radar pass: clipped on left → shows RIGHT of divider */}
+            {endRadarFrame && (
+              <ImageOverlay
+                ref={endOverlayRef}
+                key={`swipe-end-radar-${endRadarFrame}`}
+                url={siteBase + endRadarFrame}
+                bounds={bounds}
+                opacity={1}
+                className="pixelated"
+                eventHandlers={{
+                  add: () => requestAnimationFrame(applyClip),
+                }}
+              />
+            )}
+            {/* AI Changemap: clipped on left → shows RIGHT of divider over end-date radar */}
+            {filteredChangemapUrl && (
+              <ImageOverlay
+                ref={changemapOverlayRef}
+                key={`swipe-changemap-${zone.site || zone.id}`}
+                url={filteredChangemapUrl}
+                bounds={bounds}
+                opacity={opacity}
+                className="pixelated"
+                eventHandlers={{
+                  add: () => requestAnimationFrame(applyClip),
+                }}
+              />
+            )}
           </>
         )}
 
